@@ -1,0 +1,70 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+*.pyo
+
+# Virtual environment
+.venv/
+venv/
+ENV/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Environment variables
+.env
+.env.*
+
+# Data files
+*.csv
+*.sqlite3
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Model files
+src/models/*.json
+
+# VSCode
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Test and coverage artifacts
+htmlcov/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.pyc
+*.pyo
+*.pyd
+*.pytest_cache/
+test-results/
+
+# Docker
+*.pid
+*.db
+*.tar
+*.gz
+*.bak
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Temporary files
+*.swp
+*.tmp
+*.bak
