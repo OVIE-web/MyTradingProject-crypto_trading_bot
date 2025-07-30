@@ -55,7 +55,7 @@ A modular, production-ready cryptocurrency trading system using machine learning
         │   ├── ... (your .py modules)
         ├── data/
         │   └── test_df_features.csv
-        ├── main.py (or src/main.py)
+        ├── main.py
         ├── requirements.txt
         ├── pyproject.toml
         ├── Dockerfile
@@ -115,7 +115,7 @@ All major parameters are in `src/config.py` and `.env`:
 2.  Activate your virtual environment.
 3.  Run:
     ```powershell
-    python src/main.py
+    python main.py
     ```
     *   A Plotly chart will open in your browser (or via Streamlit dashboard if enabled).
 
@@ -149,7 +149,7 @@ Key files and folders:
 *   `src/binance_manager.py` — Binance API integration
 *   `src/visualizer.py` — Plotly chart generation
 *   `src/config.py` — Configuration
-*   `main.py` or `src/main.py` — Entry point, trading logic
+*   `main.py` — Entry point, trading logic
 *   `data/` — Data files (e.g., test_df_features.csv)
 *   `requirements.txt`, `pyproject.toml`, `Dockerfile`, `docker-compose.yml`, `.env`, `.dockerignore`
 
