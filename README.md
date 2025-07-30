@@ -176,14 +176,6 @@ Key files and folders:
 -   Expand Streamlit dashboards for analytics
 -   Add or improve documentation
 -   Keep Docker Compose and data paths in sync with any folder changes
-
--   Set up CI/CD for automated testing and deployment
--   Add advanced monitoring/alerting (Sentry, Prometheus, etc.)
--   Harden API security (user management, password hashing, HTTPS)
--   Expand Streamlit dashboards for analytics
--   Add or improve documentation
--   Keep Docker Compose and data paths in sync with any folder changes
-
 ---
 
 For questions or contributions, please open an issue or pull request.
