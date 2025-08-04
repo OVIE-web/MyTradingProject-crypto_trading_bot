@@ -18,7 +18,8 @@ ENV/
 .env.*
 
 # Data files
-*.csv
+# *.csv
+!data/test_df_features.csv
 *.sqlite3
 
 # Logs
