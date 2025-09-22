@@ -39,7 +39,7 @@ services:
       start_period: 10s
 
   db:
-    image: postgres:17
+    image: postgres:15
     container_name: tradingbot_postgres
 
     environment:
