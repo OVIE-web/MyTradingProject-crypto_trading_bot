@@ -15,7 +15,7 @@ MODEL_SAVE_PATH = os.path.join(os.path.dirname(__file__), 'models', 'xgboost_mod
 # -- Postgres DATABASE Configuration --
 # IMPORTANT: When running with Docker Compose, 'localhost' in the bot container refers to the container itself.
 # Use the service name 'db' to refer to the PostgreSQL container.
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://tradinguser:tradingpass@db:5432/tradingbot") # Default for Docker Compose
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://tradinguser:tradingpass@localhost:5432/tradingbot") # Default for Docker Compose
 if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL environment variable not set! Please check your .env file or default.")
 
