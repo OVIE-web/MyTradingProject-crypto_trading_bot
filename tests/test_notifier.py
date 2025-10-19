@@ -1,6 +1,7 @@
 # tests/test_notifier.py
 from unittest.mock import patch
-from MyTradingProject.crypto_trading_bot.src.notifier import send_email_notification, TelegramNotifier
+from crypto_trading_bot.notifier import send_email_notification, TelegramNotifier
+
 
 def test_send_email_notification_success():
     with patch('smtplib.SMTP') as mock_smtp_cls:
