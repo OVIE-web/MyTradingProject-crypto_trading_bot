@@ -29,6 +29,8 @@ dependencies = [
   "cryptography==45.0.5",
   "cycler==0.12.1",
   "dateparser==1.1.8",
+  "dateparser>=1.1.8,<2.0",   # relaxed pin
+  "pytz>=2024.1,<2025.0",     # relaxed pin
   "dnspython==2.7.0",
   "docker==7.1.0",
   "ecdsa==0.19.1",
