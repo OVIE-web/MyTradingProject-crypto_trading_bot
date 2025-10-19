@@ -1,5 +1,5 @@
 import pytest
-from pytest import patch, MagicMock
+from unittest.mock import patch
 import pandas as pd
 from src.binance_manager import BinanceManager
 from src.config import TRADE_SYMBOL, TRADE_INTERVAL, INITIAL_CANDLES_HISTORY

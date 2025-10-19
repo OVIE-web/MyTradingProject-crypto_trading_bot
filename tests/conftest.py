@@ -1,10 +1,17 @@
 import pytest
 import os
+import sys
 import pandas as pd
 import numpy as np
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from src.db import Base, Trade
+from unittest.mock import Mock
+
+# Insert repo root (one level up from tests/) so project `src` package can be imported
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+# Now import project symbols (after adding repo root to sys.path)
+from src.db import Base
 
 @pytest.fixture(autouse=True)
 def mock_env_vars():
@@ -20,7 +27,8 @@ def mock_env_vars():
         "EMAIL_USER": "mock@example.com",
         "EMAIL_PASS": "mock_pass",
         "EMAIL_TO": "mock_to@example.com",
-        "DATABASE_URL": "postgresql:///:memory:"  # Use in-memory DB for testing
+        # Use in-memory SQLite DB for testing. PostgreSQL has no in-memory URI.
+        "DATABASE_URL": "sqlite:///:memory:"
     }
     for key, value in mock_env.items():
         os.environ[key] = value
@@ -58,7 +66,7 @@ def sample_df_with_indicators(sample_ohlcv_data):
 @pytest.fixture
 def mock_xgboost_model():
     """Mocks a trained XGBoost model for predictions."""
-    mock_model = pytest.mock.Mock()
+    mock_model = Mock()
     mock_model.predict_proba.return_value = np.array([[0.1, 0.8, 0.1]] * 10)  # mostly hold
     mock_model.predict.return_value = np.array([1] * 10)  # class 1 = hold
     return mock_model
@@ -66,7 +74,8 @@ def mock_xgboost_model():
 @pytest.fixture
 def db_session():
     """Provides a clean, in-memory SQLAlchemy session for each database test."""
-    engine = create_engine("postgresql:///:memory:")
+    # Use SQLite in-memory engine for tests (fast and reliable).
+    engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     session = TestingSessionLocal()

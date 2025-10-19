@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import os
 import logging
-from pytest import patch, MagicMock
+from unittest.mock import patch, MagicMock
 from src.model_manager import (
     prepare_model_data,
     train_xgboost_model,

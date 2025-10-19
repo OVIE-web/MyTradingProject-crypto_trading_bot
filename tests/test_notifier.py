@@ -1,6 +1,5 @@
 # tests/test_notifier.py
-import pytest
-from pytest import patch
+from unittest.mock import patch
 from MyTradingProject.crypto_trading_bot.src.notifier import send_email_notification, TelegramNotifier
 
 def test_send_email_notification_success():
