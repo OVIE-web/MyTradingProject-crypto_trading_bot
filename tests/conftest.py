@@ -27,11 +27,12 @@ def mock_env_vars():
         "EMAIL_USER": "mock@example.com",
         "EMAIL_PASS": "mock_pass",
         "EMAIL_TO": "mock_to@example.com",
-        # Use in-memory SQLite DB for testing. PostgreSQL has no in-memory URI.
-        "DATABASE_URL": "sqlite:///:memory:"
+        # Do NOT overwrite DATABASE_URL if the user has provided one (e.g., for Postgres testing).
     }
     for key, value in mock_env.items():
-        os.environ[key] = value
+        # Only set vars that are not already set in the environment
+        if key not in os.environ:
+            os.environ[key] = value
     yield
     os.environ.clear()
     os.environ.update(original_environ)
