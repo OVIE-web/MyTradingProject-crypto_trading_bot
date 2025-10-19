@@ -1,6 +1,11 @@
 # tests/test_notifier.py
 from unittest.mock import patch
+from typing import Callable
 from src.notifier import send_email_notification, TelegramNotifier
+
+# give the type checker precise types for the imported items
+send_email_notification: Callable[[str, str], None] = send_email_notification
+TelegramNotifier = TelegramNotifier
 
 
 def test_send_email_notification_success():
