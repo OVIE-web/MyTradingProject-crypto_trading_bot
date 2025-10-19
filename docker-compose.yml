@@ -12,16 +12,16 @@ services:
 
     ports:
       - "8000:8000"   # FastAPI
-      - "8501:8501"   # Streamlit (if used)
+      - "8501:8501"   # Streamlit (optional)
       - "5000:5000"   # MLflow (optional)
 
     volumes:
-      - ./src:/app/src
-      - ./main.py:/app/main.py
-      - ./src/models:/app/src/models
-      - ./data/test_df_features.csv:/app/data/test_df_features.csv
+      - ./src:/app/src:cached
+      - ./main.py:/app/main.py:cached
+      - ./src/models:/app/src/models:cached
+      - ./data/test_df_features.csv:/app/data/test_df_features.csv:ro
       - ./logs:/app/logs
-      - .env:/app/.env:ro  # ✅ Secure mount of environment file
+      - .env:/app/.env:ro  # secure mount of environment file
 
     depends_on:
       db:
@@ -32,7 +32,7 @@ services:
     command: ["python", "main.py"]
 
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -52,10 +52,11 @@ services:
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # optional override of pg_hba.conf if you need custom auth rules
       - ./pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 3
