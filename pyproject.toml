@@ -152,4 +152,4 @@ requires = ["uv", "setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project.optional-dependencies]
-dev = ["pytest==8.4.1", "pytest-asyncio==1.2.0", "pytest-mock==3.14.1"]
+dev = ["pytest", "pytest-asyncio", "pytest-mock"]
