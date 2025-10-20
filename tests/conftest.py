@@ -1,6 +1,7 @@
 import pytest
 import os
 import sys
+import warnings
 import pandas as pd
 import numpy as np
 from sqlalchemy import create_engine
@@ -12,6 +13,38 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 # Now import project symbols (after adding repo root to sys.path)
 from src.db import Base
+
+
+
+@pytest.fixture(autouse=True, scope="session")
+def silence_deprecation_warnings():
+    # Suppress specific known deprecation warnings
+    warnings.filterwarnings(
+        "ignore",
+        message="datetime.datetime.utcnow() is deprecated",
+        category=DeprecationWarning,
+    )
+    warnings.filterwarnings(
+        "ignore",
+        module="websockets",
+        category=DeprecationWarning,
+    )
+    warnings.filterwarnings(
+        "ignore",
+        module="dateparser.timezone_parser",
+        category=DeprecationWarning,
+    )
+
+
+@pytest.fixture
+def mock_binance_client(monkeypatch):
+    with patch("src.binance_manager.Client") as mock_client:
+        instance = MagicMock()
+        mock_client.return_value = instance
+        instance.ping.return_value = {}
+        instance.get_account.return_value = {"balances": []}
+        yield instance
+
 
 
 @pytest.fixture(autouse=True, scope="session")

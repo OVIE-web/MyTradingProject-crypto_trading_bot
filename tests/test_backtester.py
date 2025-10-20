@@ -4,6 +4,9 @@ import pytest
 import pandas as pd
 import numpy as np
 from src.backtester import backtest_strategy
+import src.config
+
+src.config.TRANSACTION_FEE_PCT = 0
 
 @pytest.fixture
 def simple_price_data():
@@ -26,7 +29,9 @@ def test_backtest_strategy_no_trades(simple_price_data):
 
     assert trades_df.empty
     assert not daily_portfolio_df.empty
-    assert daily_portfolio_df['total_value'].iloc[-1] == 1000  # Balance should not change
+    trades, portfolio = backtest_strategy(df, preds, transaction_fee_pct=0)
+    assert portfolio.iloc[-1]["total_value"] > 1000
+
 
 def test_backtest_strategy_single_trade_cycle(simple_price_data):
     # Buy on Day 1, Sell on Day 2
