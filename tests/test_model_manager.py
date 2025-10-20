@@ -47,17 +47,23 @@ def test_prepare_model_data(sample_model_data):
     np.testing.assert_allclose(train_dist, test_dist, atol=0.05)
 
 def test_train_xgboost_model_saves_model(sample_model_data, tmp_path, caplog):
-    with patch('sklearn.model_selection.RandomizedSearchCV') as mock_rscv:
-    mock_estimator = MagicMock()
-    mock_estimator.predict_proba.return_value = np.array([[0.1, 0.8, 0.1]] * len(X_test))
-    mock_estimator.feature_importances_ = np.ones(len(FEATURE_COLUMNS))
-    mock_estimator.save_model = MagicMock()  # <-- add this
+    with patch('xgboost.XGBClassifier.save_model') as mock_save_model:
+        X_train, X_test, y_train, y_test = prepare_model_data(
+            sample_model_data, FEATURE_COLUMNS, TARGET_COLUMN
+        )
 
-    mock_rscv_instance = MagicMock()
-    mock_rscv_instance.best_estimator_ = mock_estimator
-    mock_rscv_instance.best_params_ = {'mock_param': 'mock_value'}
-    mock_rscv_instance.fit.return_value = None
-    mock_rscv.return_value = mock_rscv_instance
+        # 👇 This must be indented under the with statement
+        with patch('sklearn.model_selection.RandomizedSearchCV') as mock_rscv:
+            mock_estimator = MagicMock()
+            mock_estimator.predict_proba.return_value = np.array([[0.1, 0.8, 0.1]] * len(X_test))
+            mock_estimator.feature_importances_ = np.ones(len(FEATURE_COLUMNS))
+            mock_estimator.save_model = MagicMock()  # add this so save_model exists
+
+            mock_rscv_instance = MagicMock()
+            mock_rscv_instance.best_estimator_ = mock_estimator
+            mock_rscv_instance.best_params_ = {'mock_param': 'mock_value'}
+            mock_rscv_instance.fit.return_value = None
+            mock_rscv.return_value = mock_rscv_instance
 
             # Set a fake model save path
             original_path = os.environ.get('MODEL_SAVE_PATH')
@@ -71,8 +77,7 @@ def test_train_xgboost_model_saves_model(sample_model_data, tmp_path, caplog):
 
                 assert trained_model is not None
                 assert 'mock_param' in best_params
-                mock_save_model.assert_called_once_with(os.environ['MODEL_SAVE_PATH'])
-
+                mock_estimator.save_model.assert_called_once_with(os.environ['MODEL_SAVE_PATH'])
                 assert "Test accuracy" in caplog.text
                 assert "Classification Report" in caplog.text
             finally:

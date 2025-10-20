@@ -13,6 +13,11 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 # Now import project symbols (after adding repo root to sys.path)
 from src.db import Base
 
+
+@pytest.fixture(autouse=True, scope="session")
+def set_test_db_url():
+    os.environ["DATABASE_URL"] = "postgresql://testuser:testpass@localhost:5432/tradingbot_test"
+
 @pytest.fixture(autouse=True)
 def mock_env_vars():
     """Mocks essential environment variables for tests."""
