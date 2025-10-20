@@ -33,30 +33,31 @@ def test_prepare_model_data(sample_model_data):
     assert not X_train.empty and not X_test.empty
     assert not y_train.empty and not y_test.empty
 
-    total_rows = len(sample_model_data)
-    assert len(X_train) + len(X_test) == total_rows
-    assert len(y_train) + len(y_test) == total_rows
+    # Test set size should match expected proportion
+    expected_test_size = int(len(sample_model_data) * 0.2)  # default TEST_SIZE=0.2
+    assert len(X_test) == expected_test_size
+    assert len(y_test) == expected_test_size
 
+    # Training set should be >= original split size (because of SMOTE)
+    assert len(X_train) >= len(sample_model_data) - expected_test_size
+
+    # Class distributions between train/test should be roughly similar pre-SMOTE
     train_dist = y_train.value_counts(normalize=True).sort_index()
     test_dist = y_test.value_counts(normalize=True).sort_index()
     np.testing.assert_allclose(train_dist, test_dist, atol=0.05)
 
 def test_train_xgboost_model_saves_model(sample_model_data, tmp_path, caplog):
-    with patch('xgboost.XGBClassifier.save_model') as mock_save_model:
-        X_train, X_test, y_train, y_test = prepare_model_data(
-            sample_model_data, FEATURE_COLUMNS, TARGET_COLUMN
-        )
+    with patch('sklearn.model_selection.RandomizedSearchCV') as mock_rscv:
+    mock_estimator = MagicMock()
+    mock_estimator.predict_proba.return_value = np.array([[0.1, 0.8, 0.1]] * len(X_test))
+    mock_estimator.feature_importances_ = np.ones(len(FEATURE_COLUMNS))
+    mock_estimator.save_model = MagicMock()  # <-- add this
 
-        with patch('sklearn.model_selection.RandomizedSearchCV') as mock_rscv:
-            mock_estimator = MagicMock()
-            mock_estimator.predict_proba.return_value = np.array([[0.1, 0.8, 0.1]] * len(X_test))
-            mock_estimator.feature_importances_ = np.ones(len(FEATURE_COLUMNS))
-
-            mock_rscv_instance = MagicMock()
-            mock_rscv_instance.best_estimator_ = mock_estimator
-            mock_rscv_instance.best_params_ = {'mock_param': 'mock_value'}
-            mock_rscv_instance.fit.return_value = None
-            mock_rscv.return_value = mock_rscv_instance
+    mock_rscv_instance = MagicMock()
+    mock_rscv_instance.best_estimator_ = mock_estimator
+    mock_rscv_instance.best_params_ = {'mock_param': 'mock_value'}
+    mock_rscv_instance.fit.return_value = None
+    mock_rscv.return_value = mock_rscv_instance
 
             # Set a fake model save path
             original_path = os.environ.get('MODEL_SAVE_PATH')
@@ -81,12 +82,9 @@ def test_train_xgboost_model_saves_model(sample_model_data, tmp_path, caplog):
                     del os.environ['MODEL_SAVE_PATH']
 
 def test_make_predictions(mock_xgboost_model, sample_model_data):
-    X_data = sample_model_data[FEATURE_COLUMNS]
-    predictions, confidence = make_predictions(
-        mock_xgboost_model,
-        X_data,
-        CONFIDENCE_THRESHOLD
-    )
+    mock_model = MagicMock()
+    mock_model.predict_proba.return_value = np.array([[0.1, 0.8, 0.1]]* len(X_data))
+    predictions, confidence = make_predictions(mock_model, X_data, CONFIDENCE_THRESHOLD)
 
     assert not predictions.empty
     assert len(predictions) == len(X_data)

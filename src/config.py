@@ -4,6 +4,9 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+
+os.environ["JOBLIB_MULTIPROCESSING"] = "0"
+os.environ["OMP_NUM_THREADS"] = "1"
 # --- Data Paths ---
 # Create a 'data' folder in your project root and place test_df_features.csv inside it.
 DATA_FILE_PATH = 'data/test_df_features.csv'

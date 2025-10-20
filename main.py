@@ -11,7 +11,7 @@ from email.mime.text import MIMEText
 import requests
 from datetime import datetime
 from sklearn.exceptions import UndefinedMetricWarning
-from binance.client import SIDE_BUY, SIDE_SELL
+from binance.enums import SIDE_BUY, SIDE_SELL
 
 # Import only the config constants actually used in this file
 from src.config import (
