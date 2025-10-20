@@ -274,7 +274,7 @@ def record_trade(symbol, side, quantity, price):
         side=side,
         quantity=quantity,
         price=price,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now(datetime.UTC)
     )
     db.add(trade)
     db.commit()

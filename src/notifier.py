@@ -1,6 +1,7 @@
 # src/notifier.py
 
 import os
+import asyncio
 import smtplib
 from email.mime.text import MIMEText
 import logging
@@ -39,7 +40,7 @@ class TelegramNotifier:
             return
 
         try:
-            self.bot.send_message(chat_id=self.chat_id, text=message)
+            asyncio.run(self.bot.send_message(chat_id=self.chat_id, text=message))
             logging.info(f"Telegram message sent: '{message}'")
         except TelegramError as e:
             logging.error(f"Failed to send Telegram message: {e}", exc_info=True)
