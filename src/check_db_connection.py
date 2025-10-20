@@ -23,3 +23,5 @@ def wait_for_postgres():
 
 if __name__ == "__main__":
     wait_for_postgres()
+    print("✅ Database connection successful")
+

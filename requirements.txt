@@ -623,3 +623,4 @@ zipp==3.23.0
     #   importlib-metadata
 backoff==2.2.1
     # via crypto-trading-bot (pyproject.toml)
+pytest-asyncio==1.2.0
