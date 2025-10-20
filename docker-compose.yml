@@ -10,17 +10,16 @@ services:
       - .env
 
     ports:
-      - "8000:8000"   # FastAPI
-      - "8501:8501"   # Streamlit (optional)
-      - "5000:5000"   # MLflow (optional)
+      - "8000:8000"
+      - "8501:8501"
+      - "5000:5000"
 
     volumes:
       - ./src:/app/src:cached
       - ./main.py:/app/main.py:cached
-      - ./src/models:/app/src/models:cached
-      - ./data/test_df_features.csv:/app/data/test_df_features.csv:ro
+      - ./check_db_connection.py:/app/check_db_connection.py:cached
       - ./logs:/app/logs
-      - .env:/app/.env:ro  # secure mount of environment file
+      - .env:/app/.env:ro
 
     depends_on:
       db:
@@ -28,7 +27,8 @@ services:
 
     restart: unless-stopped
 
-    command: ["python", "main.py"]
+    command: >
+      sh -c "python check_db_connection.py && python main.py"
 
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
@@ -36,6 +36,7 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
 
   db:
     image: postgres:16
@@ -66,11 +67,23 @@ services:
     container_name: tradingbot_worker
     env_file:
       - .env
+
+    volumes:
+      - ./src:/app/src:cached
+      - ./check_db_connection.py:/app/check_db_connection.py:cached
+      - ./logs:/app/logs
+      - .env:/app/.env:ro
+
     depends_on:
       db:
         condition: service_healthy
+
     restart: unless-stopped
-    command: ["python", "src/bot_runner.py"]
+
+    # 👇 Waits for PostgreSQL before starting the bot
+    command: >
+      sh -c "python check_db_connection.py && python src/bot_runner.py"
+
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f bot_runner || exit 1"]
       interval: 30s
