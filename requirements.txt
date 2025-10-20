@@ -621,3 +621,5 @@ zipp==3.23.0
     # via
     #   crypto-trading-bot (pyproject.toml)
     #   importlib-metadata
+backoff==2.2.1
+    # via crypto-trading-bot (pyproject.toml)
