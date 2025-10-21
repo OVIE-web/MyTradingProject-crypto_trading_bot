@@ -23,9 +23,10 @@ class BinanceManager:
         self.client = Client(BINANCE_API_KEY, BINANCE_API_SECRET)
         self.client.API_URL = api_url  # Override the API URL for testnet if needed
 
-        if not BINANCE_API_KEY or not BINANCE_API_SECRET:
-            logging.critical("Binance API Key or Secret not found in environment variables. Trading will not work.")
-            raise ValueError("API credentials missing. Please set BINANCE_API_KEY and BINANCE_API_SECRET in your .env file.")
+        if not BINANCE_API_KEY or BINANCE_API_KEY == "your_binance_api_key" \
+           or not BINANCE_API_SECRET or BINANCE_API_SECRET == "your_binance_api_secret":
+            raise ValueError("API credentials missing")
+
 
         try:
             # Test connection
