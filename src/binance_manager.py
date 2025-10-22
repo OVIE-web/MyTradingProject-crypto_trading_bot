@@ -15,28 +15,29 @@ from src.config import (
 
 class BinanceManager:
     def __init__(self):
-        print("BINANCE_API_KEY:", BINANCE_API_KEY)
-        print("BINANCE_API_SECRET:", BINANCE_API_SECRET)
         """Initializes the Binance API client."""
-        api_url = BINANCE_TESTNET_API_URL if BINANCE_TESTNET else BINANCE_API_URL
-        logging.info(f"Using Binance API URL: {api_url}")
-        self.client = Client(BINANCE_API_KEY, BINANCE_API_SECRET)
-        self.client.API_URL = api_url  # Override the API URL for testnet if needed
-
-        if not BINANCE_API_KEY or BINANCE_API_KEY == "your_binance_api_key" \
-           or not BINANCE_API_SECRET or BINANCE_API_SECRET == "your_binance_api_secret":
+        # Validate credentials first
+        if (not BINANCE_API_KEY or BINANCE_API_KEY.strip() in ["your_binance_api_key", ""]) \
+           or (not BINANCE_API_SECRET or BINANCE_API_SECRET.strip() in ["your_binance_api_secret", ""]):
             raise ValueError("API credentials missing")
 
+        api_url = BINANCE_TESTNET_API_URL if BINANCE_TESTNET else BINANCE_API_URL
+        logging.info(f"Using Binance API URL: {api_url}")
+
+        # Create client only after validation
+        self.client = Client(BINANCE_API_KEY, BINANCE_API_SECRET)
+        self.client.API_URL = api_url  # Override the API URL for testnet if needed
 
         try:
             # Test connection
             self.client.ping()
             logging.info(f"Connected to Binance API (Testnet: {BINANCE_TESTNET}) successfully.")
-            self.account_info = self.client.get_account() # Get account info immediately
+            self.account_info = self.client.get_account()
             logging.info(f"Account loaded for Testnet: {BINANCE_TESTNET}")
         except Exception as e:
             logging.critical(f"Failed to connect to Binance API: {e}", exc_info=True)
             raise
+
 
     def get_latest_ohlcv_candles(self, symbol=TRADE_SYMBOL, interval=TRADE_INTERVAL, limit=INITIAL_CANDLES_HISTORY):
         """
