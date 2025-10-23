@@ -18,6 +18,8 @@ def get_binance_keys():
         os.getenv("BINANCE_TESTNET", "False").lower() == "true",
     )
 
+BINANCE_API_KEY, BINANCE_API_SECRET, BINANCE_TESTNET = get_binance_keys()
+
 
 
 os.environ["JOBLIB_MULTIPROCESSING"] = "0"
