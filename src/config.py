@@ -4,6 +4,21 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+# --- Binance API Configuration ---
+BINANCE_API_KEY = os.getenv("BINANCE_API_KEY")
+BINANCE_API_SECRET = os.getenv("BINANCE_API_SECRET")
+BINANCE_TESTNET = os.getenv("BINANCE_TESTNET", "False").lower() == "true"
+BINANCE_API_URL = "https://api.binance.com"
+BINANCE_TESTNET_API_URL = "https://testnet.binance.vision/api"
+
+def get_binance_keys():
+    return (
+        os.getenv("BINANCE_API_KEY"),
+        os.getenv("BINANCE_API_SECRET"),
+        os.getenv("BINANCE_TESTNET", "False").lower() == "true",
+    )
+
+
 
 os.environ["JOBLIB_MULTIPROCESSING"] = "0"
 os.environ["OMP_NUM_THREADS"] = "1"
@@ -24,16 +39,10 @@ DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://testuser:testpass@db:5432
 if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL environment variable not set! Please check your .env file or default.")
 
-# --- Binance API Configuration ---
-BINANCE_API_KEY = os.getenv('BINANCE_API_KEY')
-BINANCE_API_SECRET = os.getenv('BINANCE_API_SECRET')
-BINANCE_TESTNET = True # Set to False for real trading, but START WITH TRUE
-BINANCE_API_URL = "https://api.binance.com"
-BINANCE_TESTNET_API_URL = "https://testnet.binance.vision/api"
 
 # --- Live Trading Parameters ---
 TRADE_SYMBOL = 'BTCUSDT'
-TRADE_INTERVAL = '1h'
+TRADE_INTERVAL = '4h'
 TRADE_QUANTITY = 0.001
 INITIAL_CANDLES_HISTORY = 100
 

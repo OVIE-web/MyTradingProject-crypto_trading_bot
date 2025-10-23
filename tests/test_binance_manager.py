@@ -49,16 +49,20 @@ def test_binance_manager_init_success(mock_binance_client):
 
 
 def test_binance_manager_init_no_api_keys(monkeypatch):
-    # --- Patch the config variables directly in memory ---
-    monkeypatch.setattr("src.config.BINANCE_API_KEY", None)
-    monkeypatch.setattr("src.config.BINANCE_API_SECRET", None)
+    # Remove env vars at OS level
+    monkeypatch.delenv("BINANCE_API_KEY", raising=False)
+    monkeypatch.delenv("BINANCE_API_SECRET", raising=False)
 
-    # Ensure Binance client is mocked so no network call happens
-    with patch("src.binance_manager.Client", MagicMock()):
-        # Now it should raise ValueError
-        with pytest.raises(ValueError, match="API credentials missing"):
-            from src.binance_manager import BinanceManager
-            BinanceManager()
+    with patch.dict("os.environ", {"BINANCE_API_KEY": "", "BINANCE_API_SECRET": ""}, clear=True):
+        import importlib
+        import src.config
+        importlib.reload(src.config)
+
+        with patch("src.binance_manager.Client", MagicMock()):
+            with pytest.raises(ValueError, match="API credentials missing"):
+                from src.binance_manager import BinanceManager
+                BinanceManager()
+
 
 
 def test_get_latest_ohlcv_candles(mock_binance_client, mock_klines_data):

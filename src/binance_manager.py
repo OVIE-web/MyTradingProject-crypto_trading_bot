@@ -12,8 +12,12 @@ from src.config import (
     BINANCE_TESTNET_API_URL, TRADE_SYMBOL, TRADE_INTERVAL, INITIAL_CANDLES_HISTORY
 )
 
+from src.config import get_binance_keys
+BINANCE_API_KEY, BINANCE_API_SECRET, BINANCE_TESTNET = get_binance_keys()
 
-c = Client(os.getenv("BINANCE_API_KEY"), os.getenv("BINANCE_API_SECRET"), testnet=True)
+
+
+c = Client(BINANCE_API_KEY, BINANCE_API_SECRET, testnet=BINANCE_TESTNET)
 order = c.order_market_buy(symbol="BTCUSDT", quantity=0.001)
 print(order)
 
