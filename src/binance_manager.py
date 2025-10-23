@@ -109,8 +109,9 @@ class BinanceManager:
         """Place a market order (BUY or SELL)."""
         try:
             if not isinstance(quantity, (int, float)) or quantity <= 0:
-                logging.error(f"Invalid quantity for market order: {quantity}")
+                logging.warning(f"Invalid quantity for market order: {quantity} — order not placed.")
                 return None
+
 
             info = self.client.get_symbol_info(symbol)
             if not info:
