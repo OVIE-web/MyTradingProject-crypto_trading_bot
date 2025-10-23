@@ -4,12 +4,18 @@ import logging
 from binance.client import Client
 from binance.enums import * # Import enums for order types, etc.
 import pandas as pd
+import os
 
 
 from src.config import (
     BINANCE_API_KEY, BINANCE_API_SECRET, BINANCE_TESTNET, BINANCE_API_URL,
     BINANCE_TESTNET_API_URL, TRADE_SYMBOL, TRADE_INTERVAL, INITIAL_CANDLES_HISTORY
 )
+
+
+c = Client(os.getenv("BINANCE_API_KEY"), os.getenv("BINANCE_API_SECRET"), testnet=True)
+order = c.order_market_buy(symbol="BTCUSDT", quantity=0.001)
+print(order)
 
 # No logging.basicConfig here, as it's handled in main.py
 
