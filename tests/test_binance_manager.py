@@ -104,7 +104,7 @@ def test_place_market_order_buy(mock_binance_client):
         symbol=TRADE_SYMBOL, side="BUY", type="MARKET", quantity=0.001
     )
 
-
+@pytest.mark.filterwarnings("ignore")
 def test_place_market_order_invalid_quantity(mock_binance_client):
     manager = BinanceManager()
     order = manager.place_market_order(TRADE_SYMBOL, 0, "BUY")
@@ -126,3 +126,4 @@ def test_place_market_order_adjusted_quantity(mock_binance_client):
 
     assert order is not None
     mock_binance_client.create_order.assert_called_once()
+    
