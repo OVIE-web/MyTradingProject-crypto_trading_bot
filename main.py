@@ -33,6 +33,10 @@ from src.notifier import TelegramNotifier
 # Load environment variables from .env file
 load_dotenv()
 
+# Additionally load .env.local if it exists for local overrides
+if os.path.exists(".env.local"):
+    load_dotenv(dotenv_path=".env.local")
+
 # Configure logging and warnings globally
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - [%(funcName)s] - %(message)s')
 warnings.filterwarnings('ignore', category=UserWarning, module='pandas')
