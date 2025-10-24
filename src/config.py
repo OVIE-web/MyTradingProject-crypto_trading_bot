@@ -1,57 +1,69 @@
 # src/config.py
-
 import os
+import logging
 from dotenv import load_dotenv
-load_dotenv()
-load_dotenv(dotenv_path=".env.local")
 
-# --- Binance API Configuration ---
+# --------------------------------------------------------------------------
+# 1️⃣ Load environment variables
+# --------------------------------------------------------------------------
+# Load global .env (if present) and the local project one (.env.local)
+load_dotenv()
+load_dotenv(dotenv_path=".env.local", override=True)
+
+# --------------------------------------------------------------------------
+# 2️⃣ Logging setup (for early debug visibility)
+# --------------------------------------------------------------------------
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
+
+# --------------------------------------------------------------------------
+# 3️⃣ Binance Configuration
+# --------------------------------------------------------------------------
 BINANCE_API_KEY = os.getenv("BINANCE_API_KEY")
 BINANCE_API_SECRET = os.getenv("BINANCE_API_SECRET")
 BINANCE_TESTNET = os.getenv("BINANCE_TESTNET", "False").lower() == "true"
+
 BINANCE_API_URL = "https://api.binance.com"
 BINANCE_TESTNET_API_URL = "https://testnet.binance.vision/api"
 
 def get_binance_keys():
-    return (
-        os.getenv("BINANCE_API_KEY"),
-        os.getenv("BINANCE_API_SECRET"),
-        os.getenv("BINANCE_TESTNET", "False").lower() == "true",
-    )
+    """Return Binance API credentials and testnet flag."""
+    return BINANCE_API_KEY, BINANCE_API_SECRET, BINANCE_TESTNET
 
-BINANCE_API_KEY, BINANCE_API_SECRET, BINANCE_TESTNET = get_binance_keys()
+# --------------------------------------------------------------------------
+# 4️⃣ Database Configuration
+# --------------------------------------------------------------------------
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-
-
-os.environ["JOBLIB_MULTIPROCESSING"] = "0"
-os.environ["OMP_NUM_THREADS"] = "1"
-# --- Data Paths ---
-# Create a 'data' folder in your project root and place test_df_features.csv inside it.
-DATA_FILE_PATH = 'data/test_df_features.csv'
-
-# -- Model Configuration ---
-MODEL_TYPE = 'xgboost' # Type of model to use
-MODEL_SAVE_PATH = os.path.join(os.path.dirname(__file__), 'models', 'xgboost_model.json') # Path to save/load model
-
-# -- Postgres DATABASE Configuration --
-# IMPORTANT: When running with Docker Compose, 'localhost' in the bot container refers to the container itself.
-# Use the service name 'db' to refer to the PostgreSQL container.
-
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/trading")
-
-# Default for Docker Compose
 if not DATABASE_URL:
-    raise RuntimeError("DATABASE_URL environment variable not set! Please check your .env file or default.")
+    raise RuntimeError("❌ DATABASE_URL not found. Check your .env.local file.")
 
+# Optional: mask sensitive info for logs
+safe_db_url = DATABASE_URL.split("@")[-1] if "@" in DATABASE_URL else DATABASE_URL
+logging.info(f"📦 Using database at: {safe_db_url}")
 
+# --------------------------------------------------------------------------
+# 5️⃣ Paths and Model Configuration
+# --------------------------------------------------------------------------
+DATA_FILE_PATH = os.path.join("data", "test_df_features.csv")
+MODEL_TYPE = "xgboost"
+MODEL_SAVE_PATH = os.path.join(
+    os.path.dirname(__file__), "models", "xgboost_model.json"
+)
 
-# --- Live Trading Parameters ---
-TRADE_SYMBOL = 'BTCUSDT'
-TRADE_INTERVAL = '4h'
+# --------------------------------------------------------------------------
+# 6️⃣ Trading Parameters
+# --------------------------------------------------------------------------
+TRADE_SYMBOL = "BTCUSDT"
+TRADE_INTERVAL = "4h"
 TRADE_QUANTITY = 0.001
 INITIAL_CANDLES_HISTORY = 100
 
-# --- Technical Indicator Parameters (existing) ---
+# --------------------------------------------------------------------------
+# 7️⃣ Technical Indicator Parameters
+# --------------------------------------------------------------------------
 RSI_WINDOW = 14
 BB_WINDOW = 20
 BB_WINDOW_DEV = 2
@@ -59,37 +71,52 @@ SMA_SHORT_WINDOW = 20
 SMA_LONG_WINDOW = 50
 ATR_WINDOW = 14
 
-# --- RSI Signal Quantile Thresholds (for dynamic thresholds) ---
+# RSI quantile thresholds (for dynamic signal levels)
 RSI_LOWER_QUANTILE = 0.2
 RSI_UPPER_QUANTILE = 0.8
 
-# --- Model Parameters (existing) ---
-TARGET_COLUMN = 'signal'
+# --------------------------------------------------------------------------
+# 8️⃣ Model Training Parameters
+# --------------------------------------------------------------------------
+TARGET_COLUMN = "signal"
 TEST_SIZE = 0.2
 RANDOM_STATE = 42
 CONFIDENCE_THRESHOLD = 0.30
 
-# --- Backtesting Parameters (existing) ---
+# --------------------------------------------------------------------------
+# 9️⃣ Backtesting Parameters
+# --------------------------------------------------------------------------
 INITIAL_BALANCE = 10000
 TRANSACTION_FEE_PCT = 0.001
 
-# --- Feature Columns (existing) ---
 FEATURE_COLUMNS = [
-    'rsi', 'bb_upper', 'bb_lower', 'bb_mid', 'bb_pct_b',
-    'sma_20', 'sma_50', 'ma_cross', 'price_momentum',
-    'atr', 'atr_pct'
+    "rsi", "bb_upper", "bb_lower", "bb_mid", "bb_pct_b",
+    "sma_20", "sma_50", "ma_cross", "price_momentum",
+    "atr", "atr_pct"
 ]
 
-# --- Email Notification Configuration ---
+# --------------------------------------------------------------------------
+# 🔔 10️⃣ Notification Configuration
+# --------------------------------------------------------------------------
+# Email
 EMAIL_HOST = os.getenv("EMAIL_HOST")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 EMAIL_TO = os.getenv("EMAIL_TO")
 
-# --- Telegram Notification Configuration (existing) ---
-TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
+# Telegram
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-# --- JWT Configuration (for future web UI, not currently used by bot core) ---
-JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
+# --------------------------------------------------------------------------
+# 🔐 11️⃣ JWT (for optional web dashboard)
+# --------------------------------------------------------------------------
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+
+# --------------------------------------------------------------------------
+# 12️⃣ Runtime Optimization
+# --------------------------------------------------------------------------
+# Disable joblib multiprocessing (for XGBoost + pytest stability)
+os.environ["JOBLIB_MULTIPROCESSING"] = "0"
+os.environ["OMP_NUM_THREADS"] = "1"
