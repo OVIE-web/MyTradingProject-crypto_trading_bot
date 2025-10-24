@@ -3,6 +3,7 @@
 import os
 from dotenv import load_dotenv
 load_dotenv()
+load_dotenv(dotenv_path=".env.local")
 
 # --- Binance API Configuration ---
 BINANCE_API_KEY = os.getenv("BINANCE_API_KEY")
@@ -41,6 +42,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localho
 # Default for Docker Compose
 if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL environment variable not set! Please check your .env file or default.")
+
 
 
 # --- Live Trading Parameters ---
