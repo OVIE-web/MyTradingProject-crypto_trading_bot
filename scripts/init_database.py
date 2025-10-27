@@ -1,25 +1,32 @@
-# init_database.py
+# scripts/init_database.py
+"""
+Initialize the database schema (creates tables if missing).
+Run with:
+    python -m scripts.init_database
+"""
+
+import sys
+import os
 import logging
-from src.db import init_db
-from sqlalchemy import inspect
-from src.db import engine
 
-# Configure logging to always print
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-)
+# Ensure project root is in import path
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-if __name__ == "__main__":
+from src.db import init_db, list_tables
+
+
+def main():
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
     logging.info("🚀 Starting database initialization...")
+
     try:
-        init_db()  # create tables
-        logging.info("✅ Database tables created or already exist.")
-
-        # Optional: list all current tables
-        inspector = inspect(engine)
-        tables = inspector.get_table_names()
+        init_db()
+        tables = list_tables()
         logging.info(f"📊 Tables in database: {tables}")
-
+        logging.info("✅ Database initialization complete.")
     except Exception as e:
         logging.critical(f"❌ Database initialization failed: {e}", exc_info=True)
+
+
+if __name__ == "__main__":
+    main()
