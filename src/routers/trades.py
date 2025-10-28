@@ -22,48 +22,43 @@ def get_db():
 # --------------------------------------------------------------------------
 # Pydantic Schemas
 # --------------------------------------------------------------------------
+# --- Pydantic Schemas ---
 class TradeBase(BaseModel):
-    symbol: str = Field(..., example="BTCUSDT")
-    side: str = Field(..., example="BUY")
-    quantity: float = Field(..., gt=0, example=0.01)
-    price: float = Field(..., gt=0, example=65000.0)
+    symbol: str
+    side: str
+    quantity: float
+    price: float
 
 class TradeCreate(TradeBase):
     pass
 
-class TradeResponse(TradeBase):
+class TradeRead(TradeBase):
     id: int
     timestamp: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # --------------------------------------------------------------------------
 # Routes
 # --------------------------------------------------------------------------
 
-@router.post("/", response_model=TradeResponse)
+@router.post("/", response_model=TradeRead)
 def create_trade(trade: TradeCreate, db: Session = Depends(get_db)):
-    """Create a new trade record."""
-    db_trade = Trade(
-        symbol=trade.symbol,
-        side=trade.side,
-        quantity=trade.quantity,
-        price=trade.price,
-    )
+    db_trade = Trade(**trade.dict(), timestamp=datetime.now(UTC))
     db.add(db_trade)
     db.commit()
     db.refresh(db_trade)
     return db_trade
 
 
-@router.get("/", response_model=List[TradeResponse])
+@router.get("/", response_model=List[TradeRead])
 def get_trades(db: Session = Depends(get_db)):
     """Retrieve all trade records."""
     return db.query(Trade).all()
 
 
-@router.get("/{trade_id}", response_model=TradeResponse)
+@router.get("/{trade_id}", response_model=TradeRead)
 def get_trade(trade_id: int, db: Session = Depends(get_db)):
     """Retrieve a single trade by ID."""
     trade = db.query(Trade).filter(Trade.id == trade_id).first()
@@ -81,3 +76,4 @@ def delete_trade(trade_id: int, db: Session = Depends(get_db)):
     db.delete(trade)
     db.commit()
     return {"message": f"Trade {trade_id} deleted successfully."}
+uvicorn src.main_api:app --reload
