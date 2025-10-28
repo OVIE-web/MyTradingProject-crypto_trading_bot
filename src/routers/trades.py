@@ -1,51 +1,56 @@
 # src/routers/trades.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import List
-from datetime import datetime
+from datetime import datetime, timezone
 
 from src.db import SessionLocal, Trade
 
 router = APIRouter()
 
 # --------------------------------------------------------------------------
-# Dependency to get DB session
+# Database Dependency
 # --------------------------------------------------------------------------
 def get_db():
+    """Provide a transactional scope for DB operations."""
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
 
+
 # --------------------------------------------------------------------------
 # Pydantic Schemas
 # --------------------------------------------------------------------------
-# --- Pydantic Schemas ---
 class TradeBase(BaseModel):
     symbol: str
     side: str
     quantity: float
     price: float
 
+
 class TradeCreate(TradeBase):
+    """Schema for creating a new trade entry."""
     pass
 
+
 class TradeRead(TradeBase):
+    """Schema for returning trade records."""
     id: int
     timestamp: datetime
 
     class Config:
-        from_attributes = True
+        from_attributes = True  # replaces orm_mode=True in Pydantic v2
 
 # --------------------------------------------------------------------------
 # Routes
 # --------------------------------------------------------------------------
-
 @router.post("/", response_model=TradeRead)
 def create_trade(trade: TradeCreate, db: Session = Depends(get_db)):
-    db_trade = Trade(**trade.dict(), timestamp=datetime.now(UTC))
+    """Create a new trade record."""
+    db_trade = Trade(**trade.dict(), timestamp=datetime.now(timezone.utc))
     db.add(db_trade)
     db.commit()
     db.refresh(db_trade)
@@ -76,4 +81,3 @@ def delete_trade(trade_id: int, db: Session = Depends(get_db)):
     db.delete(trade)
     db.commit()
     return {"message": f"Trade {trade_id} deleted successfully."}
-uvicorn src.main_api:app --reload
