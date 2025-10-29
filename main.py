@@ -5,6 +5,7 @@ import warnings
 import os
 import time
 import pandas as pd
+import sys
 from dotenv import load_dotenv
 import smtplib
 from email.mime.text import MIMEText
@@ -318,13 +319,29 @@ def send_telegram_notification(message):
 if __name__ == "__main__":
     send_email_notification("Test Subject", "Test Message")
     os.makedirs(os.path.dirname(MODEL_SAVE_PATH), exist_ok=True)
-    
-    MODE = os.getenv("MODE", "live")  # Read MODE from .env, default to 'live'
-    
+
+    # Add a small CLI so it's easy to train-only during CI or local runs
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--train-only", action="store_true", help="Train model and exit")
+    parser.add_argument("--mode", choices=["live", "backtest"], help="Run mode (overrides MODE env var)")
+    args = parser.parse_args()
+
+    if args.train_only:
+        try:
+            df_backtest_data, trained_model, _, _ = run_backtesting_pipeline(train_new_model=True)
+            logging.info(f"Training completed. Model saved to {MODEL_SAVE_PATH}")
+            sys.exit(0)
+        except Exception as e:
+            logging.critical(f"Training (train-only) failed: {e}", exc_info=True)
+            sys.exit(2)
+
+    MODE = args.mode or os.getenv("MODE", "live")  # Read MODE from .env, default to 'live'
+
     try:
         # First, ensure model is trained and saved, regardless of mode
-        df_backtest_data, trained_model, _, _ = run_backtesting_pipeline(train_new_model=True) 
-        
+        df_backtest_data, trained_model, _, _ = run_backtesting_pipeline(train_new_model=True)
+
         if MODE == 'live':
             if trained_model:
                 logging.info(f"Switching to LIVE trading mode for {TRADE_SYMBOL}...")
