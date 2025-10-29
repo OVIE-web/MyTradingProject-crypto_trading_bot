@@ -137,6 +137,13 @@ def train_xgboost_model(X_train, y_train, X_test, y_test, random_state=RANDOM_ST
 def load_trained_model(model_path=MODEL_SAVE_PATH):
     """Loads a pre-trained XGBoost model."""
     try:
+        if not os.path.exists(model_path):
+            msg = (
+                f"Model file not found at {model_path}. "
+                "Run the training pipeline to create the model or set MODEL_DIR/MODEL_SAVE_PATH to a valid path."
+            )
+            logging.error(msg)
+            raise FileNotFoundError(msg)
         model = xgb.XGBClassifier()
         model.load_model(model_path)
         logging.info(f"XGBoost model loaded from {model_path}")

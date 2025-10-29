@@ -49,9 +49,10 @@ logging.info(f"📦 Using database at: {safe_db_url}")
 # --------------------------------------------------------------------------
 DATA_FILE_PATH = os.path.join("data", "test_df_features.csv")
 MODEL_TYPE = "xgboost"
-MODEL_SAVE_PATH = os.path.join(
-    os.path.dirname(__file__), "models", "xgboost_model.json"
-)
+# Allow overriding the model directory via environment variable for flexibility
+MODEL_DIR = os.getenv("MODEL_DIR", os.path.join(os.path.dirname(__file__), "models"))
+MODEL_SAVE_FILENAME = os.getenv("MODEL_SAVE_FILENAME", "xgboost_model.json")
+MODEL_SAVE_PATH = os.path.join(MODEL_DIR, MODEL_SAVE_FILENAME)
 
 # --------------------------------------------------------------------------
 # 6️⃣ Trading Parameters

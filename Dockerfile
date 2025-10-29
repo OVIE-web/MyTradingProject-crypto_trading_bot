@@ -36,9 +36,15 @@ RUN pip install pytest pytest-asyncio
 
 # 10. Create secure non-root user
 RUN adduser --disabled-password --gecos '' appuser
+
+# 11. Ensure models directory exists and is writable by the non-root user
+# This prevents runtime errors when the application saves the trained model
+RUN mkdir -p /app/src/models && chown -R appuser:appuser /app
+
+# switch to non-root user
 USER appuser
 
-# 11. Expose FastAPI, Streamlit, MLflow ports
+# 12. Expose FastAPI, Streamlit, MLflow ports
 EXPOSE 8000 8501 5000
 
 # 12. Healthcheck
