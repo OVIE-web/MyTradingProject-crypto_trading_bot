@@ -52,21 +52,50 @@ A modular, production-ready cryptocurrency trading system using machine learning
     MyTradingProject/
     └── crypto_trading_bot/
         ├── src/
-        │   ├── ... (your .py modules)
+        │   ├── models/          # Model storage (Docker volume in prod)
+        │   ├── __init__.py
+        │   ├── api.py           # FastAPI endpoints
+        │   ├── backtester.py    # Trading simulation
+        │   ├── binance_manager.py  # Exchange API
+        │   ├── config.py        # Settings & env vars
+        │   ├── data_loader.py   # OHLCV data handling
+        │   ├── db.py           # Database models
+        │   ├── feature_engineer.py  # Technical analysis
+        │   ├── model_manager.py  # ML pipeline
+        │   ├── notifier.py     # Alerts (email/telegram)
+        │   ├── streamlit_app.py  # Dashboard
+        │   └── visualizer.py   # Trading charts
+        ├── tests/
+        │   ├── __init__.py
+        │   ├── conftest.py     # Pytest fixtures
+        │   ├── test_backtester.py
+        │   ├── test_binance_manager.py
+        │   ├── test_data_loader.py
+        │   ├── test_db.py
+        │   ├── test_feature_engineer.py
+        │   ├── test_model_manager.py
+        │   ├── test_notification.py
+        │   ├── test_notifier.py
+        │   └── test_run_modes.py  # CLI & training tests
         ├── data/
-        │   └── test_df_features.csv
-        ├── main.py
-        ├── requirements.txt
-        ├── pyproject.toml
-        ├── Dockerfile
-        ├── docker-compose.yml
-        ├── .dockerignore
-        ├── .env.example
+        │   └── test_df_features.csv  # Historical data
+        ├── main.py             # Entry point & CLI
+        ├── requirements.txt    # Pinned dependencies
+        ├── pyproject.toml     # Project & deps
+        ├── pytest.ini         # Test settings
+        ├── pg_hba.conf       # Postgres auth
+        ├── .python-version   # Python 3.12.x
+        ├── .env.example      # Environment template
+        ├── .env             # Production vars
+        ├── .env.local       # Development overrides
+        ├── Dockerfile       # Container build
+        ├── docker-compose.yml  # Service configs
+        └── .dockerignore       # Build exclusions
     ```
 
 2.  **Navigate to Project Directory:**
     ```powershell
-    cd C:\Users\oviem\OneDrive\Desktop\Projects\MyTradingProject\crypto_trading_bot
+    cd C:\Users\oviem\OneDrive\Desktop\Projects\MyTradingProject\crypto_trading_bot-1
     ```
 
 3.  **Create and Activate Virtual Environment:**
@@ -161,6 +190,22 @@ Key files and folders:
 *   Docker Compose orchestrates all services for production deployment.
 *   Use strong, unique secrets for JWT and database credentials.
 *   Regularly audit and update dependencies in `pyproject.toml` and `requirements.txt`.
+*   Models are persisted in a Docker volume (`models_data`) and shared across services.
+
+### Data & Model Persistence
+*   **Models:** Saved to `/app/src/models` inside containers, shared via Docker volume
+*   **Database:** PostgreSQL data in `postgres_data` volume
+*   **Source Code:** Mounted from host (for development)
+*   **Logs:** Written to host's `logs/` directory
+
+You can train a model quickly using the CLI flag:
+```powershell
+# Local development (writes to src/models/)
+python main.py --train-only
+
+# In Docker (writes to models_data volume)
+docker-compose run --rm tradingbot python main.py --train-only
+```
 
 ## 📈 Visualization: Plotly & Streamlit
 

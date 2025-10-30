@@ -15,6 +15,7 @@ services:
       - ./main.py:/app/main.py:cached
       - ./check_db_connection.py:/app/check_db_connection.py:cached
       - ./logs:/app/logs
+      - models_data:/app/src/models
       - .env:/app/.env:ro
     depends_on:
       db:
@@ -56,6 +57,8 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
+    volumes:
+      - models_data:/app/src/models
     command: >
       sh -c "python check_db_connection.py && python src/bot_runner.py"
     healthcheck:
@@ -73,8 +76,13 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - models_data:/app/src/models
     command: >
       sh -c "pytest -v --maxfail=1 --disable-warnings -q"
 
 volumes:
   postgres_data:
+  models_data:
+    # Persist trained models across container recreates
+    name: tradingbot_models
