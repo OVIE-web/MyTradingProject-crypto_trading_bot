@@ -54,7 +54,7 @@ A modular, production-ready cryptocurrency trading system using machine learning
         ├── src/
         │   ├── models/          # Model storage (Docker volume in prod)
         │   ├── __init__.py
-        │   ├── api.py           # FastAPI endpoints
+        │   ├── main_api.py      # FastAPI endpoints
         │   ├── backtester.py    # Trading simulation
         │   ├── binance_manager.py  # Exchange API
         │   ├── config.py        # Settings & env vars
@@ -103,6 +103,7 @@ A modular, production-ready cryptocurrency trading system using machine learning
     uv venv
     .venv\Scripts\activate
     # For Cmd: .venv\Scripts\activate.bat
+                .venv\Scripts\activate.ps1
     ```
 
 4.  **Install Dependencies:**
@@ -170,7 +171,7 @@ All major parameters are in `src/config.py` and `.env`:
 
 Key files and folders:
 *   `src/` — All Python modules
-*   `src/api.py` — FastAPI app
+*   `src/main_api.py` — FastAPI app
 *   `src/streamlit_app.py` — Streamlit dashboard
 *   `src/model_manager.py` — ML model loading/inference
 *   `src/db.py` — Database models and ORM
