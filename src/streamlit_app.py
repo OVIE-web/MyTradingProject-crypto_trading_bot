@@ -9,27 +9,18 @@ import sys
 repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, repo_root)
 
-# Initialize configuration from Streamlit secrets
-if 'trading' not in st.secrets:
-    st.error("Missing trading configuration in secrets!")
-    st.stop()
-
-TRADE_SYMBOL = st.secrets.trading.symbol
-TRADE_INTERVAL = st.secrets.trading.interval
-TRADE_QUANTITY = float(st.secrets.trading.quantity)
-FEE_PCT = float(st.secrets.trading.fee_pct)
-
-# Feature columns for the model
-FEATURE_COLUMNS = ['rsi', 'bb_upper', 'bb_lower', 'bb_mid', 'bb_pct_b', 
-                  'sma_20', 'sma_50', 'ma_cross', 'price_momentum']
-
 # Try importing optional dependencies
 try:
     from src.model_manager import load_trained_model, make_predictions
+    from src.config import FEATURE_COLUMNS, TRADE_SYMBOL
     from src.db import SessionLocal, Trade
     HAS_DEPENDENCIES = True
 except ImportError:
     HAS_DEPENDENCIES = False
+    # Define fallback constants
+    FEATURE_COLUMNS = ['rsi', 'bb_upper', 'bb_lower', 'bb_mid', 'bb_pct_b', 
+                      'sma_20', 'sma_50', 'ma_cross', 'price_momentum']
+    TRADE_SYMBOL = 'BTCUSDT'
 
 # Page config
 st.set_page_config(
@@ -37,14 +28,6 @@ st.set_page_config(
     page_icon="📈",
     layout="wide"
 )
-
-# Verify Telegram web app authentication if available
-if 'telegram' in st.secrets:
-    query_params = st.experimental_get_query_params()
-    if 'hash' in query_params:
-        # TODO: Implement Telegram WebApp authentication verification
-        # https://core.telegram.org/bots/webapps#validating-data-received-via-the-web-app
-        pass
 
 # Custom CSS
 st.markdown("""
@@ -113,16 +96,9 @@ with col1:
     
     # Get recent trades from database if available
     recent_trades = []
-    if HAS_DEPENDENCIES and 'database' in st.secrets:
+    if HAS_DEPENDENCIES:
         try:
-            # Create database session using secrets
-            from sqlalchemy import create_engine
-            from sqlalchemy.orm import sessionmaker
-            
-            engine = create_engine(st.secrets.database.url)
-            SessionMaker = sessionmaker(bind=engine)
-            db = SessionMaker()
-            
+            db = SessionLocal()
             recent_trades = db.query(Trade).order_by(Trade.timestamp.desc()).limit(10).all()
             db.close()
             
