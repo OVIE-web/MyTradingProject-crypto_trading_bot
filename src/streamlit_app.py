@@ -2,9 +2,25 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
-from src.model_manager import load_trained_model, make_predictions
-from src.config import FEATURE_COLUMNS, TRADE_SYMBOL
-from src.db import SessionLocal, Trade
+import os
+import sys
+
+# Add the repository root to Python path
+repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, repo_root)
+
+# Try importing optional dependencies
+try:
+    from src.model_manager import load_trained_model, make_predictions
+    from src.config import FEATURE_COLUMNS, TRADE_SYMBOL
+    from src.db import SessionLocal, Trade
+    HAS_DEPENDENCIES = True
+except ImportError:
+    HAS_DEPENDENCIES = False
+    # Define fallback constants
+    FEATURE_COLUMNS = ['rsi', 'bb_upper', 'bb_lower', 'bb_mid', 'bb_pct_b', 
+                      'sma_20', 'sma_50', 'ma_cross', 'price_momentum']
+    TRADE_SYMBOL = 'BTCUSDT'
 
 # Page config
 st.set_page_config(
@@ -34,12 +50,18 @@ st.markdown("""
 # Title
 st.markdown("<h1 class='main-title'>CryptoSignal Trading Assistant</h1>", unsafe_allow_html=True)
 
-# Load model
-@st.cache_resource
-def get_model():
-    return load_trained_model()
-
-model = get_model()
+# Load model if dependencies are available
+model = None
+if HAS_DEPENDENCIES:
+    @st.cache_resource
+    def get_model():
+        try:
+            return load_trained_model()
+        except Exception as e:
+            st.error(f"Error loading model: {e}")
+            return None
+    
+    model = get_model()
 
 # Layout with columns
 col1, col2 = st.columns([2, 1])
@@ -72,21 +94,40 @@ with col2:
 with col1:
     st.markdown("### Portfolio Overview")
     
-    # Get recent trades from database
-    db = SessionLocal()
-    recent_trades = db.query(Trade).order_by(Trade.timestamp.desc()).limit(10).all()
-    db.close()
-    
-    if recent_trades:
-        # Format trade data
-        trades_data = []
-        for trade in recent_trades:
-            trades_data.append({
+    # Get recent trades from database if available
+    recent_trades = []
+    if HAS_DEPENDENCIES:
+        try:
+            db = SessionLocal()
+            recent_trades = db.query(Trade).order_by(Trade.timestamp.desc()).limit(10).all()
+            db.close()
+            
+            # Format SQLAlchemy objects
+            trades_data = [{
                 'Time': trade.timestamp.strftime('%Y-%m-%d %H:%M'),
                 'Action': trade.side,
                 'Price': f"${trade.price:.2f}",
                 'Quantity': f"{trade.quantity:.4f} {TRADE_SYMBOL[:3]}"
-            })
+            } for trade in recent_trades]
+        except Exception as e:
+            st.warning("Could not connect to database. Showing demo data.")
+            # Create demo trades directly as dictionaries
+            trades_data = [{
+                'Time': (datetime.now() - timedelta(minutes=i*15)).strftime('%Y-%m-%d %H:%M'),
+                'Action': 'BUY' if i % 2 == 0 else 'SELL',
+                'Price': f"${40000 + (i * 100):.2f}",
+                'Quantity': f"0.1 {TRADE_SYMBOL[:3]}"
+            } for i in range(5)]
+    else:
+        # Create demo data when dependencies aren't available
+        trades_data = [{
+            'Time': (datetime.now() - timedelta(minutes=i*15)).strftime('%Y-%m-%d %H:%M'),
+            'Action': 'BUY' if i % 2 == 0 else 'SELL',
+            'Price': f"${40000 + (i * 100):.2f}",
+            'Quantity': f"0.1 {TRADE_SYMBOL[:3]}"
+        } for i in range(5)]
+    
+    if trades_data:
         
         st.dataframe(
             pd.DataFrame(trades_data),
