@@ -120,13 +120,13 @@ def run_backtesting_pipeline(train_new_model=True):
             raise RuntimeError("Failed to train or load a model.")
 
         X_full_for_predictions = df_normalized[FEATURE_COLUMNS]
-        predictions = make_predictions(model, X_full_for_predictions, confidence_threshold=CONFIDENCE_THRESHOLD)
+        preds, probs = make_predictions(model, X_full_for_predictions, confidence_threshold=CONFIDENCE_THRESHOLD)
         logging.info('✅ Predictions generated for backtesting.')
 
-        trades_df, daily_portfolio_df = backtest_strategy(df_original_aligned, predictions)
+        trades_df, daily_portfolio_df = backtest_strategy(df_original_aligned, preds)
         logging.info('✅ Backtesting completed.')
         
-        df_viz_data = df_for_features_and_signals.loc[predictions.index]
+        df_viz_data = df_for_features_and_signals.loc[preds.index]
 
         if not daily_portfolio_df.empty:
             visualize_trading_results(df_viz_data, trades_df, daily_portfolio_df, lower_thresh, upper_thresh)
