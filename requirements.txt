@@ -423,10 +423,6 @@ pytz==2024.2
     #   dateparser
     #   mlflow
     #   pandas
-pywin32==311
-    # via
-    #   crypto-trading-bot (pyproject.toml)
-    #   docker
 pyyaml==6.0.2
     # via
     #   crypto-trading-bot (pyproject.toml)
