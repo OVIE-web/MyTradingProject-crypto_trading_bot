@@ -39,9 +39,10 @@ def calculate_technical_indicators(df):
         df['bb_upper'] = bb.bollinger_hband()
         df['bb_lower'] = bb.bollinger_lband()
         df['bb_mid'] = bb.bollinger_mavg()
+        
         # Handle division by zero if bb_upper == bb_lower (e.g., flat line)
-        df['bb_pct_b'] = (df['close'] - df['bb_lower']) / (df['bb_upper'] - df['bb_lower'])
-        df['bb_pct_b'].replace([np.inf, -np.inf], np.nan, inplace=True) # Replace inf with NaN
+        bb_pct_b = (df['close'] - df['bb_lower']) / (df['bb_upper'] - df['bb_lower'])
+        df['bb_pct_b'] = bb_pct_b.replace([np.inf, -np.inf], np.nan)
 
         # Moving Averages
         df['sma_20'] = SMAIndicator(close=df['close'], window=SMA_SHORT_WINDOW).sma_indicator()

@@ -52,11 +52,16 @@ def backtest_strategy(df_original, predictions, initial_balance=INITIAL_BALANCE,
             current_price = results.iloc[i]['close']
             signal = results.iloc[i]['prediction']
 
-            # Always record portfolio value for the day
-            current_portfolio_value = balance + (shares * current_price if position == 1 else 0)
+            # Always record portfolio value and composition for the day
+            shares_value = shares * current_price if position == 1 else 0
+            current_portfolio_value = balance + shares_value
             daily_portfolio_values.append({
                 'date': current_date,
-                'total_value': current_portfolio_value
+                'total_value': current_portfolio_value,
+                'cash': balance,
+                'shares': shares,
+                'shares_value': shares_value,
+                'position': position
             })
 
             # --- Trading Logic ---
@@ -65,9 +70,9 @@ def backtest_strategy(df_original, predictions, initial_balance=INITIAL_BALANCE,
                 cost_per_unit_with_fee = current_price * (1 + transaction_fee_pct)
                 potential_shares = balance / cost_per_unit_with_fee
 
-                # Check if enough balance to make a meaningful trade (e.g., more than a tiny dust amount)
-                # Adjust 0.001 to a more appropriate minimum trade value if needed
-                if potential_shares * current_price > 0.001: 
+                # Check if enough balance for a meaningful trade (at least $10 worth)
+                MIN_TRADE_VALUE = 10.0  # Minimum trade value in quote currency
+                if potential_shares * current_price >= MIN_TRADE_VALUE:
                     shares_to_buy = potential_shares
                     cost = shares_to_buy * current_price
                     fee = cost * transaction_fee_pct
@@ -95,9 +100,20 @@ def backtest_strategy(df_original, predictions, initial_balance=INITIAL_BALANCE,
                     fee = value * transaction_fee_pct
                     balance += (value - fee)
                     
+                    # Find the last buy trade to calculate return
+                    last_buy = next((t for t in reversed(trades) if t['type'] == 'buy'), None)
+                    if last_buy:
+                        # Calculate return accounting for fees on both buy and sell
+                        buy_with_fee = last_buy['price'] * (1 + transaction_fee_pct)
+                        sell_with_fee = current_price * (1 - transaction_fee_pct)
+                        trade_return = (sell_with_fee / buy_with_fee) - 1
+                    else:
+                        trade_return = 0
+                    
                     trades.append({
                         'date': current_date,
                         'type': 'sell',
+                        'trade_return': trade_return,
                         'price': current_price,
                         'shares': shares,
                         'fee': fee,
@@ -119,6 +135,17 @@ def backtest_strategy(df_original, predictions, initial_balance=INITIAL_BALANCE,
             value = shares * final_price
             fee = value * transaction_fee_pct
             balance += (value - fee)
+            
+            # Find the last buy trade to calculate return for final trade
+            last_buy = next((t for t in reversed(trades) if t['type'] == 'buy'), None)
+            if last_buy:
+                # Calculate return accounting for fees on both buy and sell
+                buy_with_fee = last_buy['price'] * (1 + transaction_fee_pct)
+                sell_with_fee = final_price * (1 - transaction_fee_pct)
+                trade_return = (sell_with_fee / buy_with_fee) - 1
+            else:
+                trade_return = 0
+            
             trades.append({
                 'date': results.index[-1],
                 'type': 'sell',
@@ -126,7 +153,8 @@ def backtest_strategy(df_original, predictions, initial_balance=INITIAL_BALANCE,
                 'shares': shares,
                 'fee': fee,
                 'balance': balance,
-                'portfolio_value_after_trade': balance
+                'portfolio_value_after_trade': balance,
+                'trade_return': trade_return
             })
             logging.debug(f"FINAL SELL executed on {results.index[-1].strftime('%Y-%m-%d')}: @ ${final_price:.2f}, Shares: {shares:.4f}, Final Balance: ${balance:.2f}")
 
@@ -134,7 +162,7 @@ def backtest_strategy(df_original, predictions, initial_balance=INITIAL_BALANCE,
         trades_df = pd.DataFrame(trades)
         if not trades_df.empty:
             trades_df.set_index('date', inplace=True)
-            trades_df['trade_return'] = trades_df['portfolio_value_after_trade'].pct_change().fillna(0)
+            # Don't overwrite trade_return as it's already calculated for each trade
         else:
             logging.info("No trades were executed during the backtesting period.")
 

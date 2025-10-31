@@ -1,86 +1,87 @@
-(crypto_trading_bot) PS C:\Users\oviem\OneDrive\Desktop\Projects\MyTradingProject\crypto_trading_bot> git push -u origin master
-Enumerating objects: 39, done.
-Counting objects: 100% (39/39), done.
-Delta compression using up to 2 threads
-Compressing objects: 100% (37/37), done.
-Writing objects: 100% (39/39), 144.07 KiB | 1.82 MiB/s, done.
-Total 39 (delta 0), reused 0 (delta 0), pack-reused 0 (from 0)
-remote:
-remote: Create a pull request for 'master' on GitHub by visiting:
-remote: https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot/pull/new/master
-remote:
-To https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot
+# Rules for AI Interaction
 
-[new branch] master -> master
-branch 'master' set up to track 'origin/master'.
+## Project Structure
+- All historical data files must be placed in the `data/` directory
+- Model files should be saved to the configured model directory (controlled by MODEL_DIR env var)
+- Tests must be placed in the `tests/` directory following the pattern `test_*.py`
+- Source code belongs in the `src/` directory
 
+## Code Standards
+1. All Python code must:
+   - Be compatible with Python 3.12+
+   - Follow PEP 8 style guidelines
+   - Include type hints for function parameters and return values
+   - Include docstrings for modules, classes, and functions
 
-Yes, you can commit your project to GitHub even if there are minor issues. It’s common for projects to evolve and improve over time. Committing now allows you to:
+2. Testing Requirements:
+   - All new features must include corresponding tests
+   - Tests should use pytest fixtures where appropriate
+   - Mock external services (Binance API, database) in tests
+   - Maintain test coverage above 80%
 
-Track your progress and changes.
-Collaborate or get feedback.
-Safely back up your work.
-Just make sure your .gitignore is set (which it is), and avoid committing sensitive files like .env or large data files. You can always fix issues in future commits. Document any known issues in your README or as GitHub issues for clarity.
-    Place your historical data file in the `data/` directory:
-    ```
-    MyTradingProject/
-    └── crypto_trading_bot/
-        ├── data/
-        │   └── test_df_features.csv
-    ```
+3. Documentation:
+   - Keep README.md up to date with new features
+   - Document all environment variables in .env.example
+   - Include clear error messages and logging
+   - Add comments for complex algorithms or business logic
 
-This error means your local branch is not named main, or you haven’t made a commit yet. Here’s how to fix it:
+## Development Workflow
+1. Environment Setup:
+   - Use uv for dependency management
+   - Always update requirements.txt when adding new dependencies
+   - Keep pyproject.toml in sync with requirements
 
-Make sure you have committed your changes:
-Check your current branch name:
-```bash
-git branch
-```
-If it says master, rename it to main (recommended for GitHub):
-```bash
-git branch -m master main
-If it says master, rename it to main (recommended for GitHub):
+2. Docker:
+   - Update docker-compose.yml when adding new services
+   - Use volumes for persistent data (models, databases)
+   - Document any new environment variables needed for containers
 
-Push to GitHub:
-If you still get an error, make sure you have at least one commit before pushing.
+3. Database:
+   - Follow database migration best practices
+   - Update pg_hba.conf when changing authentication rules
+   - Include database setup scripts in scripts/
 
+## Security
+1. Never commit:
+   - .env files with real credentials
+   - API keys or secrets
+   - Personal trading data
+   - Large model files or datasets
 
-Your local branch is still named master, not main. GitHub expects main by default for new repositories. To fix this, rename your branch and push:
+2. Always use:
+   - Environment variables for configuration
+   - Secure connection strings
+   - Rate limiting for API calls
+   - Input validation for all data
 
-This will push your code to the main branch on GitHub and resolve the error.
+## Trading Bot Specific
+1. Risk Management:
+   - Implement position size limits
+   - Include stop-loss mechanisms
+   - Add logging for all trades
+   - Validate order parameters
 
-To rename your local branch to main, use the following command:
+2. Model Management:
+   - Version control trained models
+   - Document feature engineering steps
+   - Include model performance metrics
+   - Save model evaluation results
 
-```bash
-git branch -m master main
-```
+3. Data Processing:
+   - Validate data quality before training
+   - Handle missing values appropriately
+   - Document data preprocessing steps
+   - Include data sanity checks
 
-Then push the changes:
+## Contribution Guidelines
+1. Code Changes:
+   - Write clear commit messages
+   - Update tests for new features
+   - Follow existing code style
+   - Document breaking changes
 
-```bash
-git push -u origin main
-```
-
-To activate your .venv on Windows (PowerShell), use:
-
-Once activated, you’ll see (.venv) in your prompt. Then you can install dependencies from pyproject.toml using your preferred tool (e.g., uv pip install -e . or pip install -e .).
-
-If you need to create the .venv first, run:
-
-Then activate as above.
-
-(crypto_trading_bot) PS C:\Users\oviem\OneDrive\Desktop\Projects\MyTradingProject\crypto_trading_bot>
-
-
-Your prompt shows that your .venv is already activated:
-(crypto_trading_bot) PS C:\Users\oviem\OneDrive\Desktop\Projects\MyTradingProject\crypto_trading_bot>
-
-You can now safely install your dependencies from pyproject.toml using:
-
-uv pip install -e .
-```powershell
-
-or, if you prefer pip:
-
-pip install -e .
-```powershell
+2. Review Process:
+   - Run full test suite before commits
+   - Update documentation as needed
+   - Check for security implications
+   - Verify Docker builds successfully

@@ -75,15 +75,25 @@ def mock_env_vars():
     os.environ.clear()
     os.environ.update(original_environ)
 
+@pytest.fixture
 def sample_ohlcv_data():
     """Provides a sample OHLCV DataFrame for testing."""
+    # Set random seed for reproducibility
+    np.random.seed(42)
+    
     dates = pd.date_range(start='2023-01-01', periods=100, freq='D')
+    base_price = 1000.0
+    
+    # Generate correlated price movements
+    price_changes = np.random.normal(0, 20, 100).cumsum()
+    base_prices = base_price + price_changes
+    
     data = {
         'open_time': dates,
-        'open': np.random.uniform(100, 200, 100).cumsum() + 1000,
-        'high': np.random.uniform(100, 200, 100).cumsum() + 1010,
-        'low': np.random.uniform(100, 200, 100).cumsum() + 990,
-        'close': np.random.uniform(100, 200, 100).cumsum() + 1005,
+        'open': base_prices + np.random.normal(0, 5, 100),
+        'high': base_prices + np.random.uniform(10, 20, 100),
+        'low': base_prices - np.random.uniform(10, 20, 100),
+        'close': base_prices + np.random.normal(0, 5, 100),
         'volume': np.random.uniform(1000, 10000, 100),
         'close_time': dates + pd.Timedelta(days=1) - pd.Timedelta(seconds=1),
         'quote_asset_volume': np.random.uniform(100000, 1000000, 100),
@@ -92,6 +102,11 @@ def sample_ohlcv_data():
         'taker_buy_quote_asset_volume': np.random.uniform(50000, 500000, 100),
         'ignore': [0] * 100
     }
+    
+    # Ensure high is always highest and low is always lowest
+    data['high'] = np.maximum.reduce([data['high'], data['open'], data['close']])
+    data['low'] = np.minimum.reduce([data['low'], data['open'], data['close']])
+    
     df = pd.DataFrame(data).set_index('open_time')
     return df.copy()
 
