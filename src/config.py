@@ -60,7 +60,7 @@ MODEL_SAVE_PATH = os.path.join(MODEL_DIR, MODEL_SAVE_FILENAME)
 TRADE_SYMBOL = "BTCUSDT"
 TRADE_INTERVAL = "4h"
 TRADE_QUANTITY = 0.001
-INITIAL_CANDLES_HISTORY = 100
+INITIAL_CANDLES_HISTORY = 500
 
 # --------------------------------------------------------------------------
 # 7️⃣ Technical Indicator Parameters

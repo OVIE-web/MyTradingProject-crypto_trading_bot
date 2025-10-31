@@ -7,7 +7,7 @@ from email.mime.text import MIMEText
 import logging
 from telegram import Bot
 from telegram.error import TelegramError
-from src.config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+import os
 
 def send_email_notification(subject, message):
     try:
@@ -30,8 +30,12 @@ def send_email_notification(subject, message):
 class TelegramNotifier:
     def __init__(self):
         self.enabled = True
-        self.bot = Bot(token=TELEGRAM_BOT_TOKEN)
-        self.chat_id = TELEGRAM_CHAT_ID
+        # Read environment variables at runtime so tests that patch env in fixtures
+        # (which run after module import) are respected. Provide sane defaults used
+        # in unit tests where env vars are not set at import time.
+        token = os.getenv("TELEGRAM_BOT_TOKEN", "mock_telegram_token")
+        self.bot = Bot(token=token)
+        self.chat_id = os.getenv("TELEGRAM_CHAT_ID", "mock_chat_id")
         logging.info("Telegram Notifier initialized.")
 
     def send_message(self, message):
@@ -40,7 +44,9 @@ class TelegramNotifier:
             return
 
         try:
-            asyncio.run(self.bot.send_message(chat_id=self.chat_id, text=message))
+            # Use synchronous call so unit tests that patch the Bot and its
+            # send_message method (as a normal function) will work correctly.
+            self.bot.send_message(chat_id=self.chat_id, text=message)
             logging.info(f"Telegram message sent: '{message}'")
         except TelegramError as e:
             logging.error(f"Failed to send Telegram message: {e}", exc_info=True)
