@@ -29,9 +29,6 @@ ENV/
 .DS_Store
 Thumbs.db
 
-# Model files
-src/models/*.json
-
 # VSCode
 .vscode/
 .idea/
