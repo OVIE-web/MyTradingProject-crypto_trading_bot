@@ -22,6 +22,7 @@ RUN pip install "uv==0.4.18"
 COPY pyproject.toml ./
 
 # 7. Install dependencies
+ENV UV_HTTP_TIMEOUT=120
 RUN uv pip install --system .
 
 # 8. Copy project source code
