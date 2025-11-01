@@ -1,3 +1,5 @@
+# Exclude model artifacts from image (add if not needed in container)
+src/models/*.json
 # 🐍 Python virtual environments and bytecode
 .venv/
 venv/

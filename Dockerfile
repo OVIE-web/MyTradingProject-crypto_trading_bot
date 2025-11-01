@@ -25,14 +25,19 @@ COPY pyproject.toml ./
 RUN uv pip install --system .
 
 # 8. Copy project source code
+
+# Copy only necessary source files
 COPY src/ ./src/
 COPY main.py .
-COPY check_db_connection.py .
-COPY tests/ ./tests/  
-COPY .env . /
+# Do not copy check_db_connection.py or tests/ unless needed
+# COPY check_db_connection.py .
+# COPY tests/ ./tests/
+# Only copy .env if you want to bake secrets into the image (not recommended for production)
+# COPY .env . /
 
-# 9. Add test framework
-RUN pip install pytest pytest-asyncio
+
+# 9. (Optional) Add test framework if you plan to run tests in the container
+# RUN pip install pytest pytest-asyncio
 
 # 10. Create secure non-root user
 RUN adduser --disabled-password --gecos '' appuser
@@ -47,8 +52,10 @@ USER appuser
 # 12. Expose FastAPI, Streamlit, MLflow ports
 EXPOSE 8000 8501 5000
 
-# 12. Healthcheck
-HEALTHCHECK CMD curl --fail http://localhost:8000/health || exit 1
 
-# 13. Default: start FastAPI app (after DB check)
-CMD ["sh", "-c", "python check_db_connection.py && uvicorn main:app --host 0.0.0.0 --port 8000"]
+# 12. Healthcheck (optional, adjust for your main service)
+# HEALTHCHECK CMD curl --fail http://localhost:8000/health || exit 1
+
+
+# 13. Default: start Streamlit app (adjust as needed)
+CMD ["streamlit", "run", "src/streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
