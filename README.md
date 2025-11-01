@@ -127,86 +127,63 @@ A modular, production-ready cryptocurrency trading system using machine learning
         ```
     *   **Never commit `.env` to public repos.**
 
-## ⚙️ Configuration
+## 🔔 Notification Setup
 
-All major parameters are in `src/config.py` and `.env`:
-*   `TRADE_SYMBOL`, `TRADE_INTERVAL`, `TRADE_QUANTITY`
-*   `CONFIDENCE_THRESHOLD` (model predictions)
-*   Technical indicator windows (`RSI_WINDOW`, `BB_WINDOW`, `SMAs` etc.)
-*   `MODE` (`live` or `backtest`)
-*   `BINANCE_TESTNET` (True/False)
-*   Database, email, Telegram, and JWT settings
+### Telegram
+1. Create a bot with [BotFather](https://t.me/BotFather) and get your bot token.
+2. Start a chat with your bot and get your chat ID using:
+   `https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates`
+3. Add these to your `.env`:
+   ```
+   TELEGRAM_BOT_TOKEN=your_bot_token
+   TELEGRAM_CHAT_ID=your_chat_id
+   ```
+4. Use the Streamlit dashboard to send test messages.
 
-## 💻 Usage
+### Email
+1. Use an app password for Gmail or your SMTP provider.
+2. Set the following in your `.env`:
+   ```
+   EMAIL_HOST=smtp.gmail.com
+   EMAIL_PORT=587
+   EMAIL_USER=your_email@gmail.com
+   EMAIL_PASS=your_app_password
+   EMAIL_TO=your_email@gmail.com
+   ```
+3. Test by triggering a notification event in the app.
 
-### Backtesting Mode (Local)
+---
 
-1.  Set `MODE=backtest` in `.env`.
-2.  Activate your virtual environment.
-3.  Run:
-    ```powershell
-    python main.py
-    ```
-    *   A Plotly chart will open in your browser (or via Streamlit dashboard if enabled).
+## 💻 Docker & Compose Usage
 
-### Live Trading Mode (Binance Testnet via Docker Compose)
+- The Dockerfile and docker-compose.yml are set up for production and local development.
+- Model artifacts are stored in `src/models/` and shared via the `models_data` Docker volume.
+- Logs are written to the `logs/` directory and mapped as a volume.
+- The `.env` file is mapped read-only for security.
+- To run the full stack:
+  ```powershell
+  docker-compose up --build
+  ```
+- To run the Streamlit dashboard only:
+  ```powershell
+  docker-compose run --rm tradingbot streamlit run src/streamlit_app.py --server.port=8501 --server.address=0.0.0.0
+  ```
+- To train the model in Docker:
+  ```powershell
+  docker-compose run --rm tradingbot python main.py --train-only
+  ```
 
-**⚠️ EXTREME CAUTION: Live trading uses real API keys and can place orders. Always use the Testnet for safety.**
-
-1.  Set `MODE=live` in `.env`.
-2.  Build and start all services:
-    ```powershell
-    docker-compose up --build
-    ```
-    *   This launches the trading bot, FastAPI server (port 8000), Streamlit dashboard (port 8501), MLflow UI (port 5000), and Postgres DB (port 5432).
-    *   Logs are printed to the terminal. Plotly charts are available via Streamlit.
-
-### API & Dashboard
-
-*   **FastAPI:** http://localhost:8000/docs (interactive API docs)
-*   **Streamlit Dashboard:** http://localhost:8501
-*   **MLflow Tracking UI:** http://localhost:5000
-
-## 📁 Project Structure
-
-Key files and folders:
-*   `src/` — All Python modules
-*   `src/main_api.py` — FastAPI app
-*   `src/streamlit_app.py` — Streamlit dashboard
-*   `src/model_manager.py` — ML model loading/inference
-*   `src/db.py` — Database models and ORM
-*   `src/feature_engineer.py` — Feature engineering
-*   `src/binance_manager.py` — Binance API integration
-*   `src/visualizer.py` — Plotly chart generation
-*   `src/config.py` — Configuration
-*   `main.py` — Entry point, trading logic
-*   `data/` — Data files (e.g., test_df_features.csv)
-*   `requirements.txt`, `pyproject.toml`, `Dockerfile`, `docker-compose.yml`, `.env`, `.dockerignore`
+---
 
 ## 🔒 Security & Best Practices
 
-*   All secrets and credentials are managed via `.env`.
-*   API endpoints are protected with API key and OAuth2/JWT authentication.
-*   Error handling, logging, and notifications are integrated.
-*   Docker Compose orchestrates all services for production deployment.
-*   Use strong, unique secrets for JWT and database credentials.
-*   Regularly audit and update dependencies in `pyproject.toml` and `requirements.txt`.
-*   Models are persisted in a Docker volume (`models_data`) and shared across services.
+- The `.env` file is never committed and is mapped read-only in Docker Compose for extra safety.
+- All secrets (API keys, DB passwords, JWT, etc.) are managed via environment variables.
+- Use `.env.example` as a template and never share your real `.env`.
+- If you need to persist models or logs, use Docker volumes as configured.
+- For troubleshooting Docker build issues (e.g., network timeouts), try increasing build timeouts or retrying the build. See the Dockerfile for the `UV_HTTP_TIMEOUT` setting.
 
-### Data & Model Persistence
-*   **Models:** Saved to `/app/src/models` inside containers, shared via Docker volume
-*   **Database:** PostgreSQL data in `postgres_data` volume
-*   **Source Code:** Mounted from host (for development)
-*   **Logs:** Written to host's `logs/` directory
-
-You can train a model quickly using the CLI flag:
-```powershell
-# Local development (writes to src/models/)
-python main.py --train-only
-
-# In Docker (writes to models_data volume)
-docker-compose run --rm tradingbot python main.py --train-only
-```
+---
 
 ## 📈 Visualization: Plotly & Streamlit
 
