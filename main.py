@@ -1,6 +1,7 @@
 # main.py
 
 import logging
+import signal
 import warnings
 import os
 import time
@@ -8,11 +9,24 @@ import pandas as pd
 import sys
 from dotenv import load_dotenv
 import smtplib
-from email.mime.text import MIMEText
 import requests
 from datetime import datetime
 from sklearn.exceptions import UndefinedMetricWarning
-from binance.enums import SIDE_BUY, SIDE_SELL
+
+# Import SIDE_BUY / SIDE_SELL from binance.enums when available; fallback to simple string constants
+try:
+    from binance.enums import SIDE_BUY, SIDE_SELL
+except Exception:
+    # Fallback values to avoid runtime/type-checker errors when binance enums stubs are missing.
+    # These values match the typical string values used by Binance API wrappers.
+    SIDE_BUY = "buy"
+    SIDE_SELL = "sell"
+    
+    # Usage
+    order = {
+        "side": SIDE_BUY,
+         "amount": 1.0
+    }
 
 # Import only the config constants actually used in this file
 from src.config import (
@@ -33,6 +47,10 @@ from src.notifier import TelegramNotifier
 
 # Load environment variables from .env file
 load_dotenv()
+
+# Catch CTRL+C (SIGINT) and termination signals
+signal.signal(signal.SIGINT, shutdown_handler)
+signal.signal(signal.SIGTERM, shutdown_handler)
 
 # Additionally load .env.local if it exists for local overrides
 if os.path.exists(".env.local"):
@@ -344,6 +362,11 @@ def send_telegram_notification(message):
             logging.error(f"Failed to send Telegram notification (HTTP request error): {re}")
     except Exception as e:
         logging.error(f"Failed to send Telegram notification: {e}")
+        
+def shutdown_handler(signum, frame):
+    logging.info("🛑 Shutdown signal received. Cleaning up before exit...")
+    # Close DB connections, stop threads, release resources here if needed
+    sys.exit(0)
 
 
 # --- Main execution block ---
