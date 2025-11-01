@@ -1,3 +1,18 @@
+# --- Trading Cycle Function ---
+def run_trading_cycle():
+    # First, ensure model is trained and saved, regardless of mode
+    df_backtest_data, trained_model, _, _ = run_backtesting_pipeline(train_new_model=True)
+
+    if MODE == 'live':
+        if trained_model:
+            logging.info(f"Switching to LIVE trading mode for {TRADE_SYMBOL}...")
+            run_live_trade_loop(trained_model)
+        else:
+            logging.critical("Cannot start live trading: no trained model available.")
+    elif MODE == 'backtest':
+        logging.info("Backtesting pipeline executed. No live trading initiated.")
+    else:
+        logging.error(f"Invalid MODE specified in main.py: {MODE}. Must be 'backtest' or 'live'.")
 # main.py
 
 import logging
@@ -47,6 +62,13 @@ from src.notifier import TelegramNotifier
 
 # Load environment variables from .env file
 load_dotenv()
+
+
+# Define shutdown handler early so it is available for signal registration
+def shutdown_handler(signum, frame):
+    logging.info("🛑 Shutdown signal received. Cleaning up before exit...")
+    # Close DB connections, stop threads, release resources here if needed
+    sys.exit(0)
 
 # Catch CTRL+C (SIGINT) and termination signals
 signal.signal(signal.SIGINT, shutdown_handler)
@@ -393,23 +415,10 @@ if __name__ == "__main__":
     MODE = args.mode or os.getenv("MODE", "live")  # Read MODE from .env, default to 'live'
 
     try:
-        # First, ensure model is trained and saved, regardless of mode
-        df_backtest_data, trained_model, _, _ = run_backtesting_pipeline(train_new_model=True)
-
-        if MODE == 'live':
-            if trained_model:
-                logging.info(f"Switching to LIVE trading mode for {TRADE_SYMBOL}...")
-                run_live_trade_loop(trained_model)
-            else:
-                logging.critical("Cannot start live trading: no trained model available.")
-        elif MODE == 'backtest':
-            logging.info("Backtesting pipeline executed. No live trading initiated.")
-        else:
-            logging.error(f"Invalid MODE specified in main.py: {MODE}. Must be 'backtest' or 'live'.")
-
-    except Exception as e:
-        error_msg = f"Pipeline execution failed: {e}"
-        logging.critical(error_msg, exc_info=True)
+        while True:
+            run_trading_cycle()
+    except KeyboardInterrupt:
+        logging.info("🛑 Interrupted by user. Exiting gracefully...")
         send_email_notification("Trading Bot Critical Failure", error_msg)
         send_telegram_notification(error_msg)
         print("Pipeline execution failed. Check logs for details.")
