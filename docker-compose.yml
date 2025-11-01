@@ -1,19 +1,24 @@
+version: "3.9"
+
 services:
+  # ==========================
+  # 🚀 Main Application (FastAPI + Streamlit)
+  # ==========================
   tradingbot:
     build:
       context: .
       dockerfile: Dockerfile
+      target: runtime
     container_name: crypto_trading_bot_app
     env_file:
       - .env
     ports:
-      - "8000:8000"
-      - "8501:8501"
-      - "5000:5000"
+      - "8000:8000"   # FastAPI
+      - "8501:8501"   # Streamlit
+      - "5000:5000"   # MLflow or analytics
     volumes:
       - ./src:/app/src:cached
       - ./main.py:/app/main.py:cached
-      - ./check_db_connection.py:/app/check_db_connection.py:cached
       - ./logs:/app/logs
       - models_data:/app/src/models
       - .env:/app/.env:ro
@@ -22,7 +27,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     command: >
-      sh -c "python check_db_connection.py && python main.py"
+      sh -c "python main.py"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
       interval: 30s
@@ -30,6 +35,9 @@ services:
       retries: 3
       start_period: 10s
 
+  # ==========================
+  # 🗄️ Database Service (PostgreSQL)
+  # ==========================
   db:
     image: postgres:16
     container_name: tradingbot_postgres
@@ -48,8 +56,14 @@ services:
       retries: 3
       start_period: 5s
 
+  # ==========================
+  # 🤖 Worker Service (Trading Bot Engine)
+  # ==========================
   bot:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
     container_name: tradingbot_worker
     env_file:
       - .env
@@ -60,7 +74,7 @@ services:
     volumes:
       - models_data:/app/src/models
     command: >
-      sh -c "python check_db_connection.py && python src/bot_runner.py"
+      sh -c "python src/bot_runner.py"
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f bot_runner || exit 1"]
       interval: 30s
@@ -68,8 +82,14 @@ services:
       retries: 3
       start_period: 10s
 
+  # ==========================
+  # 🧪 Testing Container
+  # ==========================
   test:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: test
     container_name: tradingbot_tests
     env_file:
       - .env
@@ -81,8 +101,10 @@ services:
     command: >
       sh -c "pytest -v --maxfail=1 --disable-warnings -q"
 
+# ==========================
+# 📦 Persistent Volumes
+# ==========================
 volumes:
   postgres_data:
   models_data:
-    # Persist trained models across container recreates
     name: tradingbot_models

@@ -1,56 +1,65 @@
-# Exclude model artifacts from image (add if not needed in container)
-src/models/*.json
-# 🐍 Python virtual environments and bytecode
-.venv/
-venv/
+# =====================
+# 🧠 Python & build artifacts
+# =====================
 __pycache__/
 *.py[cod]
 *.egg-info/
 .Python/
+dist/
+build/
+site/
+.venv/
+venv/
 
-# 📦 Dependency & lock files (handled by uv inside Docker)
-uv.lock
-# Only ignore `pyproject.toml` if you use `requirements.txt` instead.
-# If your Dockerfile installs with `uv pip install -e .`, DO NOT ignore pyproject.toml.
-# pyproject.toml
+# =====================
+# 🧪 Tests, experiments, debug data
+# =====================
+tests/
+notebooks/
+*.ipynb
 
-# 🧠 AI/ML artifacts (optional: if these aren't needed inside image)
+# =====================
+# 🧠 AI/ML artifacts
+# =====================
 *.pkl
 *.joblib
 *.h5
 *.pt
 *.onnx
+src/models/*.json
 
-# 🧪 Test, notebooks, debug
-tests/
-*.ipynb
-notebooks/
-
-# 🧰 IDE/editor settings
-.vscode/
-.idea/
-
-# 🌳 Git
-.git/
-.gitignore
-
-# 📁 Logs and temp files
-*.log
+# =====================
+# ⚙️ Logs, temporary files
+# =====================
 logs/
+*.log
 tmp/
 __tmp__/
 .DS_Store
 
-# 🔒 Sensitive credentials
+# =====================
+# 🔒 Secrets & credentials
+# =====================
 .env
 .env.*
+secrets/
+keys/
 
-# 🏗 Build artifacts
-dist/
-build/
-site/
+# =====================
+# 🧰 IDE/editor settings
+# =====================
+.vscode/
+.idea/
 
-# 🚫 CI/CD, Docker tooling (optional exclusions)
+# =====================
+# 🌳 Git and version control
+# =====================
+.git/
+.gitignore
+
+# =====================
+# 🐋 Docker / CI/CD tooling
+# =====================
 docker-compose.yml
 docker-compose.override.yml
 Dockerfile.dev
