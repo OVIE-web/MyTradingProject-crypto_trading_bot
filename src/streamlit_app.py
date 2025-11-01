@@ -4,6 +4,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import os
 import sys
+from src.notifier import TelegramNotifier
 
 # Add the repository root to Python path
 repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -64,6 +65,15 @@ if HAS_DEPENDENCIES:
     model = get_model()
 
 # Layout with columns
+
+# Initialize Telegram Notifier
+telegram_notifier = None
+if HAS_DEPENDENCIES:
+    try:
+        telegram_notifier = TelegramNotifier()
+    except Exception as e:
+        st.warning(f"Could not initialize Telegram Notifier: {e}")
+
 col1, col2 = st.columns([2, 1])
 
 with col2:
@@ -90,6 +100,18 @@ with col2:
                     <p style='text-align: center; margin: 0.5rem 0;'>Confidence: {float(probs[0]):.2f}</p>
                 </div>
             """, unsafe_allow_html=True)
+
+    st.markdown("### Telegram Bot")
+    telegram_message = st.text_area("Message to send via Telegram:", "", key="telegram_message")
+    if st.button("Send Telegram Message", use_container_width=True, key="send_telegram_btn"):
+        if telegram_notifier is not None:
+            try:
+                telegram_notifier.send_message(telegram_message)
+                st.success("Message sent to Telegram!")
+            except Exception as e:
+                st.error(f"Failed to send Telegram message: {e}")
+        else:
+            st.warning("Telegram Notifier is not initialized.")
 
 with col1:
     st.markdown("### Portfolio Overview")
