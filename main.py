@@ -1,18 +1,4 @@
-# --- Trading Cycle Function ---
-def run_trading_cycle():
-    # First, ensure model is trained and saved, regardless of mode
-    df_backtest_data, trained_model, _, _ = run_backtesting_pipeline(train_new_model=True)
 
-    if MODE == 'live':
-        if trained_model:
-            logging.info(f"Switching to LIVE trading mode for {TRADE_SYMBOL}...")
-            run_live_trade_loop(trained_model)
-        else:
-            logging.critical("Cannot start live trading: no trained model available.")
-    elif MODE == 'backtest':
-        logging.info("Backtesting pipeline executed. No live trading initiated.")
-    else:
-        logging.error(f"Invalid MODE specified in main.py: {MODE}. Must be 'backtest' or 'live'.")
 # main.py
 
 import logging
@@ -389,6 +375,23 @@ def shutdown_handler(signum, frame):
     logging.info("🛑 Shutdown signal received. Cleaning up before exit...")
     # Close DB connections, stop threads, release resources here if needed
     sys.exit(0)
+    
+    
+# --- Trading Cycle Function ---
+def run_trading_cycle():
+    # First, ensure model is trained and saved, regardless of mode
+    df_backtest_data, trained_model, _, _ = run_backtesting_pipeline(train_new_model=True)
+
+    if MODE == 'live':
+        if trained_model:
+            logging.info(f"Switching to LIVE trading mode for {TRADE_SYMBOL}...")
+            run_live_trade_loop(trained_model)
+        else:
+            logging.critical("Cannot start live trading: no trained model available.")
+    elif MODE == 'backtest':
+        logging.info("Backtesting pipeline executed. No live trading initiated.")
+    else:
+        logging.error(f"Invalid MODE specified in main.py: {MODE}. Must be 'backtest' or 'live'.")
 
 
 # --- Main execution block ---
