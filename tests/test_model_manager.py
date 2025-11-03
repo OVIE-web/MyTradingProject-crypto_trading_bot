@@ -73,6 +73,7 @@ def test_train_xgboost_model_saves_model(sample_model_data, tmp_path, caplog):
     """Mock XGBoost training pipeline and ensure model + params saved."""
     with patch("xgboost.XGBClassifier") as mock_xgb_cls:
         mock_model = MagicMock()
+        mock_model._get_tags.return_value = {"pairwise": False}
         mock_model.predict.return_value = np.random.choice([0, 1, 2], 20)
         mock_model.predict_proba.return_value = np.random.rand(20, 3)
         mock_model.save_model = MagicMock()
