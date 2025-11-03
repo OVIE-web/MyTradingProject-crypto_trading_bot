@@ -27,7 +27,7 @@ def load_and_preprocess_data(file_path): # file_path is now passed as argument
         missing_count = df.isnull().sum()
         if missing_count.any():
             logging.warning(f'Found missing values:\n{missing_count[missing_count > 0]}')
-            df = df.fillna(method='ffill')
+            df = df.ffill()
             numeric_cols = df.select_dtypes(include=np.number).columns
             df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].median())
             
