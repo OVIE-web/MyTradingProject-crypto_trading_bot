@@ -146,13 +146,42 @@ async def runner_loop(run_once: bool = False, interval_seconds: int = DEFAULT_IN
         LOG.info("Runner loop exiting; waiting for background tasks to finish...")
         # Wait for currently running tasks (naive approach)
         await asyncio.sleep(0.5)
+        
+        
+def run_once(self):
+    """Execute a single trading iteration (used for testing)."""
+    try:
+        latest_data = self.data_loader.get_latest_data()
+        features = self.feature_engineer.calculate_indicators(latest_data)
+        prediction = self.model_manager.make_predictions(features)
+        self.logger.info(f"Predicted signal: {prediction}")
+        return prediction
+    except Exception as e:
+        self.logger.error(f"Error in single run: {e}")
+        return None
+# --- Single iteration for testing and CI sanity checks ---
+async def run_once_test():
+    """Run a single trading iteration (used by tests)."""
+    async with lifespan() as resources:
+        try:
+            await do_iteration(resources)
+            LOG.info("Test run_once_test() completed successfully")
+            return True
+        except Exception as e:
+            LOG.error(f"Error during single test iteration: {e}")
+            return False
 
 
 def main():
-    # Allow quick run-once via env
-    run_once = os.getenv("BOT_RUN_ONCE", "0") == "1"
+    """Main entry point for trading bot runner."""
+    run_once_flag = os.getenv("BOT_RUN_ONCE", "0") == "1"
     interval = int(os.getenv("BOT_INTERVAL_SECONDS", DEFAULT_INTERVAL))
-    asyncio.run(runner_loop(run_once=run_once, interval_seconds=interval))
+
+    if run_once_flag:
+        # Run a single iteration (for unit test/demo)
+        asyncio.run(run_once_test())
+    else:
+        asyncio.run(runner_loop(run_once=run_once_flag, interval_seconds=interval))
 
 
 if __name__ == "__main__":

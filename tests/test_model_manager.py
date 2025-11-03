@@ -88,6 +88,10 @@ def test_train_xgboost_model_saves_model(sample_model_data, tmp_path, caplog):
 
 def test_make_predictions(mock_xgboost_model, sample_model_data):
     mock_model = MagicMock()
+    
+    # Define X_data for testing
+    X_data = sample_model_data.drop(columns=[TARGET_COLUMN])
+    
     mock_model.predict_proba.return_value = np.array([[0.1, 0.8, 0.1]]* len(X_data))
     predictions, confidence = make_predictions(mock_model, X_data, CONFIDENCE_THRESHOLD)
 
