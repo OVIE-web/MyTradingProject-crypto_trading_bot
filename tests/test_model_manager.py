@@ -69,6 +69,7 @@ def test_prepare_model_data(sample_model_data):
 # -------------------------------------------------
 # TEST: xgboost training and saving
 # -------------------------------------------------
+@pytest.mark.filterwarnings("ignore:Precision and F-score are ill-defined")
 def test_train_xgboost_model_saves_model(sample_model_data, tmp_path, caplog):
     """Test that training the XGBoost model saves correctly and returns best params."""
     with patch("xgboost.XGBClassifier.save_model") as mock_save_model:
@@ -128,7 +129,7 @@ def test_make_predictions(sample_model_data):
     X_data = sample_model_data.drop(columns=[TARGET_COLUMN])
 
     # 3-class probability output (softmax-like)
-    mock_model.predict_proba.return_value = np.tile(np.array([[0.1, 0.8, 0.1]]), (len(X_data), 1))
+    mock_model.predict.return_value = np.array([0, 1, 2] * (len(X_test) // 3))
 
     predictions, confidence = make_predictions(mock_model, X_data, CONFIDENCE_THRESHOLD)
 
