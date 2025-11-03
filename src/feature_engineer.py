@@ -166,7 +166,7 @@ def normalize_features(df):
         
     try:
         # Identify binary columns that should NOT be scaled
-        binary_cols = ['ma_cross', 'signal'] # 'signal' is the target, should not be scaled
+        binary_cols = ['ma_cross', 'signal']  # 'signal' is the target, should not be scaled
         binary_cols = [col for col in binary_cols if col in df.columns]
         
         # Store binary values if they exist
@@ -177,7 +177,7 @@ def normalize_features(df):
         
         if numeric_cols_to_normalize.empty:
             logging.warning("No numeric columns to normalize found after excluding binary/target columns.")
-            return df.copy() # Return copy if nothing to normalize
+            return df.copy()  # Return copy if nothing to normalize
 
         scaler = StandardScaler()
         df_normalized = pd.DataFrame(
@@ -190,7 +190,11 @@ def normalize_features(df):
         if binary_data is not None:
             df_normalized = pd.concat([df_normalized, binary_data], axis=1)
             
-        logging.info("Features normalized successfully.")
+        logging.info(
+            f"Features normalized successfully. "
+            f"Normalized: {list(numeric_cols_to_normalize)}; "
+            f"Preserved: {binary_cols if binary_cols else 'None'}"
+        )
         return df_normalized
         
     except Exception as e:

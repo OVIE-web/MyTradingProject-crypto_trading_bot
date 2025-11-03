@@ -84,10 +84,13 @@ def train_xgboost_model(
         logger.info(f"✅ Test accuracy: {acc:.4f}")
         logger.info("Classification Report:\n%s", report)
 
+        # ✅ Save feature names for later prediction alignment
+        best_model.feature_names_in_ = X_train.columns.tolist()
+
         # ✅ Use provided path or fallback to constant
         model_path = model_path or MODEL_SAVE_PATH
         dir_name = os.path.dirname(model_path)
-        if dir_name:  # only create if non-empty
+        if dir_name:
             os.makedirs(dir_name, exist_ok=True)
 
         best_model.save_model(model_path)
@@ -98,16 +101,6 @@ def train_xgboost_model(
     except Exception as e:
         logger.error("Error training XGBoost model: %s", e, exc_info=True)
         raise
-    
-def load_trained_model(model_path: str | None = None):
-    model_path = model_path or MODEL_SAVE_PATH
-    model = xgb.XGBClassifier()
-    if not os.path.exists(model_path):
-        logger.warning(f"No trained model found at {model_path}, returning untrained model")
-        return model
-    model.load_model(model_path)
-    return model
-
 
 
 def make_predictions(model, X_data, confidence_threshold=CONFIDENCE_THRESHOLD):
@@ -116,16 +109,24 @@ def make_predictions(model, X_data, confidence_threshold=CONFIDENCE_THRESHOLD):
             logger.warning("Empty input received for prediction.")
             return pd.Series(dtype=int), pd.Series(dtype=float)
 
+        # ✅ Align columns with training features if available
+        if hasattr(model, "feature_names_in_"):
+            missing = set(model.feature_names_in_) - set(X_data.columns)
+            if missing:
+                raise ValueError(f"Missing required features for prediction: {missing}")
+            X_data = X_data[model.feature_names_in_]
+
         proba = model.predict_proba(X_data)
         max_prob = np.max(proba, axis=1)
         preds = np.argmax(proba, axis=1)
 
         # ✅ Decode predictions back to [-1, 0, 1]
         pred_map = {0: -1, 1: 0, 2: 1}
-        decoded_preds = pd.Series([pred_map[p] for p in preds], name="signal")
+        decoded_preds = pd.Series([pred_map[p] for p in preds], index=X_data.index, name="signal")
 
+        # Apply confidence threshold
         decoded_preds[max_prob < confidence_threshold] = 0  # Hold if confidence is low
-        confidence = pd.Series(max_prob, name="confidence")
+        confidence = pd.Series(max_prob, index=X_data.index, name="confidence")
 
         logger.info(f"Predictions generated with confidence threshold {confidence_threshold}.")
         logger.info("Prediction distribution:\n%s", decoded_preds.value_counts())
