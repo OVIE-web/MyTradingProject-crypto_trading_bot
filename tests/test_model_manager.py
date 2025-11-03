@@ -67,44 +67,52 @@ def test_prepare_model_data(sample_model_data):
 
 
 # -------------------------------------------------
-# ✅ TEST: train_xgboost_model
+# TEST: xgboost training and saving
 # -------------------------------------------------
 def test_train_xgboost_model_saves_model(sample_model_data, tmp_path, caplog):
-    """Mock XGBoost training pipeline and ensure model + params saved."""
-    with patch("xgboost.XGBClassifier") as mock_xgb_cls:
-        mock_model = MagicMock()
-        mock_model._get_tags.return_value = {"pairwise": False}
-        mock_model.predict.return_value = np.random.choice([0, 1, 2], 20)
-        mock_model.predict_proba.return_value = np.random.rand(20, 3)
-        mock_model.save_model = MagicMock()
+    """Test that training the XGBoost model saves correctly and returns best params."""
+    with patch('xgboost.XGBClassifier.save_model') as mock_save_model:
+        X_train, X_test, y_train, y_test = prepare_model_data(
+            sample_model_data, FEATURE_COLUMNS, TARGET_COLUMN
+        )
 
-        # Mock RandomizedSearchCV behavior
-        with patch("sklearn.model_selection.RandomizedSearchCV") as mock_rscv:
+        # ✅ Mock RandomizedSearchCV properly
+        with patch('sklearn.model_selection.RandomizedSearchCV') as mock_rscv:
+            # Mock model (simulate fitted XGBoost model)
+            mock_model = MagicMock()
+            mock_model._get_tags.return_value = {"pairwise": False}  # <-- critical fix
+            mock_model.predict_proba.return_value = np.array([[0.1, 0.8, 0.1]] * len(X_test))
+            mock_model.feature_importances_ = np.ones(len(FEATURE_COLUMNS))
+            mock_model.save_model = MagicMock()
+
+            # Mock RandomizedSearchCV behavior
             mock_rscv_instance = MagicMock()
             mock_rscv_instance.best_estimator_ = mock_model
-            mock_rscv_instance.best_params_ = {"mock_param": "mock_value"}
+            mock_rscv_instance.best_params_ = {'mock_param': 'mock_value'}
             mock_rscv_instance.fit.return_value = None
             mock_rscv.return_value = mock_rscv_instance
 
-            # Mock instantiation of the model
-            mock_xgb_cls.return_value = mock_model
+            # Set fake save path for testing
+            original_path = os.environ.get('MODEL_SAVE_PATH')
+            os.environ['MODEL_SAVE_PATH'] = str(tmp_path / "temp_model.json")
 
-            X_train, X_test, y_train, y_test = prepare_model_data(
-                sample_model_data, FEATURE_COLUMNS, TARGET_COLUMN
-            )
+            try:
+                with caplog.at_level(logging.INFO):
+                    trained_model, best_params = train_xgboost_model(
+                        X_train, y_train, X_test, y_test, RANDOM_STATE
+                    )
 
-            os.environ["MODEL_SAVE_PATH"] = str(tmp_path / "test_model.json")
+                # ✅ Assertions
+                assert trained_model == mock_model
+                assert best_params == {'mock_param': 'mock_value'}
+                mock_model.save_model.assert_called_once()
 
-            with caplog.at_level(logging.INFO):
-                trained_model, best_params = train_xgboost_model(
-                    X_train, y_train, X_test, y_test, RANDOM_STATE
-                )
+                assert "Model trained and saved successfully" in caplog.text
 
-            # Verify file saved and params returned
-            mock_model.save_model.assert_called_once()
-            assert "mock_param" in best_params
-            assert isinstance(trained_model, MagicMock)
-            assert any("Model saved" in rec.message for rec in caplog.records)
+            finally:
+                if original_path:
+                    os.environ['MODEL_SAVE_PATH'] = original_path
+
 
 
 # -------------------------------------------------
