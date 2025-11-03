@@ -50,7 +50,7 @@ def calculate_technical_indicators(df):
         df['ma_cross'] = (df['sma_20'] > df['sma_50']).astype(int)
         
         # Price momentum
-        df['price_momentum'] = df['close'].pct_change(5) # Example, could be configured
+        df['price_momentum'] = df['close'].pct_change(5)  # Example, could be configured
         
         # Average True Range
         atr = AverageTrueRange(high=df['high'], low=df['low'], close=df['close'], window=ATR_WINDOW)
@@ -67,7 +67,15 @@ def calculate_technical_indicators(df):
         # Drop rows with NaN values resulting from indicator calculations (e.g., initial rows)
         original_rows = len(df)
         df.dropna(inplace=True)
-        logging.info(f"Calculated technical indicators. Dropped {original_rows - len(df)} rows due to NaN values.")
+        dropped_rows = original_rows - len(df)
+        if dropped_rows > 0:
+            pct_dropped = (dropped_rows / original_rows) * 100
+            logging.info(
+                f"Calculated technical indicators. Dropped {dropped_rows} rows "
+                f"({pct_dropped:.2f}%) due to NaN values from rolling indicators."
+            )
+        else:
+            logging.info("Calculated technical indicators. No rows dropped.")
         
         return df
     except Exception as e:
