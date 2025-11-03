@@ -16,7 +16,7 @@ from src.db import SessionLocal
 from src.notifier import TelegramNotifier
 
 # If you have ORM models, import them (adjust path/name accordingly)
- from src.db_models import Trade
+# from src.db_models import Trade
 
 LOG = logging.getLogger("bot_runner")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")

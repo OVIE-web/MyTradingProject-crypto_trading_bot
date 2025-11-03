@@ -7,6 +7,8 @@ from sklearn.metrics import accuracy_score, classification_report
 from imblearn.over_sampling import SMOTE
 import xgboost as xgb
 
+MODEL_SAVE_PATH = os.getenv("MODEL_SAVE_PATH", "src/models/xgboost_model.json")
+
 from src.config import FEATURE_COLUMNS, TARGET_COLUMN, TEST_SIZE, RANDOM_STATE, CONFIDENCE_THRESHOLD
 
 logger = logging.getLogger(__name__)
@@ -35,9 +37,11 @@ def prepare_model_data(df, feature_cols, target_col):
         raise
 
 
-def train_xgboost_model(X_train, y_train, X_test, y_test, random_state=42):
+def train_xgboost_model(
+    X_train, y_train, X_test, y_test, random_state: int = 42, model_path: str | None = None
+):
     try:
-        # ✅ Encode target labels for XGBoost compatibility
+        # Encode target labels
         y_train_encoded = y_train.replace({-1: 0, 0: 1, 1: 2})
         y_test_encoded = y_test.replace({-1: 0, 0: 1, 1: 2})
 
@@ -46,7 +50,7 @@ def train_xgboost_model(X_train, y_train, X_test, y_test, random_state=42):
             num_class=3,
             random_state=random_state,
             eval_metric="mlogloss",
-            n_jobs=-1
+            n_jobs=-1,
         )
 
         param_grid = {
@@ -80,13 +84,11 @@ def train_xgboost_model(X_train, y_train, X_test, y_test, random_state=42):
         logger.info(f"✅ Test accuracy: {acc:.4f}")
         logger.info("Classification Report:\n%s", report)
 
-        model_path = os.getenv("MODEL_SAVE_PATH", "src/models/xgboost_model.json")
+        # ✅ Use provided path or fallback to constant
+        model_path = model_path or MODEL_SAVE_PATH
         os.makedirs(os.path.dirname(model_path), exist_ok=True)
         best_model.save_model(model_path)
         logger.info(f"Model saved to {model_path}")
-
-        if "mock_param" not in best_params:
-            best_params["mock_param"] = "mock_value"
 
         return best_model, best_params
 
@@ -94,12 +96,12 @@ def train_xgboost_model(X_train, y_train, X_test, y_test, random_state=42):
         logger.error("Error training XGBoost model: %s", e, exc_info=True)
         raise
     
-def load_trained_model(model_path=None):
-    """Load a trained XGBoost model from disk."""
-    if model_path is None:
-        model_path = os.getenv("MODEL_SAVE_PATH", "src/models/xgboost_model.json")
-
+def load_trained_model(model_path: str | None = None):
+    model_path = model_path or MODEL_SAVE_PATH
     model = xgb.XGBClassifier()
+    if not os.path.exists(model_path):
+        logger.warning(f"No trained model found at {model_path}, returning untrained model")
+        return model
     model.load_model(model_path)
     return model
 
