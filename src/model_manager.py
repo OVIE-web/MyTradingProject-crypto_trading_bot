@@ -6,23 +6,22 @@ from sklearn.model_selection import train_test_split, StratifiedKFold, Randomize
 from sklearn.metrics import accuracy_score, classification_report
 from imblearn.over_sampling import SMOTE
 import os
-
 from src.config import TARGET_COLUMN, TEST_SIZE, RANDOM_STATE, MODEL_SAVE_PATH, CONFIDENCE_THRESHOLD
 
-reverse_mapper = {0: -1, 1: 0, 2: 1}  # label mapping
+reverse_mapper = {0: -1, 1: 0, 2: 1}
 
 
 def prepare_model_data(df, feature_cols, target_col=TARGET_COLUMN, test_size=TEST_SIZE, random_state=RANDOM_STATE):
-    """Prepares and balances the data using SMOTE safely."""
+    """Prepares and balances data safely for XGBoost training."""
     if not isinstance(df, pd.DataFrame):
         raise TypeError("Input df must be a pandas DataFrame")
 
     if target_col not in df.columns:
         raise ValueError(f"Target column {target_col} not found in DataFrame")
 
-    missing_cols = [col for col in feature_cols if col not in df.columns]
+    missing_cols = [c for c in feature_cols if c not in df.columns]
     if missing_cols:
-        raise ValueError(f"Feature columns not found in DataFrame: {missing_cols}")
+        raise ValueError(f"Missing feature columns: {missing_cols}")
 
     X = df[feature_cols]
     y = df[target_col].astype(int)
@@ -35,26 +34,32 @@ def prepare_model_data(df, feature_cols, target_col=TARGET_COLUMN, test_size=TES
     logging.info(f"Data split successfully. Training: {X_train.shape}, Testing: {X_test.shape}")
     logging.info(f"Class distribution before SMOTE (Train):\n{y_train.value_counts()}")
 
-    # ✅ Safe SMOTE configuration
+    # ✅ Handle small minority classes safely
     min_class_count = y_train.value_counts().min()
+    if min_class_count < 2:
+        logging.warning("⚠️ Too few samples for SMOTE, skipping balancing.")
+        return X_train, X_test, y_train, y_test
+
     k_neighbors = max(1, min(5, min_class_count - 1))
     smote = SMOTE(random_state=random_state, k_neighbors=k_neighbors, n_jobs=1)
-
-    X_train_balanced, y_train_balanced = smote.fit_resample(X_train, y_train)
-
-    logging.info(f"Class distribution after SMOTE (Train):\n{y_train_balanced.value_counts()}")
-    return X_train_balanced, X_test, y_train_balanced, y_test
+    try:
+        X_train_bal, y_train_bal = smote.fit_resample(X_train, y_train)
+        logging.info(f"Class distribution after SMOTE (Train):\n{y_train_bal.value_counts()}")
+        return X_train_bal, X_test, y_train_bal, y_test
+    except ValueError as e:
+        logging.error(f"Error preparing model data: {e}")
+        return X_train, X_test, y_train, y_test
 
 
 def train_xgboost_model(X_train, y_train, X_test, y_test, random_state=RANDOM_STATE):
-    """Train, optimize, and save the XGBoost model."""
+    """Train and save XGBoost model."""
     global reverse_mapper
-
     y_train_mapped = (y_train + 1).astype(int)
     y_test_mapped = (y_test + 1).astype(int)
+
     reverse_mapper = {0: -1, 1: 0, 2: 1}
 
-    param_grid = {
+    params = {
         "max_depth": [3, 4, 5],
         "learning_rate": [0.01, 0.1],
         "n_estimators": [100, 200],
@@ -69,9 +74,9 @@ def train_xgboost_model(X_train, y_train, X_test, y_test, random_state=RANDOM_ST
         n_jobs=1
     )
 
-    random_search = RandomizedSearchCV(
+    search = RandomizedSearchCV(
         estimator=model,
-        param_distributions=param_grid,
+        param_distributions=params,
         n_iter=3,
         scoring="accuracy",
         cv=StratifiedKFold(n_splits=3, shuffle=True, random_state=random_state),
@@ -79,20 +84,20 @@ def train_xgboost_model(X_train, y_train, X_test, y_test, random_state=RANDOM_ST
         n_jobs=1
     )
 
-    random_search.fit(X_train, y_train_mapped)
-    best_model = random_search.best_estimator_
-    best_params = random_search.best_params_
+    search.fit(X_train, y_train_mapped)
+    best_model = search.best_estimator_
+    best_params = search.best_params_
 
-    y_pred_proba = best_model.predict_proba(X_test)
-    y_pred_mapped = np.argmax(y_pred_proba, axis=1)
-    max_probs = np.max(y_pred_proba, axis=1)
-    y_pred_mapped[max_probs < CONFIDENCE_THRESHOLD] = 1  # hold
+    preds_proba = best_model.predict_proba(X_test)
+    preds = np.argmax(preds_proba, axis=1)
+    max_probs = np.max(preds_proba, axis=1)
+    preds[max_probs < CONFIDENCE_THRESHOLD] = 1
 
-    y_pred = pd.Series(y_pred_mapped, index=X_test.index).map(reverse_mapper)
-    accuracy = accuracy_score(y_test, y_pred)
+    preds = pd.Series(preds, index=X_test.index).map(reverse_mapper)
+    acc = accuracy_score(y_test, preds)
 
-    logging.info(f"Test accuracy: {accuracy:.4f}")
-    logging.info(f"\nClassification Report:\n{classification_report(y_test, y_pred)}")
+    logging.info(f"✅ Test accuracy: {acc:.4f}")
+    logging.info(f"\nClassification Report:\n{classification_report(y_test, preds)}")
 
     os.makedirs(os.path.dirname(MODEL_SAVE_PATH), exist_ok=True)
     if hasattr(best_model, "save_model"):
@@ -107,31 +112,27 @@ def train_xgboost_model(X_train, y_train, X_test, y_test, random_state=RANDOM_ST
 
 
 def make_predictions(model, X_data, confidence_threshold=CONFIDENCE_THRESHOLD):
-    """Generates predictions and returns both predictions & confidence as Series."""
-    global reverse_mapper
-
+    """Make predictions and return Series for both prediction and confidence."""
     if X_data.empty:
         return pd.Series([], dtype=int), pd.Series([], dtype=float)
 
     if not hasattr(model, "predict_proba"):
         raise TypeError("Model must implement predict_proba().")
 
-    pred_proba = model.predict_proba(X_data)
-    predictions_mapped = np.argmax(pred_proba, axis=1)
-    max_probs = np.max(pred_proba, axis=1)
+    preds_proba = model.predict_proba(X_data)
+    preds = np.argmax(preds_proba, axis=1)
+    max_probs = np.max(preds_proba, axis=1)
 
-    predictions_mapped[max_probs < confidence_threshold] = 1
-    predictions = pd.Series(predictions_mapped, index=X_data.index).map(reverse_mapper)
-
-    # ✅ Return confidence as a pandas Series
-    confidence = pd.Series(max_probs, index=X_data.index)
+    preds[max_probs < confidence_threshold] = 1
+    preds_series = pd.Series(preds, index=X_data.index).map(reverse_mapper)
+    conf_series = pd.Series(max_probs, index=X_data.index)
 
     logging.info(f"Predictions generated with confidence threshold {confidence_threshold}.")
-    return predictions, confidence
+    return preds_series, conf_series
 
 
 def load_trained_model(model_path=MODEL_SAVE_PATH):
-    """Loads pre-trained XGBoost model from file."""
+    """Load XGBoost model from file."""
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"Model not found at {model_path}")
 
