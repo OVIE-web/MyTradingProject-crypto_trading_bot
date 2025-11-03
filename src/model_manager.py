@@ -86,7 +86,10 @@ def train_xgboost_model(
 
         # ✅ Use provided path or fallback to constant
         model_path = model_path or MODEL_SAVE_PATH
-        os.makedirs(os.path.dirname(model_path), exist_ok=True)
+        dir_name = os.path.dirname(model_path)
+        if dir_name:  # only create if non-empty
+            os.makedirs(dir_name, exist_ok=True)
+
         best_model.save_model(model_path)
         logger.info(f"Model saved to {model_path}")
 
