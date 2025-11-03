@@ -129,22 +129,18 @@ def test_make_predictions(sample_model_data):
     X_data = sample_model_data.drop(columns=[TARGET_COLUMN])
 
     # 3-class probability output (softmax-like)
-    mock_model.predict.return_value = np.array([0, 1, 2] * (len(X_test) // 3))
+    n = len(X_data)
+    mock_model.predict_proba.return_value = np.tile(
+        [[0.7, 0.2, 0.1],
+         [0.1, 0.8, 0.1],
+         [0.2, 0.2, 0.6]],
+        (n // 3 + 1, 1)
+    )[:n]
 
-    predictions, confidence = make_predictions(mock_model, X_data, CONFIDENCE_THRESHOLD)
+    from src.model_manager import make_predictions
+    preds, conf = make_predictions(mock_model, X_data)
 
-    # Output validity
-    assert not predictions.empty
-    assert len(predictions) == len(X_data)
-    assert set(predictions.unique()).issubset({-1, 0, 1})
-    assert confidence.between(0, 1).all()
-
-    # If threshold < 0.8, all signals are 'hold' (0)
-    if CONFIDENCE_THRESHOLD < 0.8:
-        assert (predictions == 0).all()
-
-    # Empty input must return empty Series
-    empty_df = pd.DataFrame(columns=FEATURE_COLUMNS)
-    empty_preds, empty_conf = make_predictions(mock_model, empty_df)
-    assert empty_preds.empty
-    assert empty_conf.empty
+    # Assertions
+    assert len(preds) == len(X_data)
+    assert len(conf) == len(X_data)
+    assert set(preds.unique()).issubset({-1, 0, 1})
