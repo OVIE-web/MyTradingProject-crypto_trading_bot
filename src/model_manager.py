@@ -93,6 +93,16 @@ def train_xgboost_model(X_train, y_train, X_test, y_test, random_state=42):
     except Exception as e:
         logger.error("Error training XGBoost model: %s", e, exc_info=True)
         raise
+    
+def load_trained_model(model_path=None):
+    """Load a trained XGBoost model from disk."""
+    if model_path is None:
+        model_path = os.getenv("MODEL_SAVE_PATH", "src/models/xgboost_model.json")
+
+    model = xgb.XGBClassifier()
+    model.load_model(model_path)
+    return model
+
 
 
 def make_predictions(model, X_data, confidence_threshold=CONFIDENCE_THRESHOLD):
