@@ -49,11 +49,11 @@ logging.info(f"📦 Using database at: {safe_db_url}")
 # --------------------------------------------------------------------------
 DATA_FILE_PATH = os.path.join("data", "test_df_features.csv")
 if not os.path.exists(DATA_FILE_PATH):
-    logger.error(
-        f"Data file not found at {DATA_FILE_PATH}. "
+    logging.warning(
+        f"⚠️ Data file not found at {DATA_FILE_PATH}. "
         "Ensure the file exists or update DATA_FILE_PATH in config.py"
     )
-    return pd.DataFrame()  # or raise a custom exception
+    # Do not return here — leave it to the data loader to handle gracefully    
 MODEL_TYPE = "xgboost"
 # Allow overriding the model directory via environment variable for flexibility
 MODEL_DIR = os.getenv("MODEL_DIR", os.path.join(os.path.dirname(__file__), "models"))
