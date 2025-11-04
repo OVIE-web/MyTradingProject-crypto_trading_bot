@@ -4,6 +4,8 @@ __pycache__/
 *.so
 *.pyd
 *.pyo
+*.py[cod]
+*$py.class
 
 # Virtual environment
 .venv/
@@ -66,3 +68,15 @@ dist/
 *.swp
 *.tmp
 *.bak
+
+# Ignore XGBoost models files.
+models/xgboost_model_*.json
+models/
+xgboost_model_*.json.meta.json
+
+# Ignore any other large binary files or models
+*.pkl
+*.joblib
+*.h5
+*.pickle
+*.model

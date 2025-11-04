@@ -39,7 +39,7 @@ from src.config import (
 # Import only the functions/classes used directly in main.py
 from src.data_loader import load_and_preprocess_data
 from src.feature_engineer import calculate_technical_indicators, get_rsi_quantile_thresholds, apply_rsi_labels, normalize_features
-from src.model_manager import prepare_model_data, train_xgboost_model, make_predictions, load_trained_model
+from src.model_manager import prepare_model_data, train_xgboost_model, make_predictions, load_trained_model, get_latest_model_metadata
 from src.backtester import backtest_strategy
 from src.visualizer import visualize_trading_results
 from src.binance_manager import BinanceManager
@@ -85,88 +85,84 @@ print("✅ Setup Complete: All required libraries imported and configuration set
 live_candles_history = pd.DataFrame()
 current_position_live = 0  # 0: no position, 1: long position
 
-def run_backtesting_pipeline(train_new_model=True):
+def run_backtesting_pipeline(train_new_model: bool = False):
     """
-    Executes the complete backtesting pipeline using historical data.
+    Run the full backtesting pipeline.
+    - Loads data, prepares features, trains or loads model, and generates predictions.
+    - Avoids retraining if a valid model already exists.
     """
-    logging.info("Starting the backtesting pipeline...")
+    logger.info("Starting the backtesting pipeline...")
+
+    # -------------------------------------------------------------------------
+    # 1️⃣ Load preprocessed data
+    # -------------------------------------------------------------------------
+    df = load_data()
+    if df is None or df.empty:
+        logger.error("❌ No data available for backtesting. Exiting pipeline.")
+        return None, None, None, None
+
+    # -------------------------------------------------------------------------
+    # 2️⃣ Try to load existing model (to avoid retraining every run)
+    # -------------------------------------------------------------------------
+    model = None
+    metadata = None
+
+    if not train_new_model:
+        try:
+            model, metadata = load_trained_model(return_metadata=True)
+            if model is not None and metadata:
+                logger.info(f"🧠 Loaded existing trained model (version: {metadata.get('version', 'unknown')})")
+            else:
+                logger.warning("⚠️ No existing model found. Switching to training mode.")
+                train_new_model = True
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to load existing model: {e}")
+            train_new_model = True
+
+    # -------------------------------------------------------------------------
+    # 3️⃣ Train model if requested or no model found
+    # -------------------------------------------------------------------------
+    if train_new_model:
+        logger.info("🚀 Training a new XGBoost model...")
+        X_train, X_test, y_train, y_test = prepare_model_data(df)
+        model, best_params = train_xgboost_model(X_train, y_train, X_test, y_test)
+        # Load the metadata after saving
+        _, metadata = load_trained_model(return_metadata=True)
+        logger.info(f"✅ Model trained and saved (version: {metadata.get('version', 'unknown')})")
+
+    # -------------------------------------------------------------------------
+    # 4️⃣ Generate predictions safely
+    # -------------------------------------------------------------------------
     try:
-        raw_price_data = load_and_preprocess_data(DATA_FILE_PATH)
-        
-        if raw_price_data.empty:
-            raise ValueError("Initial data loading resulted in an empty DataFrame. Cannot proceed.")
-
-        df_for_features_and_signals = raw_price_data.copy()
-        df_for_features_and_signals = calculate_technical_indicators(df_for_features_and_signals)
-        logging.info('✅ Technical indicators calculated')
-        
-        current_features = list(df_for_features_and_signals.columns)
-        missing_initial_features = [col for col in FEATURE_COLUMNS if col not in current_features]
-        if missing_initial_features:
-            logging.error(f"Features missing after technical indicator calculation: {missing_initial_features}")
-            raise ValueError(f"Required features missing: {missing_initial_features}")
-            
-        logging.info(f'Available features after indicator calculation: {sorted(current_features)}')
-        
-        lower_thresh, upper_thresh = get_rsi_quantile_thresholds(df_for_features_and_signals['rsi'])
-        df_for_features_and_signals = apply_rsi_labels(df_for_features_and_signals, lower_threshold=lower_thresh, upper_threshold=upper_thresh)
-        logging.info('✅ Trading signals generated')
-        
-        df_normalized = normalize_features(df_for_features_and_signals.copy())
-        logging.info('✅ Features normalized')
-        
-        missing_normalized = [col for col in FEATURE_COLUMNS if col not in df_normalized.columns]
-        if missing_normalized:
-            logging.error(f"Features missing after normalization: {missing_normalized}")
-            raise ValueError(f"Features missing after normalization: {missing_normalized}")
-        
-        # FIX: Ensure the variable returned matches the one defined
-        df_original_aligned = raw_price_data.loc[df_normalized.index] # This line correctly defines df_original_aligned
-        
-        model = None
-        if train_new_model:
-            X_train, X_test, y_train, y_test = prepare_model_data(
-                df_normalized, feature_cols=FEATURE_COLUMNS, target_col=TARGET_COLUMN
-            )
-            model, _ = train_xgboost_model(X_train, y_train, X_test, y_test)
-            logging.info('✅ Model trained and saved.')
+        decoded_preds, confidence = make_predictions(model, df, metadata=metadata)
+        if decoded_preds.empty:
+            logger.warning("⚠️ No predictions generated; skipping backtest.")
         else:
-            try:
-                model = load_trained_model()
-                logging.info('✅ Existing model loaded.')
-            except Exception as e:
-                logging.warning(f"Could not load existing model: {e}. Training a new model instead.")
-                X_train, X_test, y_train, y_test = prepare_model_data(
-                    df_normalized, feature_cols=FEATURE_COLUMNS, target_col=TARGET_COLUMN
-                )
-                model, _ = train_xgboost_model(X_train, y_train, X_test, y_test)
-                logging.info('✅ New model trained and saved (fallback).')
-
-        if model is None:
-            raise RuntimeError("Failed to train or load a model.")
-
-        X_full_for_predictions = df_normalized[FEATURE_COLUMNS]
-        preds, probs = make_predictions(model, X_full_for_predictions, confidence_threshold=CONFIDENCE_THRESHOLD)
-        logging.info('✅ Predictions generated for backtesting.')
-
-        trades_df, daily_portfolio_df = backtest_strategy(df_original_aligned, preds)
-        logging.info('✅ Backtesting completed.')
-        
-        df_viz_data = df_for_features_and_signals.loc[preds.index]
-
-        if not daily_portfolio_df.empty:
-            visualize_trading_results(df_viz_data, trades_df, daily_portfolio_df, lower_thresh, upper_thresh)
-            logging.info('✅ Visualization displayed.')
-        else:
-            logging.warning('No daily portfolio data generated for visualization (possibly no trades).')
-
-        logging.info('🚀 Backtesting pipeline completed successfully!')
-        # FIX: Return the correctly named variable
-        return df_original_aligned, model, trades_df, daily_portfolio_df 
-        
+            logger.info("✅ Predictions generated for backtesting.")
     except Exception as e:
-        logging.critical(f'❌ Error executing backtesting pipeline: {str(e)}', exc_info=True)
-        raise
+        logger.critical(f"❌ Error generating predictions: {e}", exc_info=True)
+        decoded_preds, confidence = pd.Series(dtype=int), pd.Series(dtype=float)
+
+    # -------------------------------------------------------------------------
+    # 5️⃣ Run backtest (if predictions exist)
+    # -------------------------------------------------------------------------
+    if not decoded_preds.empty:
+        try:
+            backtest_results = backtest_strategy(df, decoded_preds, confidence)
+            logger.info("✅ Backtesting completed.")
+        except Exception as e:
+            logger.warning(f"⚠️ Backtesting skipped: {e}")
+            backtest_results = None
+    else:
+        backtest_results = None
+        logger.warning("⚠️ Skipped backtest due to missing predictions.")
+
+    # -------------------------------------------------------------------------
+    # 6️⃣ Wrap-up
+    # -------------------------------------------------------------------------
+    logger.info("🚀 Backtesting pipeline completed successfully!")
+    return df, model, metadata, backtest_results
+
 
 
 def run_live_trade_loop(model):

@@ -1,17 +1,16 @@
-# src/config.py
 import os
 import logging
 from dotenv import load_dotenv
+from dataclasses import dataclass
 
 # --------------------------------------------------------------------------
 # 1️⃣ Load environment variables
 # --------------------------------------------------------------------------
-# Load global .env (if present) and the local project one (.env.local)
-load_dotenv()
-load_dotenv(dotenv_path=".env.local", override=True)
+load_dotenv()  # global .env
+load_dotenv(dotenv_path=".env.local", override=True)  # project-specific overrides
 
 # --------------------------------------------------------------------------
-# 2️⃣ Logging setup (for early debug visibility)
+# 2️⃣ Logging setup (early visibility for stakeholders)
 # --------------------------------------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
@@ -36,11 +35,10 @@ def get_binance_keys():
 # 4️⃣ Database Configuration
 # --------------------------------------------------------------------------
 DATABASE_URL = os.getenv("DATABASE_URL")
-
 if not DATABASE_URL:
-    raise RuntimeError("❌ DATABASE_URL not found. Check your .env.local file.")
+    raise RuntimeError("❌ DATABASE_URL not found. Please set it in .env.local")
 
-# Optional: mask sensitive info for logs
+# Mask sensitive info for logs
 safe_db_url = DATABASE_URL.split("@")[-1] if "@" in DATABASE_URL else DATABASE_URL
 logging.info(f"📦 Using database at: {safe_db_url}")
 
@@ -53,20 +51,20 @@ if not os.path.exists(DATA_FILE_PATH):
         f"⚠️ Data file not found at {DATA_FILE_PATH}. "
         "Ensure the file exists or update DATA_FILE_PATH in config.py"
     )
-    # Do not return here — leave it to the data loader to handle gracefully    
+
 MODEL_TYPE = "xgboost"
-# Allow overriding the model directory via environment variable for flexibility
 MODEL_DIR = os.getenv("MODEL_DIR", os.path.join(os.path.dirname(__file__), "models"))
 MODEL_SAVE_FILENAME = os.getenv("MODEL_SAVE_FILENAME", "xgboost_model.json")
 MODEL_SAVE_PATH = os.path.join(MODEL_DIR, MODEL_SAVE_FILENAME)
+MODEL_METADATA_PATH = MODEL_SAVE_PATH + ".meta.json"
 
 # --------------------------------------------------------------------------
 # 6️⃣ Trading Parameters
 # --------------------------------------------------------------------------
-TRADE_SYMBOL = "BTCUSDT"
-TRADE_INTERVAL = "4h"
-TRADE_QUANTITY = 0.001
-INITIAL_CANDLES_HISTORY = 500
+TRADE_SYMBOL = os.getenv("TRADE_SYMBOL", "BTCUSDT")
+TRADE_INTERVAL = os.getenv("TRADE_INTERVAL", "4h")
+TRADE_QUANTITY = float(os.getenv("TRADE_QUANTITY", 0.001))
+INITIAL_CANDLES_HISTORY = int(os.getenv("INITIAL_CANDLES_HISTORY", 500))
 
 # --------------------------------------------------------------------------
 # 7️⃣ Technical Indicator Parameters
@@ -78,7 +76,6 @@ SMA_SHORT_WINDOW = 20
 SMA_LONG_WINDOW = 50
 ATR_WINDOW = 14
 
-# RSI quantile thresholds (for dynamic signal levels)
 RSI_LOWER_QUANTILE = 0.2
 RSI_UPPER_QUANTILE = 0.8
 
@@ -93,8 +90,8 @@ CONFIDENCE_THRESHOLD = 0.30
 # --------------------------------------------------------------------------
 # 9️⃣ Backtesting Parameters
 # --------------------------------------------------------------------------
-INITIAL_BALANCE = 10000
-TRANSACTION_FEE_PCT = 0.001
+INITIAL_BALANCE = float(os.getenv("INITIAL_BALANCE", 10000))
+TRANSACTION_FEE_PCT = float(os.getenv("TRANSACTION_FEE_PCT", 0.001))
 
 FEATURE_COLUMNS = [
     "rsi", "bb_upper", "bb_lower", "bb_mid", "bb_pct_b",
@@ -105,14 +102,12 @@ FEATURE_COLUMNS = [
 # --------------------------------------------------------------------------
 # 🔔 10️⃣ Notification Configuration
 # --------------------------------------------------------------------------
-# Email
 EMAIL_HOST = os.getenv("EMAIL_HOST")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 EMAIL_TO = os.getenv("EMAIL_TO")
 
-# Telegram
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
@@ -124,6 +119,20 @@ JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 # --------------------------------------------------------------------------
 # 12️⃣ Runtime Optimization
 # --------------------------------------------------------------------------
-# Disable joblib multiprocessing (for XGBoost + pytest stability)
 os.environ["JOBLIB_MULTIPROCESSING"] = "0"
 os.environ["OMP_NUM_THREADS"] = "1"
+
+# --------------------------------------------------------------------------
+# 📊 Stakeholder-friendly summary
+# --------------------------------------------------------------------------
+@dataclass(frozen=True)
+class ConfigSummary:
+    db: str = safe_db_url
+    model_path: str = MODEL_SAVE_PATH
+    trading_symbol: str = TRADE_SYMBOL
+    interval: str = TRADE_INTERVAL
+    initial_balance: float = INITIAL_BALANCE
+    notifications_enabled: bool = bool(EMAIL_USER or TELEGRAM_BOT_TOKEN)
+
+CONFIG_SUMMARY = ConfigSummary()
+logging.info(f"✅ Config loaded: {CONFIG_SUMMARY}")
