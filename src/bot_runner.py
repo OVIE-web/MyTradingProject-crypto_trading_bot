@@ -1,4 +1,3 @@
-# src/bot_runner.py
 import asyncio
 import logging
 import os
@@ -13,7 +12,10 @@ from src.binance_manager import BinanceManager
 from src.feature_engineer import calculate_technical_indicators
 from src.model_manager import load_trained_model, make_predictions
 from src.db import SessionLocal
-from src.notifier import TelegramNotifier, send_email_notification  # ✅ Added email notifier import
+
+# --- Notification modules ---
+from src.notifier import TelegramNotifier, send_email_notification as send_email_async_safe
+from src.notification import send_telegram_notification, send_email_notification  # sync fallback
 
 LOG = logging.getLogger("bot_runner")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -22,16 +24,17 @@ DEFAULT_INTERVAL = int(os.getenv("BOT_INTERVAL_SECONDS", "60"))
 CONCURRENCY_LIMIT = int(os.getenv("BOT_CONCURRENCY", "3"))
 
 
+# ======================================================================================
+#  RESOURCE LIFESPAN MANAGEMENT
+# ======================================================================================
 @asynccontextmanager
 async def lifespan():
-    """
-    Startup/teardown for bot resources.
-    Loads the trained model, initializes Binance manager, notifier, and DB session.
-    """
+    """Startup/teardown for trading bot resources."""
     LOG.info("Starting bot lifespan: init resources...")
-    model = load_trained_model()
+
+    model, _ = load_trained_model(return_metadata=True)
     binance = BinanceManager()
-    notifier = TelegramNotifier()
+    notifier = TelegramNotifier(max_retries=3)
     db = SessionLocal()
 
     resources: Dict[str, object] = {
@@ -51,6 +54,9 @@ async def lifespan():
             LOG.exception("Error closing DB session")
 
 
+# ======================================================================================
+#  SCHEDULING HELPERS
+# ======================================================================================
 def is_time_to_run(last_run: Optional[datetime], interval_seconds: int) -> bool:
     if last_run is None:
         return True
@@ -58,107 +64,116 @@ def is_time_to_run(last_run: Optional[datetime], interval_seconds: int) -> bool:
 
 
 def should_skip_if_running(last_task_finished: bool) -> bool:
-    # Policy: skip overlapping runs to avoid race conditions
+    # Prevent overlapping runs
     return not last_task_finished
 
 
+# ======================================================================================
+#  CORE TRADING ITERATION
+# ======================================================================================
 @backoff.on_exception(backoff.expo, Exception, max_tries=5, jitter=backoff.full_jitter)
 async def do_iteration(resources: Dict[str, object]) -> None:
     """
-    One iteration of the trading workflow:
-    - fetch market data
-    - calculate indicators
-    - make predictions with confidence
-    - optionally notify/place orders
-    - record trades in DB
+    One full trading iteration:
+    - Fetch latest OHLCV
+    - Compute indicators
+    - Make predictions
+    - Execute mock trades
+    - Send notifications (async + sync)
     """
     LOG.info("Starting iteration")
 
     candles = await resources["binance"].get_latest_ohlcv("BTCUSDT", "4h")
     features = calculate_technical_indicators(candles)
-
     decoded_preds, confidence = make_predictions(resources["model"], features)
+
     latest_signal = int(decoded_preds.iloc[-1]) if not decoded_preds.empty else 0
     latest_conf = float(confidence.iloc[-1]) if not confidence.empty else 0.0
-
     notifier = resources["notifier"]
 
-    # ✅ --- START: Real-time alert integration block ---
     trade_message = None
+    symbol = "BTCUSDT"
 
-    if latest_signal == 1:  # BUY
-        trade_message = f"✅ BUY signal detected for BTCUSDT (confidence={latest_conf:.2f})"
+    # --- BUY SIGNAL ---
+    if latest_signal == 1:
+        trade_message = (
+            f"✅ BUY signal detected for {symbol}\n"
+            f"Confidence: {latest_conf:.2f}"
+        )
         LOG.info(trade_message)
 
-        # Example simulated trade (replace with actual order execution)
-        # trade_result = await resources["binance"].place_market_order("BTCUSDT", "BUY", 0.001)
-        trade_result = {"symbol": "BTCUSDT", "side": "BUY", "status": "FILLED", "price": "68000", "qty": "0.001"}
+        trade_result = {"symbol": symbol, "side": "BUY", "status": "FILLED", "price": "68000", "qty": "0.001"}
 
         if trade_result.get("status") == "FILLED":
-            message = (
-                f"✅ Trade Executed Successfully!\n"
-                f"Pair: {trade_result['symbol']}\n"
-                f"Side: {trade_result['side']}\n"
-                f"Quantity: {trade_result['qty']}\n"
+            msg = (
+                f"🚀 Trade Executed Successfully!\n"
+                f"Pair: {symbol}\n"
+                f"Side: BUY\n"
                 f"Price: {trade_result['price']}\n"
+                f"Qty: {trade_result['qty']}\n"
                 f"Confidence: {latest_conf:.2f}"
             )
-            try:
-                notifier.send_message(message)
-            except Exception as e:
-                LOG.error(f"Telegram notification failed: {e}")
+            await notify_all_channels(notifier, "Trade Executed (BUY)", msg)
 
-            try:
-                send_email_notification("Trade Executed", message)
-            except Exception as e:
-                LOG.error(f"Email notification failed: {e}")
-
-    elif latest_signal == -1:  # SELL
-        trade_message = f"❌ SELL signal detected for BTCUSDT (confidence={latest_conf:.2f})"
+    # --- SELL SIGNAL ---
+    elif latest_signal == -1:
+        trade_message = (
+            f"❌ SELL signal detected for {symbol}\n"
+            f"Confidence: {latest_conf:.2f}"
+        )
         LOG.info(trade_message)
 
-        trade_result = {"symbol": "BTCUSDT", "side": "SELL", "status": "FILLED", "price": "68200", "qty": "0.001"}
+        trade_result = {"symbol": symbol, "side": "SELL", "status": "FILLED", "price": "68200", "qty": "0.001"}
 
         if trade_result.get("status") == "FILLED":
-            message = (
-                f"✅ Trade Executed Successfully!\n"
-                f"Pair: {trade_result['symbol']}\n"
-                f"Side: {trade_result['side']}\n"
-                f"Quantity: {trade_result['qty']}\n"
+            msg = (
+                f"📉 Trade Executed Successfully!\n"
+                f"Pair: {symbol}\n"
+                f"Side: SELL\n"
                 f"Price: {trade_result['price']}\n"
+                f"Qty: {trade_result['qty']}\n"
                 f"Confidence: {latest_conf:.2f}"
             )
-            try:
-                notifier.send_message(message)
-            except Exception as e:
-                LOG.error(f"Telegram notification failed: {e}")
-
-            try:
-                send_email_notification("Trade Executed", message)
-            except Exception as e:
-                LOG.error(f"Email notification failed: {e}")
+            await notify_all_channels(notifier, "Trade Executed (SELL)", msg)
 
     else:
         LOG.info("No actionable signal this round (HOLD position).")
-    # ✅ --- END: Real-time alert integration block ---
-
-    # Persist to DB (replace with real ORM model and fields)
-    session = resources["db"]
-    try:
-        # trade = Trade(symbol="BTCUSDT", signal=latest_signal, confidence=latest_conf, timestamp=datetime.utcnow())
-        # session.add(trade)
-        # session.commit()
-        pass
-    except Exception as exc:
-        LOG.exception("DB persistence failed: %s", exc)
-        try:
-            session.rollback()
-        except Exception:
-            LOG.exception("DB rollback failed")
 
     LOG.info("Iteration complete")
 
 
+# ======================================================================================
+#  NOTIFICATION ROUTER (ASYNC + SYNC)
+# ======================================================================================
+async def notify_all_channels(notifier: TelegramNotifier, subject: str, message: str):
+    """
+    Sends notifications through all available channels:
+    1. Async TelegramNotifier (with retry)
+    2. Sync Telegram REST fallback
+    3. Sync Email (with retry & backoff)
+    """
+    # --- Async TelegramNotifier (primary) ---
+    try:
+        await notifier.send_message(message)
+    except Exception as e:
+        LOG.error(f"Async Telegram notifier failed: {e}")
+        # fallback to sync
+        send_telegram_notification(message)
+
+    # --- Email notification (synchronous with retry) ---
+    try:
+        send_email_async_safe(subject, message)
+    except Exception as e:
+        LOG.warning(f"Primary email notifier failed: {e}, using sync fallback.")
+        try:
+            send_email_notification(subject, message)
+        except Exception as e2:
+            LOG.error(f"Fallback email failed: {e2}")
+
+
+# ======================================================================================
+#  RUNNER LOOP
+# ======================================================================================
 async def runner_loop(run_once: bool = False, interval_seconds: int = DEFAULT_INTERVAL):
     last_run_finished = True
     last_run_time: Optional[datetime] = None
@@ -215,11 +230,14 @@ async def runner_loop(run_once: bool = False, interval_seconds: int = DEFAULT_IN
             await asyncio.gather(*background_tasks, return_exceptions=True)
 
 
+# ======================================================================================
+#  ENTRYPOINTS
+# ======================================================================================
 async def run_once_test() -> bool:
     async with lifespan() as resources:
         try:
             await do_iteration(resources)
-            LOG.info("Test run_once_test() completed successfully")
+            LOG.info("✅ Test run_once_test() completed successfully")
             return True
         except Exception as e:
             LOG.error(f"Error during single test iteration: {e}")
