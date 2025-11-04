@@ -3,6 +3,9 @@ import logging
 from datetime import datetime, UTC
 from typing import Generator, List
 from contextlib import contextmanager
+import time
+import psycopg2
+    
 
 from sqlalchemy import (
     create_engine, Column, Integer, String, DateTime, inspect,
@@ -91,8 +94,6 @@ def wait_for_postgres(timeout_seconds: int = 30) -> bool:
     Returns:
         bool: True if connection successful, raises TimeoutError if not.
     """
-    import time
-    import psycopg2
     
     start_time = time.time()
     
