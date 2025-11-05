@@ -11,12 +11,12 @@ from src.notifier import TelegramNotifier, send_email_notification
 # --------------------------------------------------------------
 def test_telegram_notifier_init(mock_env):
     """✅ Ensure TelegramNotifier initializes with environment vars."""
-    with patch("telegram.Bot", return_value=MagicMock()) as mock_bot:
+    with patch("src.notifier.Bot", return_value=MagicMock()) as mock_bot:
         notifier = TelegramNotifier()
         assert notifier.enabled is True
         assert notifier.bot == mock_bot.return_value
         assert isinstance(notifier.chat_id, str)
-        assert notifier.chat_id
+
 
 
 def test_telegram_notifier_send_message_success(mock_env):

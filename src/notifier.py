@@ -1,84 +1,101 @@
+# src/notifier.py
 import os
-import smtplib
-import logging
 import asyncio
+import logging
 import random
+import smtplib
+import time
 from email.mime.text import MIMEText
-from telegram import Bot
+from typing import Optional
+
+import backoff
+from telegram import Bot, constants  # python-telegram-bot >= 20
 
 logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
+# Config defaults
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+EMAIL_HOST = os.getenv("SMTP_HOST") or os.getenv("EMAIL_HOST")
+EMAIL_PORT = int(os.getenv("SMTP_PORT") or os.getenv("EMAIL_PORT") or 587)
+EMAIL_USER = os.getenv("SMTP_USER") or os.getenv("EMAIL_USER")
+EMAIL_PASS = os.getenv("SMTP_PASS") or os.getenv("EMAIL_PASS")
+EMAIL_TO = os.getenv("SMTP_TO") or os.getenv("EMAIL_TO")
 
+# small helper backoff jitter
 def _backoff_delay(attempt: int, base: float = 1.0, cap: float = 30.0) -> float:
-    """
-    Exponential backoff with jitter.
-    attempt: current retry attempt (1-based)
-    base: base delay in seconds
-    cap: maximum delay in seconds
-    """
     exp = min(cap, base * (2 ** (attempt - 1)))
-    # Add jitter so retries from multiple bots don't synchronize
     return exp / 2 + random.uniform(0, exp / 2)
 
 
 class TelegramNotifier:
-    def __init__(self, max_retries: int = 3):
-        self.token = os.getenv("TELEGRAM_BOT_TOKEN")
-        self.chat_id = os.getenv("TELEGRAM_CHAT_ID")
-        self.enabled = bool(self.token and self.chat_id)
-        self.bot = Bot(token=self.token) if self.enabled else None
-        self.max_retries = max_retries
-        logger.info("Telegram Notifier initialized.")
+    """Async Telegram notifier with retry/backoff.
+       Uses python-telegram-bot Bot which supports async send_message calls (v20+).
+    """
 
-    async def send_message(self, message: str):
-        """Send a Telegram message asynchronously with retry + backoff."""
-        if not self.enabled:
-            logger.warning("Telegram Notifier not enabled.")
-            return
+    def __init__(self, token: Optional[str] = None, chat_id: Optional[str] = None, max_retries: int = 3):
+        self.token = token or TELEGRAM_TOKEN
+        self.chat_id = chat_id or TELEGRAM_CHAT_ID
+        self.enabled = bool(self.token and self.chat_id)
+        self.max_retries = max_retries
+        self.bot: Optional[Bot] = None
+
+        if self.enabled:
+            # Do not log the token value — just confirm initialization
+            self.bot = Bot(token=self.token, base_url=None)
+            logger.info("Telegram Notifier initialized (chat_id=%s).", str(self.chat_id))
+        else:
+            logger.warning("Telegram Notifier disabled: TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID missing.")
+
+    async def send_message(self, message: str) -> bool:
+        """Send a Telegram message asynchronously. Returns True on success."""
+        if not self.enabled or not self.bot:
+            logger.debug("Telegram notifier disabled or bot not initialized; skipping send_message.")
+            return False
 
         for attempt in range(1, self.max_retries + 1):
             try:
-                await self.bot.send_message(chat_id=self.chat_id, text=message)
-                logger.info(f"Telegram message sent: '{message}'")
-                return
-            except Exception as e:
-                logger.error(f"Attempt {attempt} failed to send Telegram message: {e}")
+                # Use parse_mode or disable_web_page_preview as needed
+                await self.bot.send_message(chat_id=self.chat_id, text=message, parse_mode=constants.ParseMode.HTML)
+                logger.info("Telegram message sent.")
+                return True
+            except Exception as exc:
+                logger.error("Attempt %d failed to send Telegram message: %s", attempt, str(exc))
                 if attempt < self.max_retries:
                     delay = _backoff_delay(attempt)
-                    logger.warning(f"Retrying in {delay:.2f} seconds...")
+                    logger.debug("Retrying Telegram in %.2fs...", delay)
                     await asyncio.sleep(delay)
                 else:
-                    logger.error("All retry attempts exhausted. Message not sent.")
+                    logger.error("All retry attempts exhausted for Telegram message.")
+                    return False
 
 
-def send_email_notification(subject: str, message: str, max_retries: int = 3):
-    """Send an email notification with retry + backoff."""
-    host = os.getenv("EMAIL_HOST")
-    port = int(os.getenv("EMAIL_PORT", 587))
-    user = os.getenv("EMAIL_USER")
-    password = os.getenv("EMAIL_PASS")
-    to_email = os.getenv("EMAIL_TO")
+def send_email_notification(subject: str, message: str, max_retries: int = 3) -> bool:
+    """Synchronous email send with retry/backoff. Returns True on success."""
+    if not (EMAIL_HOST and EMAIL_USER and EMAIL_PASS and EMAIL_TO):
+        logger.error("Missing email configuration; cannot send email.")
+        return False
 
     msg = MIMEText(message)
     msg["Subject"] = subject
-    msg["From"] = user
-    msg["To"] = to_email
+    msg["From"] = EMAIL_USER
+    msg["To"] = EMAIL_TO
 
     for attempt in range(1, max_retries + 1):
         try:
-            with smtplib.SMTP(host, port) as server:
-                server.starttls()
-                server.login(user, password)
-                server.sendmail(user, to_email, msg.as_string())
-            logger.info(f"✅ Email sent successfully: {subject}")
-            return
-        except Exception as e:
-            logger.error(f"Attempt {attempt} failed to send email: {e}")
+            with smtplib.SMTP(EMAIL_HOST, EMAIL_PORT, timeout=15) as smtp:
+                smtp.starttls()
+                smtp.login(EMAIL_USER, EMAIL_PASS)
+                smtp.sendmail(EMAIL_USER, [EMAIL_TO], msg.as_string())
+            logger.info("✅ Email sent successfully: %s", subject)
+            return True
+        except Exception as exc:
+            logger.error("Attempt %d failed to send email: %s", attempt, str(exc))
             if attempt < max_retries:
                 delay = _backoff_delay(attempt)
-                logger.warning(f"Retrying email in {delay:.2f} seconds...")
-                # For sync code, use time.sleep instead of asyncio.sleep
-                import time
+                logger.warning("Retrying email in %.2f seconds...", delay)
                 time.sleep(delay)
             else:
                 logger.error("All retry attempts exhausted. Email not sent.")
+                return False

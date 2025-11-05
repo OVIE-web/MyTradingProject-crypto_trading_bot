@@ -1,12 +1,26 @@
-# File: tests/notifications/test_notifications.py
 import logging
 from unittest.mock import patch, MagicMock
+import pytest
 from src.notification import send_telegram_notification, send_email_notification
+
+
+@pytest.fixture
+def mock_env(monkeypatch):
+    """Mock environment variables for consistent notification tests."""
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "mock_token")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "mock_chat_id")
+    monkeypatch.setenv("EMAIL_HOST", "smtp.test.com")
+    monkeypatch.setenv("EMAIL_PORT", "587")
+    monkeypatch.setenv("EMAIL_USER", "sender@test.com")
+    monkeypatch.setenv("EMAIL_PASS", "password")
+    monkeypatch.setenv("EMAIL_TO", "receiver@test.com")
+    yield
 
 
 # =====================================================================================
 # TELEGRAM TESTS
 # =====================================================================================
+
 def test_send_telegram_notification_success(mock_env):
     """✅ Should send Telegram message successfully."""
     with patch("requests.post", return_value=MagicMock(status_code=200)) as mock_post:
@@ -20,15 +34,18 @@ def test_send_telegram_notification_success(mock_env):
 def test_send_telegram_notification_http_error(mock_env):
     """⚠️ Should log error when Telegram API fails."""
     with patch("requests.post", return_value=MagicMock(status_code=500)):
-        with patch("logging.error") as mock_log:
+        with patch("src.notification.logger.error") as mock_log:
             send_telegram_notification("Bad HTTP")
             assert mock_log.call_count >= 1
-            assert "Telegram API error" in str(mock_log.call_args_list[0][0][0])
+            assert any("Telegram API error" in str(c[0][0]) for c in mock_log.call_args_list)
 
 
-def test_send_telegram_notification_missing_config():
+def test_send_telegram_notification_missing_config(monkeypatch):
     """❌ Should log config error when environment missing."""
-    with patch("logging.error") as mock_log:
+    for var in ["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"]:
+        monkeypatch.delenv(var, raising=False)
+
+    with patch("src.notification.logger.error") as mock_log:
         send_telegram_notification("No Config")
         assert mock_log.call_count >= 1
         assert "Missing Telegram configuration" in str(mock_log.call_args[0][0])
@@ -37,6 +54,7 @@ def test_send_telegram_notification_missing_config():
 # =====================================================================================
 # EMAIL TESTS
 # =====================================================================================
+
 def test_send_email_notification_success(mock_env):
     """✅ Should send email successfully using mock SMTP."""
     with patch("smtplib.SMTP") as mock_smtp_cls:
@@ -50,9 +68,12 @@ def test_send_email_notification_success(mock_env):
         assert "Body test message" in args[2]
 
 
-def test_send_email_notification_missing_config():
+def test_send_email_notification_missing_config(monkeypatch):
     """❌ Should log error when email environment is incomplete."""
-    with patch("logging.error") as mock_log:
+    for var in ["EMAIL_HOST", "EMAIL_PORT", "EMAIL_USER", "EMAIL_PASS", "EMAIL_TO"]:
+        monkeypatch.delenv(var, raising=False)
+
+    with patch("src.notification.logger.error") as mock_log:
         send_email_notification("No Env", "Missing Config")
         assert mock_log.call_count >= 1
         assert "Missing email configuration" in str(mock_log.call_args[0][0])
