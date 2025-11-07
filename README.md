@@ -1,204 +1,240 @@
 # Cryptocurrency Trading Bot
 
-A modular, production-ready cryptocurrency trading system using machine learning (XGBoost), technical indicators, and robust infrastructure for both backtesting and live trading. The project features a full pipeline from data collection and feature engineering to model training, backtesting, live trading, and interactive dashboards. It is designed for secure, scalable deployment using Docker and best practices.
+    A **modular**, **production-ready cryptocurrency trading system** powered by **Machine Learning (XGBoost)**, **technical indicators**, and **automated notifications** (Telegram + Email).  
+    This project provides a **full trading pipeline** — from data collection and model training to backtesting, live trading, and dashboard visualization.  
+    Designed for **security**, **scalability**, and **continuous integration** with **Docker** and **GitHub Actions CI**.
 
-## ✨ Features
+    ---
 
-*   **Data Collection & Preprocessing:** Handles historical and live OHLCV data loading and cleaning.
-*   **Technical Analysis:** Calculates indicators such as:
-    *   Relative Strength Index (RSI)
-    *   Bollinger Bands (BB_upper, BB_lower, BB_mid, BB_pct_b)
-    *   Simple Moving Averages (SMA_20, SMA_50)
-    *   Moving Average Crossover Signal (MA_cross)
-    *   Price Momentum
-    *   Average True Range (ATR)
-*   **Feature Engineering:** Generates trading signals and prepares features for the ML model.
-*   **Model Training & Optimization:**
-    *   Uses **XGBoost Classifier** for buy/sell/hold predictions
-    *   Handles class imbalance with SMOTE
-    *   Hyperparameter optimization via `RandomizedSearchCV`
-*   **Backtesting Framework:** Simulates trades on historical data, calculates key metrics (Total Return, Win Rate, etc.)
-*   **Interactive Visualization:**
-    *   **Plotly**: Generates detailed, interactive charts (candlesticks, signals, indicators, portfolio value)
-    *   **Streamlit**: Serves dashboards and analytics web apps, embedding Plotly charts for user interaction
-*   **API Service:**
-    *   **FastAPI**: REST API for model inference, health checks, and management
-    *   Input validation, robust error handling, and secure authentication (API key & OAuth2/JWT)
-*   **Experiment Tracking:**
-    *   **MLflow**: Track model training, parameters, and results
-*   **Database Integration:**
-    *   **Postgres** with SQLAlchemy ORM for trade and user data
-*   **Notifications:**
-    *   Email and Telegram alerts for critical events
-*   **Live Trading (Binance Testnet):**
-    *   Real-time trading simulation with Binance Testnet API
-*   **Dockerized & Orchestrated:**
-    *   Dockerfile and docker-compose for seamless deployment of all services (bot, API, Streamlit, MLflow, Postgres)
-*   **Security & Production Readiness:**
-    *   Environment variables for secrets, JWT authentication, error logging, and best practices for deployment
+    ## ✨ Key Features
 
-## 🚀 Getting Started
+    ### 🧠 Machine Learning & Strategy
+    - **XGBoost Classifier** for buy/sell/hold signal prediction  
+    - **SMOTE** for class balancing  
+    - **RandomizedSearchCV** for hyperparameter optimization  
+    - **Feature Engineering** with:
+    - RSI, Bollinger Bands, SMA, MA Crossovers  
+    - Momentum, ATR, and volatility measures  
 
-### Prerequisites
+    ### 📊 Backtesting & Visualization
+    - **Backtesting engine** with metrics (CAGR, Sharpe Ratio, Win Rate, Max Drawdown)
+    - **Plotly-powered interactive charts**
+    - **Streamlit dashboard** for analytics and strategy testing
 
-*   **Python:** 3.12.x
-*   **uv:** Fast Python package installer (`pip install uv`)
-*   **Docker Desktop:** [Download Docker Desktop](https://www.docker.com/products/docker-desktop/)
+    ### 🔗 API & Automation
+    - **FastAPI** backend for REST endpoints:
+    - `/predict` → model inference  
+    - `/train` → retrain model  
+    - `/health` → system status  
+    - **MLflow** for experiment tracking  
+    - **SQLAlchemy + PostgreSQL** for persistence  
 
-### Installation & Setup
+    ### 🔔 Notification System (New)
+    - **Telegram bot integration** for alerts and trade signals  
+    - **Email notifications (SMTP)** for critical events  
+    - Centralized **notification manager** with modular `notifier.py` and `notification.py`
+    - Supports async dispatch and error handling with retry logic  
 
-1.  **Clone or Prepare Project Structure:**
-    ```
-    MyTradingProject/
-    └── crypto_trading_bot/
-        ├── src/
-        │   ├── models/          # Model storage (Docker volume in prod)
-        │   ├── __init__.py
-        │   ├── main_api.py      # FastAPI endpoints
-        │   ├── backtester.py    # Trading simulation
-        │   ├── binance_manager.py  # Exchange API
-        │   ├── config.py        # Settings & env vars
-        │   ├── data_loader.py   # OHLCV data handling
-        │   ├── db.py           # Database models
-        │   ├── feature_engineer.py  # Technical analysis
-        │   ├── model_manager.py  # ML pipeline
-        │   ├── notifier.py     # Alerts (email/telegram)
-        │   ├── streamlit_app.py  # Dashboard
-        │   └── visualizer.py   # Trading charts
-        ├── tests/
-        │   ├── __init__.py
-        │   ├── conftest.py     # Pytest fixtures
-        │   ├── test_backtester.py
-        │   ├── test_binance_manager.py
-        │   ├── test_data_loader.py
-        │   ├── test_db.py
-        │   ├── test_feature_engineer.py
-        │   ├── test_model_manager.py
-        │   ├── test_notification.py
-        │   ├── test_notifier.py
-        │   └── test_run_modes.py  # CLI & training tests
-        ├── data/
-        │   └── test_df_features.csv  # Historical data
-        ├── main.py             # Entry point & CLI
-        ├── requirements.txt    # Pinned dependencies
-        ├── pyproject.toml     # Project & deps
-        ├── pytest.ini         # Test settings
-        ├── pg_hba.conf       # Postgres auth
-        ├── .python-version   # Python 3.12.x
-        ├── .env.example      # Environment template
-        ├── .env             # Production vars
-        ├── .env.local       # Development overrides
-        ├── Dockerfile       # Container build
-        ├── docker-compose.yml  # Service configs
-        └── .dockerignore       # Build exclusions
-    ```
+    ### 🧩 Infrastructure & Deployment
+    - **Dockerized services** for reproducible environments  
+    - **docker-compose.yml** orchestrates:
+    - FastAPI
+    - PostgreSQL
+    - Streamlit dashboard
+    - MLflow tracker  
+    - **GitHub Actions CI** for automatic linting, testing, and build validation  
+    - Environment variables managed securely via `.env` and `.env.local`
 
-2.  **Navigate to Project Directory:**
-    ```powershell
-    cd C:\Users\oviem\OneDrive\Desktop\Projects\MyTradingProject\crypto_trading_bot-1
-    ```
+    ---
 
-3.  **Create and Activate Virtual Environment:**
-    ```powershell
+    ## 🧱 Project Structure
+
+    crypto_trading_bot/
+    ├── src/
+    │ ├── main_api.py # FastAPI entrypoint
+    │ ├── bot_runner.py # Telegram bot runner
+    │ ├── notifier.py # Handles sending alerts (email, telegram)
+    │ ├── notification.py # Core notification utilities & wrappers
+    │ ├── binance_manager.py # Binance Testnet API integration
+    │ ├── feature_engineer.py # Technical indicators
+    │ ├── backtester.py # Strategy simulation
+    │ ├── db.py # SQLAlchemy ORM models
+    │ ├── config.py # Global settings & environment handling
+    │ ├── model_manager.py # Model load/train/save
+    │ ├── visualizer.py # Plotly chart generator
+    │ ├── streamlit_app.py # Interactive dashboard
+    │ └── init.py
+    │
+    ├── notifications/
+    │ ├── init.py
+    │ ├── test_notifier.py
+    │ ├── test_notifications.py
+    │
+    ├── tests/
+    │ ├── init.py
+    │ ├── conftest.py
+    │ ├── test_backtester.py
+    │ ├── test_binance_manager.py
+    │ ├── test_data_loader.py
+    │ ├── test_db.py
+    │ ├── test_feature_engineer.py
+    │ ├── test_model_manager.py
+    │ ├── test_run_modes.py
+    │ └── notifications/ # Notification-specific test module
+    │
+    ├── data/
+    │ └── test_df_features.csv
+    │
+    ├── requirements.txt
+    ├── requirements-dev.txt
+    ├── pyproject.toml
+    ├── docker-compose.yml
+    ├── Dockerfile
+    ├── pytest.ini
+    ├── .env.example
+    ├── .env
+    └── README.md
+
+
+    ---
+
+    ## 🧩 Installation & Setup
+
+    ### Prerequisites
+    - **Python 3.12.x**
+    - **uv** (modern package manager) → `pip install uv`
+    - **Docker Desktop**
+    - **PostgreSQL** (local or via Docker)
+
+    ### Steps
+
+    ```bash
+    # 1️⃣ Clone the repository
+    git clone https://github.com/<yourusername>/crypto_trading_bot.git
+    cd crypto_trading_bot
+
+    # 2️⃣ Create a virtual environment
     uv venv
-    .venv\Scripts\activate
-    # For Cmd: .venv\Scripts\activate.bat
-                .venv\Scripts\activate.ps1
-    ```
+    .venv\Scripts\activate  # Windows
+    source .venv/bin/activate  # Mac/Linux
 
-4.  **Install Dependencies:**
-    ```powershell
-    uv pip install -e .
-    # or
+    # 3️⃣ Install dependencies
     uv pip install -r requirements.txt
-    ```
+    uv pip install -r requirements-dev.txt
 
-5.  **Place Historical Data:**
-    Ensure `test_df_features.csv` is in the `data/` directory of `crypto_trading_bot`.
+    # 4️⃣ Set environment variables (PowerShell example)
+    setx TELEGRAM_BOT_TOKEN "123456789:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+    setx TELEGRAM_CHAT_ID "987654321"
+    setx SMTP_HOST "smtp.gmail.com"
+    setx SMTP_PORT "587"
+    setx SMTP_USER "your_email@gmail.com"
+    setx SMTP_PASS "app_password"
 
-6.  **Set up Environment Variables:**
-    *   Copy `.env.example` to `.env` and fill in your secrets (Binance API keys, JWT secret, DB credentials, etc.)
-    *   Example:
-        ```
-        BINANCE_API_KEY=YOUR_TESTNET_BINANCE_API_KEY
-        BINANCE_API_SECRET=YOUR_TESTNET_BINANCE_API_SECRET
-        JWT_SECRET_KEY=YOUR_RANDOM_SECRET
-        ...
-        ```
-    *   **Never commit `.env` to public repos.**
+    # 5️⃣ Run tests
+    pytest tests/ -v --disable-warnings
 
-## 🔔 Notification Setup
 
-### Telegram
-1. Create a bot with [BotFather](https://t.me/BotFather) and get your bot token.
-2. Start a chat with your bot and get your chat ID using:
-   `https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates`
-3. Add these to your `.env`:
-   ```
-   TELEGRAM_BOT_TOKEN=your_bot_token
-   TELEGRAM_CHAT_ID=your_chat_id
-   ```
-4. Use the Streamlit dashboard to send test messages.
+    🧠 Running the Application
+    🧩 Local (FastAPI)
+    uvicorn src.main_api:app --reload
 
-### Email
-1. Use an app password for Gmail or your SMTP provider.
-2. Set the following in your `.env`:
-   ```
-   EMAIL_HOST=smtp.gmail.com
-   EMAIL_PORT=587
-   EMAIL_USER=your_email@gmail.com
-   EMAIL_PASS=your_app_password
-   EMAIL_TO=your_email@gmail.com
-   ```
-3. Test by triggering a notification event in the app.
+    🤖 Telegram Bot
+    python -m src.bot_runner
 
----
+    📊 Streamlit Dashboard
+    streamlit run src/streamlit_app.py
 
-## 💻 Docker & Compose Usage
+    🧰 Docker Deployment
 
-- The Dockerfile and docker-compose.yml are set up for production and local development.
-- Model artifacts are stored in `src/models/` and shared via the `models_data` Docker volume.
-- Logs are written to the `logs/` directory and mapped as a volume.
-- The `.env` file is mapped read-only for security.
-- To run the full stack:
-  ```powershell
-  docker-compose up --build
-  ```
-- To run the Streamlit dashboard only:
-  ```powershell
-  docker-compose run --rm tradingbot streamlit run src/streamlit_app.py --server.port=8501 --server.address=0.0.0.0
-  ```
-- To train the model in Docker:
-  ```powershell
-  docker-compose run --rm tradingbot python main.py --train-only
-  ```
+    To start all services (API, Postgres, Streamlit, MLflow):
 
----
+    docker-compose up --build
 
-## 🔒 Security & Best Practices
 
-- The `.env` file is never committed and is mapped read-only in Docker Compose for extra safety.
-- All secrets (API keys, DB passwords, JWT, etc.) are managed via environment variables.
-- Use `.env.example` as a template and never share your real `.env`.
-- If you need to persist models or logs, use Docker volumes as configured.
-- For troubleshooting Docker build issues (e.g., network timeouts), try increasing build timeouts or retrying the build. See the Dockerfile for the `UV_HTTP_TIMEOUT` setting.
+    To train only:
 
----
+    docker-compose run --rm tradingbot python main.py --train-only
 
-## 📈 Visualization: Plotly & Streamlit
 
-*   **Plotly** is used for generating interactive charts and analytics.
-*   **Streamlit** serves these charts and dashboards to users via a web interface.
+    To run Streamlit dashboard:
 
-## 🛠️ Next Steps / TODO
+    docker-compose run --rm tradingbot streamlit run src/streamlit_app.py
 
--   Expand unit and integration tests in the existing `tests/` directory
--   Set up CI/CD for automated testing and deployment
--   Add advanced monitoring/alerting (Sentry, Prometheus, etc.)
--   Harden API security (user management, password hashing, HTTPS)
--   Expand Streamlit dashboards for analytics
--   Add or improve documentation
--   Keep Docker Compose and data paths in sync with any folder changes
----
+    ⚙️ CI/CD Pipeline (GitHub Actions)
 
-For questions or contributions, please open an issue or pull request.
+    The CI workflow (.github/workflows/ci.yml) automates:
+
+    Dependency installation
+
+    Test execution
+
+    DB health check (Postgres service)
+
+    Notification environment mocks
+
+    Example Job
+    - name: Run tests
+    run: pytest tests/ --maxfail=1 --disable-warnings -q
+
+
+    ✅ Tests run automatically on each push or pull_request to main.
+
+    🔔 Notifications Configuration
+    Telegram
+    TELEGRAM_BOT_TOKEN=your_bot_token
+    TELEGRAM_CHAT_ID=your_chat_id
+
+    Email
+    SMTP_HOST=smtp.gmail.com
+    SMTP_PORT=587
+    SMTP_USER=your_email@gmail.com
+    SMTP_PASS=your_app_password
+
+
+    Test manually:
+
+    from src.notifier import TelegramNotifier
+    TelegramNotifier().send_message("🚀 Test message successful!")
+
+    🧪 Testing
+    Run all tests
+    pytest -v --disable-warnings
+
+    Run only notifier tests
+    pytest tests/notifications -v
+
+
+    CI logs are streamed in GitHub Actions and visible in the Test Summary.
+
+    🔒 Security Best Practices
+
+    Secrets are never hardcoded — stored in .env or system variables
+
+    .env is ignored by Git
+
+    Use app passwords for email and Testnet keys for Binance
+
+    Docker environment mappings are read-only
+
+    CI masks sensitive data automatically
+
+    🛠️ Future Enhancements
+
+    🧩 Integrate deep learning models (LSTM/Transformers)
+
+    📈 Real-time signal dashboard with WebSocket streaming
+
+    🧠 Model versioning and ensemble strategies
+
+    🔔 Async notification queues (Redis/RabbitMQ)
+
+    📊 Prometheus + Grafana monitoring
+
+    🧱 Hardened API authentication (JWT/OAuth2)
+
+    🧪 CI test coverage via Codecov
+
+    Author: Ovie
+    License: MIT
+    Status: 🚧 Active Development
+    Last: Updated November 2025
