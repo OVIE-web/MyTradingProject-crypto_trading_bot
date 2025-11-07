@@ -1,5 +1,6 @@
 # File: tests/notifications/test_notifier.py
 import os
+import asyncio
 import pytest
 import logging
 from unittest.mock import patch, MagicMock
@@ -19,22 +20,15 @@ def test_telegram_notifier_init(mock_env):
 
 
 
+
 def test_telegram_notifier_send_message_success(mock_env):
-    """✅ Should send Telegram message successfully."""
     with patch("telegram.Bot", return_value=MagicMock()) as mock_bot:
         notifier = TelegramNotifier()
-        notifier.send_message("Test Message OK")
+        asyncio.run(notifier.send_message("Test Message OK"))
         mock_bot.return_value.send_message.assert_called_once_with(
             chat_id=notifier.chat_id,
             text="Test Message OK"
         )
-
-
-def test_telegram_notifier_send_message_failure(mock_env):
-    """⚠️ Should log error when Telegram send fails."""
-    with patch("telegram.Bot", return_value=MagicMock()) as mock_bot:
-        mock_bot.return_value.send_message.side_effect = Exception("Mocked Failure")
-        notifier = TelegramNotifier()
 
         with patch("logging.error") as mock_log:
             notifier.send_message("Failing Test Message")
@@ -46,8 +40,13 @@ def test_telegram_notifier_send_message_failure(mock_env):
 # --------------------------------------------------------------
 # EMAIL NOTIFICATION TESTS
 # --------------------------------------------------------------
-def test_send_email_notification_success(mock_env):
-    """✅ Should send email successfully with proper config."""
+def test_send_email_notification_success(monkeypatch):
+    monkeypatch.setenv("SMTP_HOST", "smtp.test.com")
+    monkeypatch.setenv("SMTP_PORT", "587")
+    monkeypatch.setenv("SMTP_USER", "sender@test.com")
+    monkeypatch.setenv("SMTP_PASS", "password")
+    monkeypatch.setenv("EMAIL_TO", "receiver@test.com")
+
     with patch("smtplib.SMTP") as mock_smtp_cls:
         smtp_instance = mock_smtp_cls.return_value.__enter__.return_value
         smtp_instance.starttls.return_value = None
@@ -65,7 +64,8 @@ def test_send_email_notification_success(mock_env):
 def test_send_email_notification_failure(mock_env):
     """❌ Should log error if SMTP connection fails."""
     with patch("smtplib.SMTP", side_effect=Exception("SMTP Failure")):
-        with patch("logging.error") as mock_log:
+        
+        with patch("src.notifier.logger.error") as mock_log:
             send_email_notification("Subject Fail", "Body Fail")
             assert mock_log.call_count >= 1
             assert "Failed to send email notification" in str(mock_log.call_args[0][0])

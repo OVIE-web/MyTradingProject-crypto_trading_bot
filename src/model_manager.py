@@ -41,53 +41,6 @@ INV_LABEL_MAP = {0: -1, 1: 0, 2: 1}
 def _ensure_dir(path: str) -> None:
     os.makedirs(os.path.dirname(path), exist_ok=True)
 
-
-def _next_model_version(model_dir: str, base_name: str = "xgboost_model") -> Tuple[str, int]:
-    """Generate a filesystem-based next versioned model path."""
-    os.makedirs(model_dir, exist_ok=True)
-    versions = []
-    for f in os.listdir(model_dir):
-        if f.startswith(base_name) and "_v" in f and f.endswith(".json"):
-            try:
-                v = int(f.split("_v")[-1].split(".")[0])
-                versions.append(v)
-            except ValueError:
-                continue
-    next_v = max(versions) + 1 if versions else 1
-    return os.path.join(model_dir, f"{base_name}_v{next_v}.json"), next_v
-
-
-def _save_model_with_metadata(
-    model: xgb.XGBClassifier,
-    model_path: str,
-    best_params: Dict[str, Any],
-    accuracy: float,
-    feature_set_id: str,
-    feature_names: list,
-) -> Tuple[str, Dict[str, Any]]:
-    """Save the model file and accompanying metadata JSON."""
-    _ensure_dir(model_path)
-    model.save_model(model_path)
-
-    metadata = {
-        "feature_names": list(feature_names),
-        "label_map": LABEL_MAP,
-        "best_params": best_params,
-        "accuracy": accuracy,
-        "feature_set_id": feature_set_id,
-        "train_date": datetime.utcnow().isoformat(),
-        "model_filename": os.path.basename(model_path),
-    }
-
-    meta_path = f"{model_path}.meta.json"
-    with open(meta_path, "w") as f:
-        json.dump(metadata, f, indent=2)
-
-    logger.info(f"✅ Model saved: {model_path}")
-    logger.info(f"✅ Metadata saved: {meta_path}")
-    return meta_path, metadata
-
-
 # ---------------------------------------------------------------------------------
 # Model Registry (Postgres)
 # ---------------------------------------------------------------------------------
@@ -341,7 +294,7 @@ def train_xgboost_model(
             )
 
         logger.info(f"✅ Model v{version} saved at {versioned_path}")
-        return best_model, metadata
+        return best_model
 
     except Exception as e:
         logger.exception("❌ Error training XGBoost model: %s", e)
@@ -360,20 +313,8 @@ def load_trained_model(
     return_metadata: bool = False,
 ) -> Tuple[xgb.XGBClassifier, Optional[Dict[str, Any]]]:
     """
-    Load a trained model and its metadata safely.
-    Supports:
-      - Loading specific version from registry
-      - Loading latest version if no version is given
-      - Loading from a direct file path (manual override)
-
-    Args:
-        version: Optional model version number (from registry).
-        model_path: Optional direct filesystem path override.
-        return_metadata: If True, also returns metadata dict (default: False).
-
-    Returns:
-        model: Loaded XGBoost model (untrained if not found)
-        metadata: (Optional) metadata dict if return_metadata=True
+    Load a trained XGBoost model and metadata safely, without crashing on attribute issues.
+    Handles both registry-based and direct file loads.
     """
     registry = ModelRegistry()
     resolved_path = model_path
@@ -390,14 +331,14 @@ def load_trained_model(
                 logger.warning("⚠️ No record found in registry; using fallback MODEL_SAVE_PATH.")
                 resolved_path = MODEL_SAVE_PATH
 
-        # 2️⃣ Initialize model
+        # 2️⃣ Initialize XGBoost model
         model = xgb.XGBClassifier()
 
         if not resolved_path or not os.path.exists(resolved_path):
             logger.warning(f"⚠️ No model found at {resolved_path}. Returning untrained model.")
             return (model, metadata) if return_metadata else (model,)
 
-        # 3️⃣ Load model file
+        # 3️⃣ Load the serialized model
         model.load_model(resolved_path)
 
         # 4️⃣ Load metadata
@@ -409,21 +350,75 @@ def load_trained_model(
         else:
             logger.warning(f"⚠️ Metadata file not found for model: {meta_path}")
 
-        # 5️⃣ Attach feature names if present
+        # 5️⃣ Safely attach feature names (without using restricted property)
         if "feature_names" in metadata:
-            model.feature_names_in_ = metadata["feature_names"]
+            feature_names = metadata["feature_names"]
+            # Store for reference — do NOT set to feature_names_in_ (no setter in XGB ≥2.0)
+            setattr(model, "_stored_feature_names", feature_names)
+            logger.info(f"✅ Feature names attached (stored in '_stored_feature_names', {len(feature_names)} features).")
 
-        logger.info(f"✅ Loaded model successfully from: {resolved_path}")
-        if return_metadata:
-            return model, metadata
-        else:
-            return model, {}
+        return model
 
     except Exception as e:
-        logger.exception("❌ Error loading trained model: %s", e)
-        return (xgb.XGBClassifier(), {}) if return_metadata else (xgb.XGBClassifier(),)
+        logger.error(f"❌ Error loading model from {resolved_path}: {e}", exc_info=True)
+        model = xgb.XGBClassifier()  # Return safe untrained model
+        metadata = {}
+        return model
 
 
+def _next_model_version(model_dir: str, base_name: str = "xgboost_model") -> Tuple[str, int]:
+    """Generate a filesystem-based next versioned model path."""
+    os.makedirs(model_dir, exist_ok=True)
+    versions = []
+    for f in os.listdir(model_dir):
+        if f.startswith(base_name) and "_v" in f and f.endswith(".json"):
+            try:
+                v = int(f.split("_v")[-1].split(".")[0])
+                versions.append(v)
+            except ValueError:
+                continue
+    next_v = max(versions) + 1 if versions else 1
+    return os.path.join(model_dir, f"{base_name}_v{next_v}.json"), next_v
+
+
+def _save_model_with_metadata(
+    model: xgb.XGBClassifier,
+    model_path: str,
+    best_params: Dict[str, Any],
+    accuracy: float,
+    feature_set_id: str,
+    feature_names: list,
+) -> Tuple[str, Dict[str, Any]]:
+    """Save the model file and accompanying metadata JSON."""
+    _ensure_dir(model_path)
+    model.save_model(model_path)
+
+    metadata = {
+        "feature_names": list(feature_names),
+        "label_map": LABEL_MAP,
+        "best_params": best_params,
+        "accuracy": accuracy,
+        "feature_set_id": feature_set_id,
+        "train_date": datetime.utcnow().isoformat(),
+        "model_filename": os.path.basename(model_path),
+    }
+
+    meta_path = f"{model_path}.meta.json"
+    with open(meta_path, "w") as f:
+        json.dump(metadata, f, indent=2)
+
+    logger.info(f"✅ Model saved: {model_path}")
+    logger.info(f"✅ Metadata saved: {meta_path}")
+    return meta_path, metadata
+
+def _load_metadata(model_path):
+     meta_path = model_path + ".meta.json"
+     if os.path.exists(meta_path):
+         with open(meta_path, "r") as f:
+             return json.load(f)
+     else:
+         logging.warning("No metadata file found for %s", model_path)
+         return {}
 
 # ---------------------------------------------------------------------------------
 # Prediction
@@ -432,19 +427,21 @@ def load_trained_model(
 def make_predictions(model, df, metadata=None):
     """
     Make predictions using a trained model and metadata.
-    Handles missing metadata gracefully.
+    Gracefully handles missing metadata or feature name mismatches.
     """
     try:
         if model is None:
             raise ValueError("Model is None; cannot make predictions.")
 
-        # Ensure metadata is a dict, even if None
         metadata = metadata or {}
 
-        # Try to extract feature names safely
-        feature_names = metadata.get("feature_names")
-        if not feature_names:
-            feature_names = getattr(model, "feature_names_in_", df.columns.tolist())
+        # Try multiple fallbacks for feature names
+        feature_names = (
+            metadata.get("feature_names")
+            or getattr(model, "_stored_feature_names", None)
+            or getattr(model, "feature_names_in_", None)
+            or df.columns.tolist()
+        )
 
         features = df[feature_names].copy()
         preds = model.predict(features)
@@ -457,6 +454,7 @@ def make_predictions(model, df, metadata=None):
     except Exception as e:
         logger.error(f"❌ Error making predictions: {e}", exc_info=True)
         return pd.Series(dtype=float), pd.Series(dtype=float)
+
     
 def get_latest_model_metadata() -> Dict[str, Any]:
     """Backward-compatible helper for tests expecting this function."""

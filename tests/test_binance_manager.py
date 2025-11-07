@@ -65,7 +65,7 @@ def test_binance_manager_init_no_api_keys(monkeypatch):
 
 
 
-def test_get_latest_ohlcv_candles(mock_binance_client, mock_klines_data):
+def test_get_latest_ohlcv(mock_binance_client, mock_klines_data):
     mock_binance_client.get_historical_klines.return_value = mock_klines_data
     manager = BinanceManager()
     df = manager.get_latest_ohlcv_candles(

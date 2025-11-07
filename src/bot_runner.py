@@ -13,6 +13,7 @@ from src.binance_manager import BinanceManager
 from src.feature_engineer import calculate_technical_indicators
 from src.model_manager import load_trained_model, make_predictions
 from src.db import SessionLocal
+from src.config import INITIAL_CANDLES_HISTORY, ATR_WINDOW 
 
 # async notifier (primary) + sync fallback helpers
 from src.notifier import TelegramNotifier, send_email_notification as send_email_async_safe
@@ -136,7 +137,7 @@ async def do_iteration(resources: Dict[str, object]) -> None:
     LOG.info("Starting iteration")
 
     # Fetch data
-    candles = await resources["binance"].get_latest_ohlcv("BTCUSDT", "4h")
+    candles = resources["binance"].get_latest_ohlcv("BTCUSDT", "4h", limit=max(INITIAL_CANDLES_HISTORY, ATR_WINDOW + 5))
     features = calculate_technical_indicators(candles)
 
     # Make predictions (returns pd.Series and confidence)

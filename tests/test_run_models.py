@@ -4,9 +4,10 @@ import pytest
 from unittest.mock import patch, MagicMock
 import pandas as pd
 import numpy as np
+from sklearn.model_selection import train_test_split
 
 from src.model_manager import train_xgboost_model, load_trained_model
-from src.config import FEATURE_COLUMNS, MODEL_SAVE_PATH
+from src.config import FEATURE_COLUMNS, MODEL_SAVE_PATH, MODEL_SAVE_FILENAME
 
 
 @pytest.fixture
@@ -28,7 +29,7 @@ def sample_training_data():
     return X, y
 
 
-def test_train_only_mode(tmp_path, monkeypatch, sample_training_data):
+def test_train_only_model(tmp_path, monkeypatch, sample_training_data):
     """Test the --train-only mode creates and saves a valid model."""
     X, y = sample_training_data
     model_path = tmp_path / "test_model.json"
@@ -37,7 +38,6 @@ def test_train_only_mode(tmp_path, monkeypatch, sample_training_data):
     monkeypatch.setattr("src.model_manager.MODEL_SAVE_PATH", str(model_path))
     
     # Split data (small test for speed)
-    from sklearn.model_selection import train_test_split
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42, stratify=y
     )

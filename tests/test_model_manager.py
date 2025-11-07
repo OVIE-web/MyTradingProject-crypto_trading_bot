@@ -112,7 +112,7 @@ def test_train_xgboost_model_saves_model(sample_model_data, tmp_path, caplog):
 
             # ✅ Assertions
             assert trained_model is mock_model
-            assert best_params == {"mock_param": "mock_value"}
+            assert best_params["best_params"] == {"mock_param": "mock_value"}
             mock_model.save_model.assert_called_once()
             assert "Model saved" in caplog.text
 

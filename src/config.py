@@ -64,7 +64,7 @@ MODEL_METADATA_PATH = MODEL_SAVE_PATH + ".meta.json"
 TRADE_SYMBOL = os.getenv("TRADE_SYMBOL", "BTCUSDT")
 TRADE_INTERVAL = os.getenv("TRADE_INTERVAL", "4h")
 TRADE_QUANTITY = float(os.getenv("TRADE_QUANTITY", 0.001))
-INITIAL_CANDLES_HISTORY = int(os.getenv("INITIAL_CANDLES_HISTORY", 500))
+INITIAL_CANDLES_HISTORY = int(os.getenv("INITIAL_CANDLES_HISTORY", 5000))
 
 # --------------------------------------------------------------------------
 # 7️⃣ Technical Indicator Parameters
@@ -114,7 +114,16 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 # --------------------------------------------------------------------------
 # 🔐 11️⃣ JWT (for optional web dashboard)
 # --------------------------------------------------------------------------
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+class Settings:
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "supersecretkey123")
+    JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60))
+
+    ADMIN_USERNAME: str = os.getenv("ADMIN_USERNAME", "admin")
+    ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "adminpass")
+
+settings = Settings()
+
 
 # --------------------------------------------------------------------------
 # 12️⃣ Runtime Optimization

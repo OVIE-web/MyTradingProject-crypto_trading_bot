@@ -52,10 +52,24 @@ def calculate_technical_indicators(df):
         # Price momentum
         df['price_momentum'] = df['close'].pct_change(5)  # Example, could be configured
         
+        
         # Average True Range
-        atr = AverageTrueRange(high=df['high'], low=df['low'], close=df['close'], window=ATR_WINDOW)
-        df['atr'] = atr.average_true_range()
-        df['atr_pct'] = df['atr'] / df['close']  # ATR as percentage of price
+        if df is None or df.empty:
+            logging.error("Empty DataFrame passed to feature engineer.")
+            return df
+
+        if len(df) < ATR_WINDOW:
+           logging.warning(f"Not enough data ({len(df)} rows) for ATR window {ATR_WINDOW}. Skipping ATR.")
+           df["atr"] = np.nan
+           df["atr_pct"] = np.nan
+           return df
+
+           atr = AverageTrueRange(high=df['high'], low=df['low'], close=df['close'], window=ATR_WINDOW)
+           df['atr'] = atr.average_true_range()
+           df['atr_pct'] = df['atr'] / df['close']
+           ...
+           return df
+
             
         # Volume metrics
         df['volume_pct_change'] = df['volume'].pct_change()
