@@ -1,21 +1,23 @@
-# src/data_loader.py
-
+import os
 import pandas as pd
+from typing import Union
+from pandas import DataFrame
 import logging
 import numpy as np
 
 
-def load_and_preprocess_data(file_path):  # file_path is now passed as argument
+DATA_FILE_PATH = os.path.join("data", "test_df_features.csv")
+def load_and_preprocess_data(file_path: str) -> DataFrame:
     """
     Loads historical cryptocurrency price data, converts timestamp,
     sets index, sorts, and handles missing values.
     """
     try:
-        df = pd.read_csv(file_path)
+        df: Union[pd.DataFrame, None] = pd.read_csv(file_path, sep=',')
 
         # Convert timestamp to datetime and set as index
         if 'timestamp' in df.columns:
-            df['timestamp'] = pd.to_datetime(df['timestamp'])
+            df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
             df.set_index('timestamp', inplace=True)
         else:
             expected = ['timestamp', 'open', 'high', 'low', 'close', 'volume']

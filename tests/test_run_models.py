@@ -1,6 +1,7 @@
 """Tests for CLI modes and training pipeline functionality."""
 import os
 import pytest
+from typing import List
 from unittest.mock import patch, MagicMock
 import pandas as pd
 import numpy as np

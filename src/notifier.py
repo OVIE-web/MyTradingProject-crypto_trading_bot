@@ -11,11 +11,13 @@ import time
 logger = logging.getLogger(__name__)
 
 def _backoff_delay(attempt: int, base: float = 1.0, cap: float = 30.0) -> float:
+    """Calculate exponential backoff with jitter."""
     exp = min(cap, base * (2 ** (attempt - 1)))
     return exp / 2 + random.uniform(0, exp / 2)
 
 
 class TelegramNotifier:
+    """Handles asynchronous Telegram notifications with retries."""
     def __init__(self, max_retries: int = 3):
         self.token = os.getenv("TELEGRAM_BOT_TOKEN")
         self.chat_id = os.getenv("TELEGRAM_CHAT_ID")
@@ -25,7 +27,7 @@ class TelegramNotifier:
         logger.info("Telegram Notifier initialized.")
 
     async def send_message(self, message: str) -> bool:
-        """Send Telegram message asynchronously with retries."""
+        """Send Telegram message asynchronously with retry mechanism."""
         if not self.enabled:
             logger.warning("Telegram Notifier not enabled.")
             return False
@@ -42,12 +44,12 @@ class TelegramNotifier:
                     logger.warning(f"Retrying in {delay:.2f}s...")
                     await asyncio.sleep(delay)
                 else:
-                    logger.error("All retry attempts exhausted.")
+                    logger.error("All retry attempts exhausted for Telegram message.")
         return False
 
 
 def send_email_notification(subject: str, message: str, max_retries: int = 3) -> bool:
-    """Send email using environment variables with retries."""
+    """Send email using SMTP with retry logic."""
     host = os.getenv("SMTP_HOST")
     port = int(os.getenv("SMTP_PORT", 587))
     user = os.getenv("SMTP_USER")
@@ -63,7 +65,6 @@ def send_email_notification(subject: str, message: str, max_retries: int = 3) ->
     msg["From"] = user
     msg["To"] = to_email
 
-    
     for attempt in range(1, max_retries + 1):
         try:
             with smtplib.SMTP(host, port) as server:

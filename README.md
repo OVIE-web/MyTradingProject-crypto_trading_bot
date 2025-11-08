@@ -110,7 +110,7 @@
 
     ```bash
     # 1️⃣ Clone the repository
-    git clone https://github.com/<yourusername>/crypto_trading_bot.git
+    git clone https://github.com/OVIE-web/crypto_trading_bot.git
     cd crypto_trading_bot
 
     # 2️⃣ Create a virtual environment

@@ -1,50 +1,31 @@
-name: CI - Crypto Trading Bot
-
-on:
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
-
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-
-    env:
-      PYTHONUNBUFFERED: 1
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/trading
-      TELEGRAM_BOT_TOKEN: dummy_token
-      TELEGRAM_CHAT_ID: dummy_chat
-      SMTP_HOST: smtp.example.com
-      SMTP_PORT: 587
-      SMTP_USER: user@example.com
-      SMTP_PASS: password123
-      BINANCE_API_KEY: fake_key
-      BINANCE_API_SECRET: fake_secret
-      BINANCE_TESTNET: "True"
 
     services:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: trading
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U postgres"
+          --health-cmd="pg_isready -U ${{ secrets.POSTGRES_USER }}"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12.10"
-
-      - name: Cache
+    env:
+      PYTHONUNBUFFERED: 1
+      DATABASE_URL: postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.POSTGRES_DB }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      SMTP_HOST: ${{ secrets.SMTP_HOST }}
+      SMTP_PORT: ${{ secrets.SMTP_PORT }}
+      SMTP_USER: ${{ secrets.SMTP_USER }}
+      SMTP_PASS: ${{ secrets.SMTP_PASS }}
+      BINANCE_API_KEY: ${{ secrets.BINANCE_API_KEY }}
+      BINANCE_API_SECRET: ${{ secrets.BINANCE_API_SECRET }}
+      BINANCE_TESTNET: "True"

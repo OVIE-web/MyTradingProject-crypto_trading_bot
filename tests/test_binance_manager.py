@@ -3,6 +3,8 @@ import importlib
 from unittest.mock import patch, MagicMock
 import pandas as pd
 from src.binance_manager import BinanceManager
+import src.config
+importlib.reload(src.config)
 from src.config import TRADE_SYMBOL, TRADE_INTERVAL, INITIAL_CANDLES_HISTORY
 
 
@@ -54,10 +56,6 @@ def test_binance_manager_init_no_api_keys(monkeypatch):
     monkeypatch.delenv("BINANCE_API_SECRET", raising=False)
 
     with patch.dict("os.environ", {"BINANCE_API_KEY": "", "BINANCE_API_SECRET": ""}, clear=True):
-        import importlib
-        import src.config
-        importlib.reload(src.config)
-
         with patch("src.binance_manager.Client", MagicMock()):
             with pytest.raises(ValueError, match="API credentials missing"):
                 from src.binance_manager import BinanceManager

@@ -1,9 +1,12 @@
 # tests/test_bot_runner.py
 import asyncio
 import pytest
-
+from typing import List, Any
 import src.bot_runner as bot_runner
 
+@pytest.fixture
+def monkeypatch(request):
+    return request.getfuncargvalue("monkeypatch")
 @pytest.mark.asyncio
 async def test_runner_loop_run_once(monkeypatch):
     called = {}
