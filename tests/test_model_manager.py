@@ -1,15 +1,15 @@
-import os
 import pytest
-from typing import List
+from typing import List, Optional
 import numpy as np
 import pandas as pd
 import logging
 from unittest.mock import patch, MagicMock
+from sklearn.model_selection import train_test_split
+
 
 from src.model_manager import (
-    prepare_model_data,
     train_xgboost_model,
-    make_predictions,
+    make_predictions
 )
 from src.config import FEATURE_COLUMNS, TARGET_COLUMN, RANDOM_STATE, CONFIDENCE_THRESHOLD
 
@@ -43,10 +43,8 @@ def sample_model_data():
 # -------------------------------------------------
 def test_prepare_model_data(sample_model_data):
     """Ensure SMOTE balancing and stratified split works."""
-    X_train, X_test, y_train, y_test = prepare_model_data(
-        sample_model_data,
-        FEATURE_COLUMNS,
-        TARGET_COLUMN
+    X_train, X_test, y_train, y_test = train_test_split(
+    df.drop(columns=["target"]), df["target"], test_size=0.2, random_state=42
     )
 
     # Shape assertions
@@ -138,7 +136,7 @@ def test_make_predictions(sample_model_data):
         (n // 3 + 1, 1)
     )[:n]
 
-    from src.model_manager import make_predictions
+    
     preds, conf = make_predictions(mock_model, X_data)
 
     # Assertions

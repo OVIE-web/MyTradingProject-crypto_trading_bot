@@ -171,7 +171,7 @@ async def main(train: bool = False, mode: str = "backtest"):
         else:
             logger.info("📊 Backtesting complete. Generating visualizations...")
             if results is not None:
-                visualize_trading_results(results)
+                visualize_trading_results(results, trades_df, daily_portfolio_df, rsi_lower_thresh=30, rsi_upper_thresh=70)
                 await telegram_notifier.send_message("✅ Backtesting and visualization completed.")
             else:
                 logger.warning("⚠️ Backtesting results unavailable — skipping visualization.")

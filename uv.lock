@@ -682,7 +682,7 @@ wheels = [
 ]
 
 [[package]]
-name = "crypto-trading-bot"
+name = "crypto-trading-bot-1"
 version = "1.0.0"
 source = { editable = "." }
 dependencies = [

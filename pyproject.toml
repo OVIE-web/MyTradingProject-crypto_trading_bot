@@ -1,5 +1,5 @@
 [project]
-name = "crypto-trading-bot"
+name = "crypto-trading-bot-1"
 version = "1.0.0"
 description = "A modular crypto trading bot with FastAPI backend, PostgreSQL model registry, ML pipeline, and notifier integration."
 requires-python = ">=3.10"
@@ -62,6 +62,7 @@ dev = [
 [build-system]
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
+tool.uv.package = true
 
 # -----------------------------------------------------------------------------
 # 🧹 Code Style & Linting
@@ -97,7 +98,7 @@ skip = [".venv", "migrations", "build", "dist"]
 # -----------------------------------------------------------------------------
 [tool.pytest.ini_options]
 minversion = "8.0"
-addopts = "-ra -q --disable-warnings"
+addopts = "-s -v --disable-warnings=maxfail=3 --tb=short --cov=src --cov-report=term-missing --cov-report=html --cov-report=xml"
 testpaths = ["tests"]
 asyncio_mode = "auto"
 log_cli = true

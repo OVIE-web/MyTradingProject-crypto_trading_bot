@@ -20,10 +20,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip install "uv==0.4.18"
 
 # Copy dependency metadata first (for caching)
-COPY pyproject.toml ./
+COPY pyproject.toml uv.lock ./mydir/mydir/
 
-# Install Python dependencies system-wide
+# Install Python dependencies (system-wide, cached layer)
 RUN uv pip install --system .
+RUN uv sync --frozen
+
+
 
 # Add non-root user for security
 RUN adduser --disabled-password --gecos '' appuser
@@ -55,4 +58,4 @@ FROM runtime AS test
 USER root
 RUN pip install pytest pytest-asyncio pytest-mock
 USER appuser
-CMD ["pytest", "-v", "--maxfail=1", "--disable-warnings"]
+CMD ["pytest", "-v", "--maxfail=3", "--disable-warnings"]

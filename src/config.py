@@ -1,149 +1,78 @@
 import os
-import logging
-from dotenv import load_dotenv
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Optional
 
-# --------------------------------------------------------------------------
-# 1️⃣ Load environment variables
-# --------------------------------------------------------------------------
-load_dotenv()  # global .env
-load_dotenv(dotenv_path=".env.local", override=True)  # project-specific overrides
+def get_env_str(key: str, default: str) -> str:
+    val = os.getenv(key)
+    return val if val is not None else default
 
-# --------------------------------------------------------------------------
-# 2️⃣ Logging setup (early visibility for stakeholders)
-# --------------------------------------------------------------------------
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s"
-)
+def get_env_int(key: str, default: int) -> int:
+    val = os.getenv(key)
+    return int(val) if val is not None else default
 
-# --------------------------------------------------------------------------
-# 3️⃣ Binance Configuration
-# --------------------------------------------------------------------------
-BINANCE_API_KEY = os.getenv("BINANCE_API_KEY")
-BINANCE_API_SECRET = os.getenv("BINANCE_API_SECRET")
-BINANCE_TESTNET = os.getenv("BINANCE_TESTNET", "False").lower() == "true"
+def get_env_float(key: str, default: float) -> float:
+    val = os.getenv(key)
+    return float(val) if val is not None else default
 
-BINANCE_API_URL = "https://api.binance.com"
-BINANCE_TESTNET_API_URL = "https://testnet.binance.vision/api"
-
-def get_binance_keys():
-    """Return Binance API credentials and testnet flag."""
-    return BINANCE_API_KEY, BINANCE_API_SECRET, BINANCE_TESTNET
-
-# --------------------------------------------------------------------------
-# 4️⃣ Database Configuration
-# --------------------------------------------------------------------------
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    raise RuntimeError("❌ DATABASE_URL not found. Please set it in .env.local")
-
-# Mask sensitive info for logs
-safe_db_url = DATABASE_URL.split("@")[-1] if "@" in DATABASE_URL else DATABASE_URL
-logging.info(f"📦 Using database at: {safe_db_url}")
-
-# --------------------------------------------------------------------------
-# 5️⃣ Paths and Model Configuration
-# --------------------------------------------------------------------------
-DATA_FILE_PATH = os.path.join("data", "test_df_features.csv")
-if not os.path.exists(DATA_FILE_PATH):
-    logging.warning(
-        f"⚠️ Data file not found at {DATA_FILE_PATH}. "
-        "Ensure the file exists or update DATA_FILE_PATH in config.py"
-    )
-
-MODEL_TYPE = "xgboost"
-MODEL_DIR = os.getenv("MODEL_DIR", os.path.join(os.path.dirname(__file__), "models"))
-MODEL_SAVE_FILENAME = os.getenv("MODEL_SAVE_FILENAME", "xgboost_model.json")
-MODEL_SAVE_PATH = os.path.join(MODEL_DIR, MODEL_SAVE_FILENAME)
-MODEL_METADATA_PATH = MODEL_SAVE_PATH + ".meta.json"
-
-# --------------------------------------------------------------------------
-# 6️⃣ Trading Parameters
-# --------------------------------------------------------------------------
-TRADE_SYMBOL = os.getenv("TRADE_SYMBOL", "BTCUSDT")
-TRADE_INTERVAL = os.getenv("TRADE_INTERVAL", "4h")
-TRADE_QUANTITY = float(os.getenv("TRADE_QUANTITY", 0.001))
-INITIAL_CANDLES_HISTORY = int(os.getenv("INITIAL_CANDLES_HISTORY", 5000))
-
-# --------------------------------------------------------------------------
-# 7️⃣ Technical Indicator Parameters
-# --------------------------------------------------------------------------
-RSI_WINDOW = 14
-BB_WINDOW = 20
-BB_WINDOW_DEV = 2
-SMA_SHORT_WINDOW = 20
-SMA_LONG_WINDOW = 50
-ATR_WINDOW = 14
-
-RSI_LOWER_QUANTILE = 0.2
-RSI_UPPER_QUANTILE = 0.8
-
-# --------------------------------------------------------------------------
-# 8️⃣ Model Training Parameters
-# --------------------------------------------------------------------------
-TARGET_COLUMN = "signal"
-TEST_SIZE = 0.2
-RANDOM_STATE = 42
-CONFIDENCE_THRESHOLD = 0.30
-
-# --------------------------------------------------------------------------
-# 9️⃣ Backtesting Parameters
-# --------------------------------------------------------------------------
-INITIAL_BALANCE = float(os.getenv("INITIAL_BALANCE", 10000))
-TRANSACTION_FEE_PCT = float(os.getenv("TRANSACTION_FEE_PCT", 0.001))
-
-FEATURE_COLUMNS = [
-    "rsi", "bb_upper", "bb_lower", "bb_mid", "bb_pct_b",
-    "sma_20", "sma_50", "ma_cross", "price_momentum",
-    "atr", "atr_pct"
-]
-
-# --------------------------------------------------------------------------
-# 🔔 10️⃣ Notification Configuration
-# --------------------------------------------------------------------------
-EMAIL_HOST = os.getenv("EMAIL_HOST")
-EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
-EMAIL_USER = os.getenv("EMAIL_USER")
-EMAIL_PASS = os.getenv("EMAIL_PASS")
-EMAIL_TO = os.getenv("EMAIL_TO")
-
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-
-# --------------------------------------------------------------------------
-# 🔐 11️⃣ JWT (for optional web dashboard)
-# --------------------------------------------------------------------------
-class Settings:
-    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "supersecretkey123")
-    JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60))
-
-    ADMIN_USERNAME: str = os.getenv("ADMIN_USERNAME", "admin")
-    ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "adminpass")
-
-settings = Settings()
-
-
-# --------------------------------------------------------------------------
-# 12️⃣ Runtime Optimization
-# --------------------------------------------------------------------------
-os.environ["JOBLIB_MULTIPROCESSING"] = "0"
-os.environ["OMP_NUM_THREADS"] = "1"
-
-# --------------------------------------------------------------------------
-# 📊 Stakeholder-friendly summary
-# --------------------------------------------------------------------------
 @dataclass(frozen=True)
-class ConfigSummary:
-    db: str = safe_db_url
-    model_path: str = MODEL_SAVE_PATH
-    trading_symbol: str = TRADE_SYMBOL
-    interval: str = TRADE_INTERVAL
-    initial_balance: float = INITIAL_BALANCE
-    notifications_enabled: bool = bool(EMAIL_USER or TELEGRAM_BOT_TOKEN)
+class Config:
+    # Binance
+    binance_api_key: Optional[str] = os.getenv("BINANCE_API_KEY")
+    binance_api_secret: Optional[str] = os.getenv("BINANCE_API_SECRET")
+    binance_testnet: bool = os.getenv("BINANCE_TESTNET", "False").lower() == "true"
 
-CONFIG_SUMMARY = ConfigSummary()
-logging.info(f"✅ Config loaded: {CONFIG_SUMMARY}")
+    # Database
+    database_url: str = get_env_str("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/trading")
 
-# --------------------------------------------------
+    # Paths & Models
+    model_type: str = "xgboost"
+    model_dir: str = get_env_str("MODEL_DIR", os.path.join(os.path.dirname(__file__), "models"))
+    model_save_filename: str = get_env_str("MODEL_SAVE_FILENAME", "xgboost_model.json")
+    model_save_path: str = os.path.join(model_dir, model_save_filename)
+    model_metadata_path: str = model_save_path + ".meta.json"
+
+    # Trading
+    trade_symbol: str = get_env_str("TRADE_SYMBOL", "BTCUSDT")
+    trade_interval: str = get_env_str("TRADE_INTERVAL", "4h")
+    trade_quantity: float = get_env_float("TRADE_QUANTITY", 0.001)
+    initial_candles_history: int = get_env_int("INITIAL_CANDLES_HISTORY", 5000)
+
+    # Backtesting
+    initial_balance: int = get_env_int("INITIAL_BALANCE", 10000)
+    transaction_fee_pct: float = get_env_float("TRANSACTION_FEE_PCT", 0.001)
+
+    # Indicators
+    rsi_window: int = 14
+    bb_window: int = 20
+    bb_window_dev: int = 2
+    sma_short_window: int = 20
+    sma_long_window: int = 50
+    atr_window: int = 14
+    rsi_lower_quantile: float = 0.2
+    rsi_upper_quantile: float = 0.8
+
+    # Training
+    target_column: str = "signal"
+    test_size: float = 0.2
+    random_state: int = 42
+    confidence_threshold: float = 0.30
+    feature_columns: list[str] = field(default_factory=lambda: 
+        ["rsi", "bb_upper", "bb_lower", "bb_mid", "bb_pct_b",
+     "sma_20", "sma_50", "ma_cross", "price_momentum",
+     "atr", "atr_pct"])
+
+    # Notifications
+    email_host: Optional[str] = os.getenv("EMAIL_HOST")
+    email_port: int = get_env_int("EMAIL_PORT", 587)
+    email_user: Optional[str] = os.getenv("EMAIL_USER")
+    email_pass: Optional[str] = os.getenv("EMAIL_PASS")
+    email_to: Optional[str] = os.getenv("EMAIL_TO")
+    telegram_bot_token: Optional[str] = os.getenv("TELEGRAM_BOT_TOKEN")
+    telegram_chat_id: int = get_env_int("TELEGRAM_CHAT_ID", 0)
+
+    # JWT / Admin
+    jwt_secret_key: str = get_env_str("JWT_SECRET_KEY", "supersecretkey123")
+    jwt_algorithm: str = get_env_str("JWT_ALGORITHM", "HS256")
+    access_token_expire_minutes: int = get_env_int("ACCESS_TOKEN_EXPIRE_MINUTES", 60)
+    admin_username: str = get_env_str("ADMIN_USERNAME", "admin")
+    admin_password: str = get_env_str("ADMIN_PASSWORD", "adminpass")

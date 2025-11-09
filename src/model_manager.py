@@ -1,18 +1,36 @@
 import os
 import json
 import logging
+from pytz import timezone
 from datetime import datetime
 import xgboost as xgb
 import numpy as np
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from dotenv import load_dotenv
-from typing import Optional
+from typing import List, Optional
+import pandas as pd
+from typing import Tuple
+
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+def prepare_model_data(
+    df: pd.DataFrame,
+    feature_cols: Optional[list] = None,
+    target_col: Optional[str] = "target",
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Compatibility helper for tests — split DataFrame into train/test sets.
+    """
+    if target_col not in df.columns:
+        raise KeyError(f"Target column '{target_col}' not found in DataFrame")
+
+    X = df[feature_cols or [c for c in df.columns if c != target_col]]
+    y = df[target_col]
+    return train_test_split(X, y, test_size=0.2, random_state=42)
 # -----------------------------------------------------------------
 # ✅ Config
 # -----------------------------------------------------------------
@@ -101,7 +119,7 @@ def train_xgboost_model(X_train, y_train, X_test, y_test, model_path: Optional[s
         "model_name": "xgboost_signal_model",
         "model_path": model_path,
         "accuracy": accuracy,
-        "trained_at": datetime.utcnow().isoformat(),
+        "trained_at": datetime.datetime.now(timezone('UTC')).isoformat(),
     }
 
     try:
