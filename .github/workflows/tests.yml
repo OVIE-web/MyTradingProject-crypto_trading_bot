@@ -1,45 +1,14 @@
-name: Crypto Trading BOT
+name: 🧠 Crypto Trading Bot CI/CD
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
 
 jobs:
-  tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.12'
-
-      - name: Install dependencies
-        run: |
-          name: install uv 
-          run: curl LsSf https//astral.sh/uv/install.sh | sh
-          name: Sync environment
-          run: uv sync --frozen
-          name: Run tests
-          run: uv run pytest -v 
-          python -m venv uv
-          python -m uv pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest pytest-asyncio pytest-mock
-          
-      - name: Run tests
-        env:
-          DATABASE_URL: postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.POSTGRES_DB }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          SMTP_HOST: ${{ secrets.SMTP_HOST }}
-          SMTP_PORT: ${{ secrets.SMTP_PORT }}
-          SMTP_USER: ${{ secrets.SMTP_USER }}
-          SMTP_PASS: ${{ secrets.SMTP_PASS }}
-          BINANCE_API_KEY: ${{ secrets.BINANCE_API_KEY }}
-          BINANCE_API_SECRET: ${{ secrets.BINANCE_API_SECRET }}
-          BINANCE_TESTNET: "True"
-        run: |
-          pytest -v --maxfail=3 --disable-warnings
+  # =========================================================
+  # 🧪 1. Continuous Integration — Test Stage
+  # =========================================================
   build-and-test:
     runs-on: ubuntu-latest
 
@@ -61,6 +30,7 @@ jobs:
     env:
       PYTHONUNBUFFERED: 1
       DATABASE_URL: postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.POSTGRES_DB }}
+      USE_MODEL_REGISTRY: "True"
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       SMTP_HOST: ${{ secrets.SMTP_HOST }}
@@ -70,3 +40,101 @@ jobs:
       BINANCE_API_KEY: ${{ secrets.BINANCE_API_KEY }}
       BINANCE_API_SECRET: ${{ secrets.BINANCE_API_SECRET }}
       BINANCE_TESTNET: "True"
+
+    steps:
+      - name: 🧾 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: ⚡ Install uv package manager
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: 🧩 Install dependencies
+        run: |
+          uv pip install -r requirements.txt
+          uv pip install pytest pytest-asyncio pytest-mock psycopg2-binary
+
+      - name: ⏳ Wait for Postgres to be ready
+        run: |
+          for i in {1..10}; do
+            pg_isready -h localhost -p 5432 -U ${{ secrets.POSTGRES_USER }} && break
+            echo "Waiting for Postgres..."
+            sleep 3
+          done
+
+      - name: 🧪 Run Pytest with uv
+        run: |
+          mkdir -p test-results
+          uv run pytest -v tests --maxfail=3 --disable-warnings --junitxml=test-results/results.xml
+
+      - name: 📤 Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-results
+          path: test-results/results.xml
+          retention-days: 7
+
+      - name: 📦 Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs
+          path: .pytest_cache/
+
+
+  # =========================================================
+  # 🚀 2. Continuous Deployment — Optional Docker Deploy
+  # =========================================================
+  deploy:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && success()
+
+    steps:
+      - name: 🧾 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔑 Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏗️ Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/crypto-trading-bot:latest
+            ghcr.io/${{ github.repository }}/crypto-trading-bot:${{ github.run_number }}
+
+      - name: 🧩 Deploy Stack via Docker Compose (optional)
+        if: ${{ secrets.SSH_HOST }}
+        uses: appleboy/ssh-action@v0.1.11
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd ~/crypto_trading_bot
+            docker compose pull
+            docker compose up -d --force-recreate
+            docker system prune -f
+
+      - name: 📦 Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs
+          path: .pytest_cache/

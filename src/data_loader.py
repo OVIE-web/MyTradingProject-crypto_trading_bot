@@ -7,6 +7,7 @@ import numpy as np
 
 
 DATA_FILE_PATH = os.path.join("data", "test_df_features.csv")
+
 def load_and_preprocess_data(file_path: str) -> DataFrame:
     """
     Loads historical cryptocurrency price data, converts timestamp,
@@ -16,7 +17,7 @@ def load_and_preprocess_data(file_path: str) -> DataFrame:
         df: Union[pd.DataFrame, None] = pd.read_csv(file_path, sep=',')
 
         # Convert timestamp to datetime and set as index
-        if 'timestamp' in df.columns:
+        if df is not None and 'timestamp' in df.columns:
             df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
             df.set_index('timestamp', inplace=True)
         else:
@@ -27,7 +28,8 @@ def load_and_preprocess_data(file_path: str) -> DataFrame:
             )
 
         # Sort by index to ensure chronological order
-        df = df.sort_index()
+        if df is not None:
+            df = df.sort_index()
 
         # Handle missing values
         missing_count = df.isnull().sum()

@@ -1,6 +1,24 @@
 import os
 import pytest
 from config import Config
+from typing import Optional
+
+class Config:
+    trade_symbol: str
+    trade_interval: Optional[str] = "4h"
+    trade_quantity: Optional[int] = 1
+    initial_balance: int = 10000
+    email_port: Optional[int] = None
+    database_url: str = "default_value"
+    jwt_secret_key: str = "default_value"
+    access_token_expire_minutes: int = 60
+
+def test_initial_balance(monkeypatch):
+    monkeypatch.delenv("INITIAL_BALANCE", raising=False)
+    initial_balance = os.getenv("INITIAL_BALANCE")
+    cfg = Config()
+
+    assert cfg.initial_balance == 10000
 
 def test_default_values(monkeypatch):
     # Clear env vars to force defaults

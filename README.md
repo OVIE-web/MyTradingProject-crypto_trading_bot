@@ -1,4 +1,10 @@
-# Cryptocurrency Trading Bot
+# 🧠 Crypto Trading Bot 1
+
+[![CI Status](https://github.com/OVIE-web/crypto_trading_bot/actions/workflows/ci.yml/badge.svg)](https://github.com/OVIE-web/crypto_trading_bot/actions/workflows/ci.yml)
+
+A modular, test-driven crypto trading bot with XGBoost predictions, PostgreSQL registry, Telegram/Email notifications, and CI automation powered by GitHub Actions + uv.
+
+## 📖 Description
 
     A **modular**, **production-ready cryptocurrency trading system** powered by **Machine Learning (XGBoost)**, **technical indicators**, and **automated notifications** (Telegram + Email).  
     This project provides a **full trading pipeline** — from data collection and model training to backtesting, live trading, and dashboard visualization.  
@@ -229,8 +235,6 @@
     🔔 Async notification queues (Redis/RabbitMQ)
 
     📊 Prometheus + Grafana monitoring
-
-    🧱 Hardened API authentication (JWT/OAuth2)
 
     🧪 CI test coverage via Codecov
 
