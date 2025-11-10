@@ -1,14 +1,11 @@
-name: 🧠 Crypto Trading Bot CI/CD
+name: 🧠 Crypto_Trading_Bot - CI Tests
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [main]
   pull_request:
 
 jobs:
-  # =========================================================
-  # 🧪 1. Continuous Integration — Test Stage
-  # =========================================================
   build-and-test:
     runs-on: ubuntu-latest
 
@@ -30,7 +27,6 @@ jobs:
     env:
       PYTHONUNBUFFERED: 1
       DATABASE_URL: postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.POSTGRES_DB }}
-      USE_MODEL_REGISTRY: "True"
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       SMTP_HOST: ${{ secrets.SMTP_HOST }}
@@ -42,99 +38,37 @@ jobs:
       BINANCE_TESTNET: "True"
 
     steps:
-      - name: 🧾 Checkout repository
+      - name: 🔄 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🐍 Set up Python 3.12
+      - name: 🔐 Configure SSH access
+        env:
+          SSH_KEY: ${{ secrets.CRYPTO_TRADING_BOT_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/id_rsa
+          echo "✅ SSH key configured successfully"
+          # Optional: Add known hosts (for example, GitHub or a private server)
+          ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+
+      - name: 🐍 Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: '3.12'
 
-      - name: ⚡ Install uv package manager
+      - name: ⚡ Install uv (Python package manager)
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: 🧩 Install dependencies
+      - name: 📦 Sync environment and install dependencies
         run: |
-          uv pip install -r requirements.txt
+          uv sync --frozen
           uv pip install pytest pytest-asyncio pytest-mock psycopg2-binary
 
-      - name: ⏳ Wait for Postgres to be ready
+      - name: 🧪 Run Tests with Pytest
         run: |
-          for i in {1..10}; do
-            pg_isready -h localhost -p 5432 -U ${{ secrets.POSTGRES_USER }} && break
-            echo "Waiting for Postgres..."
-            sleep 3
-          done
-
-      - name: 🧪 Run Pytest with uv
-        run: |
-          mkdir -p test-results
-          uv run pytest -v tests --maxfail=3 --disable-warnings --junitxml=test-results/results.xml
-
-      - name: 📤 Upload test results
-        uses: actions/upload-artifact@v4
-        with:
-          name: pytest-results
-          path: test-results/results.xml
-          retention-days: 7
-
-      - name: 📦 Upload logs on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: logs
-          path: .pytest_cache/
-
-
-  # =========================================================
-  # 🚀 2. Continuous Deployment — Optional Docker Deploy
-  # =========================================================
-  deploy:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && success()
-
-    steps:
-      - name: 🧾 Checkout repository
-        uses: actions/checkout@v4
-
-      - name: 🔧 Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: 🔑 Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: 🏗️ Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}/crypto-trading-bot:latest
-            ghcr.io/${{ github.repository }}/crypto-trading-bot:${{ github.run_number }}
-
-      - name: 🧩 Deploy Stack via Docker Compose (optional)
-        if: ${{ secrets.SSH_HOST }}
-        uses: appleboy/ssh-action@v0.1.11
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            cd ~/crypto_trading_bot
-            docker compose pull
-            docker compose up -d --force-recreate
-            docker system prune -f
-
-      - name: 📦 Upload logs on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: logs
-          path: .pytest_cache/
+          uv run pytest -v --maxfail=3 --disable-warnings --tb=short
