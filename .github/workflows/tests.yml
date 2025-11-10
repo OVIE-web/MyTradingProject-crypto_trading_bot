@@ -4,6 +4,12 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      run-tests:
+        description: 'Run Tests'
+        required: true
+        type: string
 
 jobs:
   build-and-test:
@@ -46,7 +52,7 @@ jobs:
           SSH_KEY: ${{ secrets.CRYPTO_TRADING_BOT_SSH_KEY }}
         run: |
           mkdir -p ~/.ssh
-          echo "$SSH_KEY" > ~/.ssh/id_rsa
+          echo "${{ secrets.CRYPTO_TRADING_BOT_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           eval "$(ssh-agent -s)"
           ssh-add ~/.ssh/id_rsa
