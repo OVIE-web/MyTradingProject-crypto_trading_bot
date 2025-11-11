@@ -58,4 +58,4 @@ FROM runtime AS test
 USER root
 RUN pip install pytest pytest-asyncio pytest-mock
 USER appuser
-CMD ["pytest", "-v", "--maxfail=3", "--disable-warnings"]
+CMD ["pytest", "-v", "--maxfail=3", "--disable-warnings", "--tb=short", "src/tests/"]
