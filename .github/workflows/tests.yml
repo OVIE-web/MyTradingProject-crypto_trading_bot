@@ -2,26 +2,21 @@ name: 🧠 Crypto_Trading_Bot - CI Tests
 
 on:
   push:
-    branches: [main]
-  pull_request:
-  workflow_dispatch:
-    inputs:
-      run-tests:
-        description: 'Run Tests'
-        required: true
-        type: string
+    branches:
+      - main
+    
 
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
       - name: 🔄 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🔐 Configure SSH access
+      - name: 🔐 Configure SSH
         env:
-          SSH_KEY: ${{ secrets.CRYPTO_TRADING_BOT_SSH_KEY }}
+          SSH_KEY: ${{ CRYPTO_TRADING_BOT_SSH_KEYY }}
         run: |
           mkdir -p ~/.ssh
           echo "$SSH_KEY" > ~/.ssh/id_rsa
