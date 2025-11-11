@@ -159,9 +159,9 @@ If you’re working on algorithmic trading, ML pipelines, or automation systems,
 let’s collaborate, learn, or just exchange ideas.
 
 📬 Connect with me:
-LinkedIn
- • GitHub
- • Telegram Bot Demo
+[LinkedIn] https://www.linkedin.com/in/ovie-saniyo-7b0744258/
+ • [GitHub] https://github.com/OVIE-web
+ • [Telegram Bot Demo] https://t.me/My_Crypto_TradingBot
 
 ⭐ Give the repo a star if this story or code inspired you — the journey continues.
 
