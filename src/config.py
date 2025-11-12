@@ -71,8 +71,8 @@ class Config:
     telegram_chat_id: int = get_env_int("TELEGRAM_CHAT_ID", 0)
 
     # JWT / Admin
-    jwt_secret_key: str = get_env_str("JWT_SECRET_KEY", "supersecretkey123")
-    jwt_algorithm: str = get_env_str("JWT_ALGORITHM", "HS256")
+    jwt_secret_key: str = field(default_factory=lambda: os.environ["JWT_SECRET_KEY"])
+    jwt_algorithm: str = field(default_factory=lambda: os.environ["JWT_ALGORITHM"])
     access_token_expire_minutes: int = get_env_int("ACCESS_TOKEN_EXPIRE_MINUTES", 30)
-    admin_username: str = get_env_str("ADMIN_USERNAME", "admin")
-    admin_password: str = get_env_str("ADMIN_PASSWORD", "adminpass")
+    admin_username: str = field(default_factory=lambda: os.environ["ADMIN_USERNAME"])
+    admin_password: str = field(default_factory=lambda: os.environ["ADMIN_PASSWORD"])

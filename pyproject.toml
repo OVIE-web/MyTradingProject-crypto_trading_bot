@@ -1,62 +1,64 @@
 [project]
 name = "crypto-trading-bot-1"
-version = "1.0.0"
+version = "1.1.0"
 description = "A modular crypto trading bot with FastAPI backend, PostgreSQL model registry, ML pipeline, and notifier integration."
 requires-python = ">=3.10"
-authors = [{ name = "ovie", email = "oviemsaniyo30@gmail.com" }]
+authors = [{ name = "Ovie", email = "oviemsaniyo30@gmail.com" }]
 readme = "README.md"
 license = { text = "MIT" }
 
 dependencies = [
-  # --- Core ---
-  "fastapi==0.111.0",
-  "uvicorn==0.35.0",
-  "sqlalchemy==2.0.41",
-  "alembic==1.16.4",
-  "psycopg2-binary==2.9.9",
-  "python-dotenv==1.1.1",
-  "requests==2.32.4",
+    # --- Core ---
+    "fastapi==0.111.0",
+    "uvicorn==0.35.0",
+    "sqlalchemy==2.0.41",
+    "alembic==1.16.4",
+    "psycopg2-binary==2.9.9",
+    "python-dotenv==1.1.1",
+    "requests==2.32.4",
 
-  # --- Trading + Exchange ---
-  "python-binance==1.0.29",
-  "python-telegram-bot==22.5",
-  "ta==0.11.0",
-  "backoff==2.2.1",
+    # --- Trading + Exchange ---
+    "python-binance==1.0.29",
+    "python-telegram-bot==22.5",
+    "ta==0.11.0",
+    "backoff==2.2.1",
 
-  # --- Authentication ---
-  "passlib==1.7.4",
-  "bcrypt==3.2.2",
-  "python-jose==3.3.0",
-  "email-validator==2.2.0",
-  "python-multipart==0.0.20",
+    # --- Auth ---
+    "passlib==1.7.4",
+    "bcrypt==3.2.2",
+    "python-jose==3.3.0",
+    "email-validator==2.2.0",
+    "python-multipart==0.0.20",
 
-  # --- ML & Data ---
-  "scikit-learn==1.3.2",
-  "xgboost==3.0.2",
-  "imbalanced-learn==0.12.4",
-  "pandas==2.3.0",
-  "numpy==1.26.4",
-  "matplotlib==3.10.7",
-  "plotly==6.1.2",
-  "mlflow==2.13.0",
-  "joblib==1.5.1",
+    # --- ML & Data ---
+    "pandas==2.3.0",
+    "numpy==1.26.4",
+    "scikit-learn==1.3.2",
+    "xgboost==3.0.2",
+    "imbalanced-learn==0.12.4",
+    "mlflow==2.13.0",
+    "matplotlib==3.10.7",
+    "plotly==6.1.2",
+    "joblib==1.5.1",
 
-  # --- Utils ---
-  "pydantic==2.11.7",
-  "jinja2==3.1.6"
+    # --- Utils ---
+    "jinja2==3.1.6",
+    "pydantic==2.11.7"
 ]
 
 [project.optional-dependencies]
 dev = [
-  "pytest==8.4.1",
-  "pytest-asyncio==1.2.0",
-  "pytest-mock==3.14.1",
-  "pip-tools==7.4.1",
-  "watchfiles==1.1.0",
-  "black==24.8.0",
-  "isort==5.13.2",
-  "mypy==1.13.0",
-  "httpx==0.28.1"
+    "pytest==8.4.1",
+    "pytest-asyncio==1.2.0",
+    "pytest-mock==3.14.1",
+    "flake8==7.3.0",
+    "black==24.8.0",
+    "isort==5.13.2",
+    "mypy==1.13.0",
+    "httpx==0.28.1",
+    "watchfiles==1.1.0",
+    "pip-tools==7.4.1",
+    "pandas-stubs==2.3.2.250926",
 ]
 
 [build-system]
@@ -64,41 +66,31 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 tool.uv.package = true
 
-# -----------------------------------------------------------------------------
-# 🧹 Code Style & Linting
-# -----------------------------------------------------------------------------
+# -------------------------------------------------------------------
+# 🧹 Linting
+# -------------------------------------------------------------------
+[tool.flake8]
+max-line-length = 100
+extend-ignore = ["E203", "W503"]
+exclude = [".venv", "build", "dist", "migrations"]
+
 [tool.black]
 line-length = 100
 target-version = ['py310']
 skip-string-normalization = false
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.git
-  | \.venv
-  | build
-  | dist
-  | migrations
-)/
-'''
 
 [tool.isort]
 profile = "black"
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-use_parentheses = true
-ensure_newline_before_comments = true
 line_length = 100
 known_first_party = ["src"]
 skip = [".venv", "migrations", "build", "dist"]
 
-# -----------------------------------------------------------------------------
-# 🧪 Pytest configuration
-# -----------------------------------------------------------------------------
+# -------------------------------------------------------------------
+# 🧪 Testing configuration
+# -------------------------------------------------------------------
 [tool.pytest.ini_options]
 minversion = "8.0"
-addopts = "-s -v --disable-warnings=maxfail=3 --tb=short --cov=src --cov-report=term-missing --cov-report=html --cov-report=xml"
+addopts = "-v --maxfail=3 --disable-warnings=all --tb=short --cov=src --cov-report=term-missing --cov-report=html --cov-report=xml"
 testpaths = ["tests"]
 asyncio_mode = "auto"
 log_cli = true

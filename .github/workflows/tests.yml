@@ -1,59 +1,79 @@
-name: 🧠 Crypto_Trading_Bot - CI Tests
+name: 🧠 Crypto_Trading_Bot - CI Pipeline
 
 on:
   push:
-    branches:
-      - main
-    
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U ${{ secrets.POSTGRES_USER }}"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      PYTHONUNBUFFERED: 1
+      DATABASE_URL: postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.POSTGRES_DB }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      SMTP_HOST: ${{ secrets.SMTP_HOST }}
+      SMTP_PORT: ${{ secrets.SMTP_PORT }}
+      SMTP_USER: ${{ secrets.SMTP_USER }}
+      SMTP_PASS: ${{ secrets.SMTP_PASS }}
+      BINANCE_API_KEY: ${{ secrets.BINANCE_API_KEY }}
+      BINANCE_API_SECRET: ${{ secrets.BINANCE_API_SECRET }}
+      BINANCE_TESTNET: "True"
 
     steps:
       - name: 🔄 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🔐 Configure SSH
-        env:
-          SSH_KEY: ${{ CRYPTO_TRADING_BOT_SSH_KEYY }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "$SSH_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          eval "$(ssh-agent -s)"
-          ssh-add ~/.ssh/id_rsa
-          echo "✅ SSH key configured successfully"
-          # Optional: Add known hosts (for example, GitHub or a private server)
-          ssh-keyscan -H github.com >> ~/.ssh/known_hosts
-
       - name: 🐍 Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
 
-      - name: ⚡ Install uv (Python package manager)
+      - name: ⚡ Install uv package manager
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: 📦 Sync environment and install dependencies
+      - name: 📦 Compile dependencies from pyproject.toml
         run: |
-          uv sync --frozen
-          uv pip install pytest pytest-asyncio pytest-mock psycopg2-binary
+          uv pip compile pyproject.toml -o requirements.txt
+          uv pip compile --extra dev pyproject.toml -o requirements.dev.txt
+          echo "✅ requirements.txt and requirements.dev.txt generated successfully"
+
+      - name: 🔧 Install dependencies
+        run: |
+          uv pip install -r requirements.txt
+          uv pip install -r requirements.dev.txt
+          echo "✅ Installed all runtime and dev dependencies"
+
+      - name: 🔍 Run Linting (flake8, black, isort)
+        run: |
+          echo "Running Linting Checks..."
+          flake8 src tests
+          black --check src tests
+          isort --check-only src tests
+          echo "✅ Linting checks passed"
 
       - name: 🧪 Run Tests with Pytest
-        env:
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          SMTP_HOST: ${{ secrets.SMTP_HOST }}
-          SMTP_PORT: ${{ secrets.SMTP_PORT }}
-          SMTP_USER: ${{ secrets.SMTP_USER }}
-          SMTP_PASS: ${{ secrets.SMTP_PASS }}
-          BINANCE_API_KEY: ${{ secrets.BINANCE_API_KEY }}
-          BINANCE_API_SECRET: ${{ secrets.BINANCE_API_SECRET }}
         run: |
           uv run pytest -v --maxfail=3 --disable-warnings --tb=short
+          echo "✅ Tests passed"
