@@ -27,6 +27,3 @@ if (-Not (Get-Command uv -ErrorAction SilentlyContinue)) {
 # Launch VS Code
 Write-Host "Launching VS Code..."
 code .
-
-Write-Host "`n✅ Project is ready. Virtual environment is active."
-Write-Host "Run 'uv run' to start the project."

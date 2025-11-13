@@ -3,7 +3,10 @@ from pathlib import Path
 
 # Read README for PyPI long description
 this_dir = Path(__file__).parent
-readme = (this_dir / "README.md").read_text(encoding="utf-8")
+try:
+    readme = (this_dir / "README.md").read_text(encoding="utf-8")
+except FileNotFoundError:
+    readme = ""
 
 setup(
     name="crypto-trading-bot-1",
@@ -60,7 +63,7 @@ setup(
     extras_require={
         "dev": [
             "pytest==8.4.1",
-            "pytest-asyncio==1.2.0",
+            "pytest-asyncio==1.3.0",
             "pytest-mock==3.14.1",
             "pip-tools==7.4.1",
             "watchfiles==1.1.0",
@@ -72,7 +75,7 @@ setup(
         ],
     },
     classifiers=[
-        "Development Status :: 5 - Production/Stable",
+        "Development Status :: 5 - Beta",
         "Programming Language :: Python :: 3.12",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
