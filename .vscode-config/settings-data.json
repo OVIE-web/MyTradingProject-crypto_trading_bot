@@ -1,0 +1,10 @@
+{
+  "mssql.connectionGroups": [
+    {
+      "name": "ROOT",
+      "id": "061EB31A-126F-4C57-9252-9AADFF53C987"
+    }
+  ],
+
+  "jupyter.jupyterLaunchTimeout": 600000
+}

@@ -1,244 +1,202 @@
 # 🧠 Crypto Trading Bot 1
 
-[![CI Status](https://github.com/OVIE-web/crypto_trading_bot/actions/workflows/ci.yml/badge.svg)](https://github.com/OVIE-web/crypto_trading_bot/actions/workflows/ci.yml)
-
-A modular, test-driven crypto trading bot with XGBoost predictions, PostgreSQL registry, Telegram/Email notifications, and CI automation powered by GitHub Actions + uv.
-
-## 📖 Description
-
-    A **modular**, **production-ready cryptocurrency trading system** powered by **Machine Learning (XGBoost)**, **technical indicators**, and **automated notifications** (Telegram + Email).  
-    This project provides a **full trading pipeline** — from data collection and model training to backtesting, live trading, and dashboard visualization.  
-    Designed for **security**, **scalability**, and **continuous integration** with **Docker** and **GitHub Actions CI**.
-
-    ---
-
-    ## ✨ Key Features
-
-    ### 🧠 Machine Learning & Strategy
-    - **XGBoost Classifier** for buy/sell/hold signal prediction  
-    - **SMOTE** for class balancing  
-    - **RandomizedSearchCV** for hyperparameter optimization  
-    - **Feature Engineering** with:
-    - RSI, Bollinger Bands, SMA, MA Crossovers  
-    - Momentum, ATR, and volatility measures  
-
-    ### 📊 Backtesting & Visualization
-    - **Backtesting engine** with metrics (CAGR, Sharpe Ratio, Win Rate, Max Drawdown)
-    - **Plotly-powered interactive charts**
-    - **Streamlit dashboard** for analytics and strategy testing
-
-    ### 🔗 API & Automation
-    - **FastAPI** backend for REST endpoints:
-    - `/predict` → model inference  
-    - `/train` → retrain model  
-    - `/health` → system status  
-    - **MLflow** for experiment tracking  
-    - **SQLAlchemy + PostgreSQL** for persistence  
-
-    ### 🔔 Notification System (New)
-    - **Telegram bot integration** for alerts and trade signals  
-    - **Email notifications (SMTP)** for critical events  
-    - Centralized **notification manager** with modular `notifier.py` and `notification.py`
-    - Supports async dispatch and error handling with retry logic  
-
-    ### 🧩 Infrastructure & Deployment
-    - **Dockerized services** for reproducible environments  
-    - **docker-compose.yml** orchestrates:
-    - FastAPI
-    - PostgreSQL
-    - Streamlit dashboard
-    - MLflow tracker  
-    - **GitHub Actions CI** for automatic linting, testing, and build validation  
-    - Environment variables managed securely via `.env` and `.env.local`
-
-    ---
-
-    ## 🧱 Project Structure
-
-    crypto_trading_bot/
-    ├── src/
-    │ ├── main_api.py # FastAPI entrypoint
-    │ ├── bot_runner.py # Telegram bot runner
-    │ ├── notifier.py # Handles sending alerts (email, telegram)
-    │ ├── notification.py # Core notification utilities & wrappers
-    │ ├── binance_manager.py # Binance Testnet API integration
-    │ ├── feature_engineer.py # Technical indicators
-    │ ├── backtester.py # Strategy simulation
-    │ ├── db.py # SQLAlchemy ORM models
-    │ ├── config.py # Global settings & environment handling
-    │ ├── model_manager.py # Model load/train/save
-    │ ├── visualizer.py # Plotly chart generator
-    │ ├── streamlit_app.py # Interactive dashboard
-    │ └── init.py
-    │
-    ├── notifications/
-    │ ├── init.py
-    │ ├── test_notifier.py
-    │ ├── test_notifications.py
-    │
-    ├── tests/
-    │ ├── init.py
-    │ ├── conftest.py
-    │ ├── test_backtester.py
-    │ ├── test_binance_manager.py
-    │ ├── test_data_loader.py
-    │ ├── test_db.py
-    │ ├── test_feature_engineer.py
-    │ ├── test_model_manager.py
-    │ ├── test_run_modes.py
-    │ └── notifications/ # Notification-specific test module
-    │
-    ├── data/
-    │ └── test_df_features.csv
-    │
-    ├── requirements.txt
-    ├── requirements-dev.txt
-    ├── pyproject.toml
-    ├── docker-compose.yml
-    ├── Dockerfile
-    ├── pytest.ini
-    ├── .env.example
-    ├── .env
-    └── README.md
+[![CI Status](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot-1/actions/workflows/tests.yml/badge.svg)](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot-1/actions/workflows/tests.yml)
 
+A modular, production-ready crypto trading system built with FastAPI, PostgreSQL, XGBoost, and Telegram + Email notifications — powered by uv, Docker, and GitHub Actions CI.
 
-    ---
+---
 
-    ## 🧩 Installation & Setup
+## 🚀 Overview
 
-    ### Prerequisites
-    - **Python 3.12.x**
-    - **uv** (modern package manager) → `pip install uv`
-    - **Docker Desktop**
-    - **PostgreSQL** (local or via Docker)
+This project provides an end-to-end automated trading pipeline:
 
-    ### Steps
+- **Machine-learning signal generation**
+- **Backtesting and visualization**
+- **Live trading on Binance Testnet**
+- **Notifications and dashboards**
+- **Continuous Integration / Delivery**
 
-    ```bash
-    # 1️⃣ Clone the repository
-    git clone https://github.com/OVIE-web/crypto_trading_bot.git
-    cd crypto_trading_bot
+Designed for scalability, reproducibility, and test-driven development.
 
-    # 2️⃣ Create a virtual environment
-    uv venv
-    .venv\Scripts\activate  # Windows
-    source .venv/bin/activate  # Mac/Linux
+---
 
-    # 3️⃣ Install dependencies
-    uv pip install -r requirements.txt
-    uv pip install -r requirements-dev.txt
+## ✨ Key Features
 
-    # 4️⃣ Set environment variables (PowerShell example)
-    setx TELEGRAM_BOT_TOKEN "123456789:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
-    setx TELEGRAM_CHAT_ID "987654321"
-    setx SMTP_HOST "smtp.gmail.com"
-    setx SMTP_PORT "587"
-    setx SMTP_USER "your_email@gmail.com"
-    setx SMTP_PASS "app_password"
+---
 
-    # 5️⃣ Run tests
-    pytest tests/ -v --disable-warnings
+### 🧠 Machine Learning & Strategy
+
+XGBoost classifier for buy/sell/hold signals
+RandomizedSearchCV + SMOTE for optimization and balance
+Feature engineering with RSI, SMA, Bollinger Bands, ATR, Momentum
+
+### 📊 Backtesting & Visualization
+
+- Full performance metrics: CAGR, Sharpe Ratio, Max Drawdown  
+- Plotly interactive charts and Streamlit analytics UI  
+- Backtesting logic in `backtester.py`
 
+### 🔗 API & Automation
 
-    🧠 Running the Application
-    🧩 Local (FastAPI)
-    uvicorn src.main_api:app --reload
+- REST endpoints via **FastAPI** (`/predict`, `/train`, `/health`)
+- **MLflow** experiment tracking  
+- **SQLAlchemy + PostgreSQL** model registry  
 
-    🤖 Telegram Bot
-    python -m src.bot_runner
+### 🔔 Notification System
 
-    📊 Streamlit Dashboard
-    streamlit run src/streamlit_app.py
+- Modular **Telegram Bot** + **SMTP Email** alerts  
+- Centralized `notifier.py` with async retry logic  
 
-    🧰 Docker Deployment
+### 🧩 Infrastructure & CI
 
-    To start all services (API, Postgres, Streamlit, MLflow):
+- **Docker Compose** orchestrates FastAPI, Postgres, Streamlit, MLflow  
+- **GitHub Actions CI** for linting, testing, and builds  
+- **uv** manages reproducible environments  
 
-    docker-compose up --build
+---
 
+## 🧱 Project Structure
 
-    To train only:
+crypto_trading_bot
+  crypto_trading_bot-1/
+├── src/
+│   ├── main_api.py          # FastAPI entrypoint
+│   ├── bot_runner.py        # Telegram bot
+│   ├── notifier.py          # Alert dispatch (email/telegram)
+│   ├── notification.py      # Notification utilities
+│   ├── binance_manager.py   # Binance Testnet integration
+│   ├── feature_engineer.py  # Technical indicators
+│   ├── backtester.py        # Backtesting logic
+│   ├── db.py                # SQLAlchemy ORM models
+│   ├── config.py            # Global settings
+│   ├── model_manager.py     # Model load/train/save
+│   ├── visualizer.py        # Plotly charts
+│   ├── streamlit_app.py     # Streamlit dashboard
+│   └── -**init.py**      # src package initializer
+│
+├── tests/                   # Unit & integration tests
+├── data/                    # Sample CSV datasets
+├── requirements.txt
+├── requirements.dev.txt
+├── pyproject.toml
+├── setup.py
+├── docker-compose.yml
+├── Dockerfile
+├── .dockerignore
+├── .gitignore
+├── .python-version
+├── pg_hba.conf
+├── LICENSE
+├── README.md
+├── RulesFORAI.md
+├── BeautyOfTheStruggle.md
+├── crypto_trading_bot.ipynb
+├── main.py
+└── .github/workflows/tests.yml
 
-    docker-compose run --rm tradingbot python main.py --train-only
+---
 
+## ⚙️ Installation & Setup
 
-    To run Streamlit dashboard:
+### Prerequisites
 
-    docker-compose run --rm tradingbot streamlit run src/streamlit_app.py
+- **Python ≥ 3.12**
+- **uv** (modern package manager)
+- **Docker Desktop**
+- **PostgreSQL** (local or via Docker)
 
-    ⚙️ CI/CD Pipeline (GitHub Actions)
+### Steps
 
-    The CI workflow (.github/workflows/ci.yml) automates:
+```bash
+# 1️⃣ Clone
+git clone https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot-1.git
+cd MyTradingProject-crypto_trading_bot-1
 
-    Dependency installation
+# 2️⃣ Create & activate virtual env
+uv venv
+.venv\Scripts\activate        # Windows
+source .venv/bin/activate     # macOS/Linux
 
-    Test execution
+# 3️⃣ Sync dependencies
+uv pip compile --extra dev pyproject.toml -o requirements.dev.txt
+uv sync --frozen --extra dev
 
-    DB health check (Postgres service)
+# 4️⃣ Set environment variables
+setx TELEGRAM_BOT_TOKEN "123456789:ABC..."
+setx TELEGRAM_CHAT_ID "987654321"
+setx SMTP_HOST "smtp.gmail.com"
+setx SMTP_PORT "587"
+setx SMTP_USER "you@gmail.com"
+setx SMTP_PASS "app_password"
 
-    Notification environment mocks
+# 5️⃣ Run tests
+pytest -v --disable-warnings
 
-    Example Job
-    - name: Run tests
-    run: pytest tests/ --maxfail=1 --disable-warnings -q
+## 🧠 Running the Application
 
+# FastAPI backend
+uvicorn src.main_api:app --reload
 
-    ✅ Tests run automatically on each push or pull_request to main.
+# Telegram Bot
+python -m src.bot_runner
 
-    🔔 Notifications Configuration
-    Telegram
-    TELEGRAM_BOT_TOKEN=your_bot_token
-    TELEGRAM_CHAT_ID=your_chat_id
+# Streamlit Dashboard
+streamlit run src/streamlit_app.py
+```
 
-    Email
-    SMTP_HOST=smtp.gmail.com
-    SMTP_PORT=587
-    SMTP_USER=your_email@gmail.com
-    SMTP_PASS=your_app_password
+## 🐳 Docker Deployment
 
+docker-compose up --build
 
-    Test manually:
+Run individual modules:
 
-    from src.notifier import TelegramNotifier
-    TelegramNotifier().send_message("🚀 Test message successful!")
+docker-compose run --rm tradingbot python main.py --train-only
 
-    🧪 Testing
-    Run all tests
-    pytest -v --disable-warnings
+docker-compose run --rm tradingbot streamlit run src/streamlit_app.py
 
-    Run only notifier tests
-    pytest tests/notifications -v
+---
 
+## 🔄 CI/CD Pipeline
 
-    CI logs are streamed in GitHub Actions and visible in the Test Summary.
+GitHub Actions workflow (.github/workflows/tests.yml) automates:
 
-    🔒 Security Best Practices
+Dependency installation via uv
 
-    Secrets are never hardcoded — stored in .env or system variables
+Linting (black, flake8, isort)
 
-    .env is ignored by Git
+Testing (pytest + Postgres service)
 
-    Use app passwords for email and Testnet keys for Binance
+Secure secret management via GitHub secrets
 
-    Docker environment mappings are read-only
+- name: Run tests
+  run: pytest tests/ --maxfail=1 --disable-warnings -q
 
-    CI masks sensitive data automatically
+## 🔒 Security Best Practices
 
-    🛠️ Future Enhancements
+Secrets stored only in GitHub or .env (never committed)
 
-    🧩 Integrate deep learning models (LSTM/Transformers)
+Docker services run with limited permissions
 
-    📈 Real-time signal dashboard with WebSocket streaming
+Use Binance Testnet API keys for safety
 
-    🧠 Model versioning and ensemble strategies
+CI masks sensitive data automatically
 
-    🔔 Async notification queues (Redis/RabbitMQ)
+🛠️ Future Enhancements
 
-    📊 Prometheus + Grafana monitoring
+🧩 LSTM / Transformer model integration
 
-    🧪 CI test coverage via Codecov
+📈 Real-time WebSocket signal dashboard
 
-    Author: Ovie
-    License: MIT
-    Status: 🚧 Active Development
-    Last: Updated November 2025
+🧠 Model versioning & ensemble strategies
+
+🔔 Async notification queues (Redis/RabbitMQ)
+
+📊 Monitoring via Prometheus + Grafana
+
+🧪 Coverage reports (Codecov)
+
+## Author: Ovie
+
+License: MIT
+Status: 🚧 Active Development
+Last Updated: November 2025

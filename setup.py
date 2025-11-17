@@ -1,11 +1,11 @@
 from setuptools import setup, find_packages
 from pathlib import Path
 
-# Read README for PyPI long description
+# --- Read README for PyPI long description ---
 this_dir = Path(__file__).parent
 try:
-    readme = (this_dir / "README.md").read_text(encoding="utf-8")
-except FileNotFoundError:
+    readme = (this_dir / "README.md").read_text(encoding="utf-8") if (this_dir / "README.md").exists() else ""
+except Exception as e:
     readme = ""
 
 setup(
@@ -22,6 +22,10 @@ setup(
     package_dir={"": "src"},
     include_package_data=True,
     python_requires=">=3.10",
+
+    # ------------------------------------------------------------------
+    # ✅ Install requirements
+    # ------------------------------------------------------------------
     install_requires=[
         # --- Core ---
         "fastapi==0.111.0",
@@ -46,36 +50,46 @@ setup(
         "python-multipart==0.0.20",
 
         # --- ML & Data ---
+        "pandas==2.3.0",
+        "numpy==1.26.4",
         "scikit-learn==1.3.2",
         "xgboost==3.0.2",
         "imbalanced-learn==0.12.4",
-        "pandas==2.3.0",
-        "numpy==1.26.4",
+        "mlflow==2.13.0",
         "matplotlib==3.10.7",
         "plotly==6.1.2",
-        "mlflow==2.13.0",
         "joblib==1.5.1",
 
         # --- Utils ---
-        "pydantic==2.11.7",
         "jinja2==3.1.6",
+        "pydantic==2.11.7",
     ],
+
+    # ------------------------------------------------------------------
+    # ✅ Developer dependencies
+    # ------------------------------------------------------------------
     extras_require={
         "dev": [
             "pytest==8.4.1",
             "pytest-asyncio==1.3.0",
             "pytest-mock==3.14.1",
-            "pip-tools==7.4.1",
-            "watchfiles==1.1.0",
+            "flake8==7.3.0",
             "black==24.8.0",
             "isort==5.13.2",
             "mypy==1.13.0",
-            "flake8==7.3.0",
             "httpx==0.28.1",
+            "watchfiles==1.1.0",
+            "pip-tools==7.4.1",
+            "pandas-stubs==2.3.2.250926",
+            "types-setuptools==80.9.0.20250822",
         ],
     },
+
+    # ------------------------------------------------------------------
+    # ✅ Classifiers (for PyPI)
+    # ------------------------------------------------------------------
     classifiers=[
-        "Development Status :: 5 - Beta",
+        "Development Status :: 4 - Beta",
         "Programming Language :: Python :: 3.12",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",

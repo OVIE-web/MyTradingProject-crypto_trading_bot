@@ -1,0 +1,8 @@
+{
+  "git.autofetch": true,
+  "gitlens.gitCommands.skipConfirmations": [
+    "fetch:command",
+    "stash-push:command",
+    "switch:command"
+  ]
+}

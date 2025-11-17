@@ -7,6 +7,8 @@ import random
 from email.mime.text import MIMEText
 from telegram import Bot
 import time
+import typing
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -19,10 +21,10 @@ def _backoff_delay(attempt: int, base: float = 1.0, cap: float = 30.0) -> float:
 class TelegramNotifier:
     """Handles asynchronous Telegram notifications with retries."""
     def __init__(self, max_retries: int = 3):
-        self.token = os.getenv("TELEGRAM_BOT_TOKEN")
-        self.chat_id = os.getenv("TELEGRAM_CHAT_ID")
+        self.token: Optional[str] = os.getenv("TELEGRAM_BOT_TOKEN")
+        self.chat_id: Optional[str] = os.getenv("TELEGRAM_CHAT_ID")
         self.enabled = bool(self.token and self.chat_id)
-        self.bot = Bot(token=self.token) if self.enabled else None
+        self.bot = Bot(token=typing.cast(str, self.token)) if self.enabled else None
         self.max_retries = max_retries
         logger.info("Telegram Notifier initialized.")
 
@@ -30,6 +32,16 @@ class TelegramNotifier:
         """Send Telegram message asynchronously with retry mechanism."""
         if not self.enabled:
             logger.warning("Telegram Notifier not enabled.")
+            return False
+        
+        if self.bot is None:
+            logger.error("Telegram Bot is not initialized.")
+            return False
+        
+        if self.chat_id is not None:
+            await self.bot.send_message(chat_id=self.chat_id, text=message)
+        else:
+            logger.error("Missing Telegram chat ID.")
             return False
 
         for attempt in range(1, self.max_retries + 1):

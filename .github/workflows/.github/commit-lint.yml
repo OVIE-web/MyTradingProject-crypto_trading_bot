@@ -1,0 +1,79 @@
+name: Commit Lint
+
+on:
+    push:
+    pull_request:
+
+jobs:
+    commitlint:
+        name: Validate Commit Messages
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0 # Required so commitlint can read full history
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "20"
+
+            - name: Install commitlint and config
+              run: |
+                  npm install --save-dev @commitlint/config-conventional @commitlint/cli
+
+            - name: Create commitlint.config.cjs
+              run: |
+                  cat << 'EOF' > commitlint.config.cjs
+                  module.exports = {
+                    extends: ['@commitlint/config-conventional'],
+                    rules: {
+                      'type-enum': [
+                        2,
+                        'always',
+                        [
+                          'feat',
+                          'fix',
+                          'refactor',
+                          'test',
+                          'docs',
+                          'style',
+                          'ci',
+                          'chore',
+                          'perf',
+                          'build'
+                        ]
+                      ],
+                      'scope-enum': [
+                        1,
+                        'always',
+                        [
+                          'api',
+                          'db',
+                          'ml',
+                          'notifier',
+                          'tests',
+                          'config',
+                          'ci',
+                          'docs',
+                          'infra'
+                        ]
+                      ]
+                    }
+                  };
+                  EOF
+
+            - name: Lint commits (push)
+              if: github.event_name == 'push'
+              run: |
+                  npx commitlint --from=$(git rev-parse HEAD~10) --to=HEAD
+
+            - name: Lint PR title and commits (pull_request)
+              if: github.event_name == 'pull_request'
+              run: |
+                  # Check PR title
+                  echo "${{ github.event.pull_request.title }}" | npx commitlint
+                  # Check all commits in the PR
+                  npx commitlint --from=origin/${{ github.event.pull_request.base.ref }} --to=HEAD

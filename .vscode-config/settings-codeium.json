@@ -1,0 +1,12 @@
+{
+  "codeium.enableConfig": {
+    "*": true,
+    "ignore": true,
+    "pip-requirements": true,
+    "properties": true,
+    "plaintext": true,
+    "git-commit": true,
+    "markdown": true
+  },
+  "codeium.enableCodeLens": "hide_x"
+}

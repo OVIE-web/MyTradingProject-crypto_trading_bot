@@ -1,0 +1,27 @@
+{
+  "github.copilot.enable": {
+    "*": true,
+    "plaintext": true,
+    "markdown": true,
+    "scminput": false
+  },
+
+  "github.copilot.chat.codeGeneration.instructions": [
+    { "file": ".github/copilot-instructions.md" },
+    { "text": "Follow project architecture, testing patterns, and commit convention rules." },
+    { "text": "Use type hints, docstrings, and modular design consistent with src/ modules." },
+    { "text": "Never generate code that includes secrets, keys, or credentials." }
+  ],
+
+  "chat.instructionsFilesLocations": {
+    ".github": true
+  },
+
+  "chat.mcp.serverSampling": {
+    "Global in Code: memory": {
+      "allowedModels": ["github.copilot-chat/gpt-4.1"]
+    }
+  },
+
+  "chat.mcp.autostart": "newAndOutdated"
+}

@@ -65,6 +65,12 @@ jobs:
           uv pip install -r requirements.dev.txt
           echo "✅ Installed all runtime and dev dependencies"
 
+      - name: 📦 Sync dependencies
+        run: |
+          uv pip compile --extra dev pyproject.toml -o requirements.dev.txt
+          uv sync --frozen --extra dev
+          echo "✅ Synced dependencies successfully"
+
       - name: 🔍 Run Linting (flake8, black, isort)
         run: |
           echo "Running Linting Checks..."
@@ -75,5 +81,5 @@ jobs:
 
       - name: 🧪 Run Tests with Pytest
         run: |
-          uv run pytest -v --maxfail=3 --disable-warnings --tb=short
+          run: pytest tests/ --maxfail=1 --disable-warnings -q
           echo "✅ Tests passed"
