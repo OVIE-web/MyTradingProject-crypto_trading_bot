@@ -162,7 +162,7 @@ GitHub Actions workflow (.github/workflows/tests.yml) automates:
 
 Dependency installation via uv
 
-Linting (black, flake8, isort)
+Linting (black, flake8, isort, mypy)
 
 Testing (pytest + Postgres service)
 
