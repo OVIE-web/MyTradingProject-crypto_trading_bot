@@ -1,11 +1,13 @@
-import pytest
 import importlib
-from unittest.mock import patch, MagicMock
-import pandas as pd
-from src.binance_manager import BinanceManager
-import src.config
+
 importlib.reload(src.config)
-from src.config import TRADE_SYMBOL, TRADE_INTERVAL, INITIAL_CANDLES_HISTORY
+from unittest.mock import MagicMock, patch
+
+import pandas as pd
+import pytest
+
+from src.binance_manager import BinanceManager
+from src.config import INITIAL_CANDLES_HISTORY, TRADE_INTERVAL, TRADE_SYMBOL
 
 
 # --- Shared mock fixture for Binance Client ---

@@ -11,22 +11,10 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd="pg_isready -U ${{ secrets.POSTGRES_USER }}"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-
     env:
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
       PYTHONUNBUFFERED: 1
       DATABASE_URL: postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.POSTGRES_DB }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -38,6 +26,21 @@ jobs:
       BINANCE_API_KEY: ${{ secrets.BINANCE_API_KEY }}
       BINANCE_API_SECRET: ${{ secrets.BINANCE_API_SECRET }}
       BINANCE_TESTNET: "True"
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: $POSTGRES_USER
+          POSTGRES_PASSWORD: $POSTGRES_PASSWORD
+          POSTGRES_DB: $POSTGRES_DB
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U $POSTGRES_USER"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
       - name: 🔄 Checkout repository
@@ -53,33 +56,44 @@ jobs:
           curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
+      - name: Cache uv/venv
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/uv
+            .venv
+          key: ${{ runner.os }}-uv-${{ hashFiles('**/pyproject.toml') }}
+
       - name: 📦 Compile dependencies from pyproject.toml
         run: |
           uv pip compile pyproject.toml -o requirements.txt
           uv pip compile --extra dev pyproject.toml -o requirements.dev.txt
-          echo "✅ requirements.txt and requirements.dev.txt generated successfully"
 
       - name: 🔧 Install dependencies
         run: |
-          uv pip install -r requirements.txt
-          uv pip install -r requirements.dev.txt
-          echo "✅ Installed all runtime and dev dependencies"
-
-      - name: 📦 Sync dependencies
-        run: |
-          uv pip compile --extra dev pyproject.toml -o requirements.dev.txt
+          uv sync --frozen
           uv sync --frozen --extra dev
-          echo "✅ Synced dependencies successfully"
 
-      - name: 🔍 Run Linting (flake8, black, isort)
+      - name: 🔍 Run Linting (ruff)
         run: |
           echo "Running Linting Checks..."
-          flake8 src tests
-          black --check src tests
-          isort --check-only src tests
-          echo "✅ Linting checks passed"
+          ruff check src/ tests/
+
+      - name: 🧪 Type check with mypy
+        run: |
+          mypy src/ tests/
 
       - name: 🧪 Run Tests with Pytest
         run: |
-          run: pytest tests/ --maxfail=1 --disable-warnings -q
-          echo "✅ Tests passed"
+          pytest tests/ --maxfail=1 --disable-warnings -q
+
+      - name: 🧪 Run Tests with Coverage
+        run: pytest --cov=src tests/ --cov-report=xml
+
+      - name: 📡 Upload Coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: coverage.xml
+          env_vars: PYTHONUNBUFFERED,POSTGRES_USER,POSTGRES_PASSWORD,POSTGRES_DB,DATABASE_URL,TELEGRAM_BOT_TOKEN,TELEGRAM_CHAT_ID,SMTP_HOST,SMTP_PORT,SMTP_USER,SMTP_PASS,BINANCE_API_KEY,BINANCE_API_SECRET,BINANCE_TESTNET
+        env:
+          DATABASE_URL: $DATABASE_URL

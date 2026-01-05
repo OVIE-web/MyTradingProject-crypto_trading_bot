@@ -1,31 +1,40 @@
 # main.py
 
-import os
-import sys
-import time
-import signal
-import logging
 import asyncio
+import logging
+import os
+import signal
+import sys
 import warnings
+
 import pandas as pd
-from datetime import datetime
 from dotenv import load_dotenv
 from sklearn.exceptions import UndefinedMetricWarning
 
+from src.backtester import backtest_strategy
+from src.binance_manager import BinanceManager
+
 # -------------------- Imports --------------------
 from src.config import (
-    FEATURE_COLUMNS, MODEL_SAVE_PATH, CONFIDENCE_THRESHOLD, TARGET_COLUMN,
-    DATA_FILE_PATH, TRADE_SYMBOL, TRADE_INTERVAL, TRADE_QUANTITY,
-    INITIAL_CANDLES_HISTORY, TRANSACTION_FEE_PCT
+    DATA_FILE_PATH,
+    FEATURE_COLUMNS,
+    INITIAL_CANDLES_HISTORY,
+    MODEL_SAVE_PATH,
+    TRADE_INTERVAL,
+    TRADE_QUANTITY,
+    TRADE_SYMBOL,
 )
 from src.data_loader import load_and_preprocess_data
+from src.db import init_db
 from src.feature_engineer import calculate_technical_indicators, normalize_features
-from src.model_manager import prepare_model_data, train_xgboost_model, make_predictions, load_trained_model
-from src.backtester import backtest_strategy
-from src.visualizer import visualize_trading_results
-from src.binance_manager import BinanceManager
-from src.db import init_db, SessionLocal, Trade
+from src.model_manager import (
+    load_trained_model,
+    make_predictions,
+    prepare_model_data,
+    train_xgboost_model,
+)
 from src.notifier import TelegramNotifier, send_email_notification
+from src.visualizer import visualize_trading_results
 
 # -------------------- Setup --------------------
 load_dotenv()

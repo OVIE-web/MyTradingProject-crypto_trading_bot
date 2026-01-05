@@ -4,17 +4,16 @@ Initialize the database schema (creates tables if missing).
 Run with:
     python -m scripts.init_database [--test]
 """
-
-import sys
-import os
-import logging
 import argparse
+import logging
+import os
+import sys
+
+from src.config import DATABASE_URL
+from src.db import init_db, list_tables
 
 # Ensure project root is in import path
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-
-from src.db import init_db, list_tables
-from src.config import DATABASE_URL
 
 
 def init_database(is_test: bool = False) -> None:
@@ -38,19 +37,14 @@ def init_database(is_test: bool = False) -> None:
 
 
 def main():
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
     parser = argparse.ArgumentParser(description="Initialize the database schema.")
     parser.add_argument(
-        "--test",
-        action="store_true",
-        help="Initialize test database instead of main database"
+        "--test", action="store_true", help="Initialize test database instead of main database"
     )
     args = parser.parse_args()
-    
+
     init_database(is_test=args.test)
 
 

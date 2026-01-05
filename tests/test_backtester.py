@@ -1,10 +1,11 @@
 # tests/test_backtester.py
 
-import pytest
-import pandas as pd
 import numpy as np
-from src.backtester import backtest_strategy
+import pandas as pd
+import pytest
+
 import src.config
+from src.backtester import backtest_strategy
 
 src.config.TRANSACTION_FEE_PCT = 0
 

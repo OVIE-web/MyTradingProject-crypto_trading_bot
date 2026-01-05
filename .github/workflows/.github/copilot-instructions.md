@@ -65,18 +65,18 @@ Keep messages imperative and under 72 characters.
 ---
 
 ## 🧩 Code Review & CI
-- All commits must pass `flake8`, `black`, `pytest`.  
-- Ensure no credentials or secrets in code.  
-- Add new dependencies to `pyproject.toml` (pinned versions).  
-- Maintain sync between `requirements.txt` and `requirements.dev.txt`:
+ All commits must pass `pytest` and `mypy` (static type checking).  
   ```bash
   uv pip compile pyproject.toml -o requirements.txt
   uv pip compile --extra dev pyproject.toml -o requirements.dev.txt
 
 ## 🔒 Security Guidelines
 
-Never log sensitive data.
-
+ Auto-format with **isort** before commits.  
+ Match rules in `pyproject.toml`.  
+ 
+ ### Static Type Checking
+ - Run `mypy` for static type checking; ensure no type errors before commit.
 Validate all input to prevent injection.
 
 Review dependencies quarterly (uv pip list --outdated).
@@ -95,7 +95,7 @@ Generate readable, documented, and test-covered code.
 
 Always prioritize clarity, reliability, and maintainability.
 
-Author: Ovie
+Author: Ovie Saniyo
 Project: 🧠 Crypto Trading Bot 1
 Status: Active Development
-Last Updated: November 2025
+Last Updated: January 2026

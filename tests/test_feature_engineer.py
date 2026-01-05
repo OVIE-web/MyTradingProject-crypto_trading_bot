@@ -1,27 +1,30 @@
 # tests/test_feature_engineer.py
 
-import pytest
-import pandas as pd
 import numpy as np
+import pandas as pd
+import pytest
+
+from src.config import FEATURE_COLUMNS
 from src.feature_engineer import (
+    apply_rsi_labels,
     calculate_technical_indicators,
     get_rsi_quantile_thresholds,
-    apply_rsi_labels,
-    normalize_features
+    normalize_features,
 )
-from src.config import FEATURE_COLUMNS
 
 
 @pytest.fixture
 def sample_ohlcv_data():
     np.random.seed(42)
-    return pd.DataFrame({
-        "open": np.random.uniform(100, 200, 100),
-        "high": np.random.uniform(100, 200, 100),
-        "low": np.random.uniform(90, 190, 100),
-        "close": np.random.uniform(100, 200, 100),
-        "volume": np.random.uniform(1000, 2000, 100),
-    })
+    return pd.DataFrame(
+        {
+            "open": np.random.uniform(100, 200, 100),
+            "high": np.random.uniform(100, 200, 100),
+            "low": np.random.uniform(90, 190, 100),
+            "close": np.random.uniform(100, 200, 100),
+            "volume": np.random.uniform(1000, 2000, 100),
+        }
+    )
 
 
 @pytest.fixture
@@ -34,16 +37,25 @@ def test_calculate_technical_indicators(sample_ohlcv_data):
     df = calculate_technical_indicators(sample_ohlcv_data.copy())
 
     expected_cols = [
-        'rsi', 'bb_upper', 'bb_lower', 'bb_mid', 'bb_pct_b',
-        'sma_20', 'sma_50', 'ma_cross', 'price_momentum',
-        'atr', 'atr_pct', 'volume_pct_change'
+        "rsi",
+        "bb_upper",
+        "bb_lower",
+        "bb_mid",
+        "bb_pct_b",
+        "sma_20",
+        "sma_50",
+        "ma_cross",
+        "price_momentum",
+        "atr",
+        "atr_pct",
+        "volume_pct_change",
     ]
     for col in expected_cols:
         assert col in df.columns, f"Missing indicator column: {col}"
 
     assert not df.isnull().any().any(), "NaNs found after indicator calculation"
-    assert (df['rsi'] >= 0).all() and (df['rsi'] <= 100).all()
-    assert df['ma_cross'].isin([0, 1]).all()
+    assert (df["rsi"] >= 0).all() and (df["rsi"] <= 100).all()
+    assert df["ma_cross"].isin([0, 1]).all()
 
 
 def test_get_rsi_quantile_thresholds():
@@ -57,18 +69,19 @@ def test_get_rsi_quantile_thresholds():
 
 def test_apply_rsi_labels(sample_df_with_indicators):
     df = apply_rsi_labels(sample_df_with_indicators.copy(), lower_threshold=30, upper_threshold=70)
-    assert 'signal' in df.columns
-    assert df['signal'].isin([-1, 0, 1]).all()
-    assert (df.loc[df['rsi'] <= 30, 'signal'] == 1).all()
-    assert (df.loc[df['rsi'] >= 70, 'signal'] == -1).all()
+    assert "signal" in df.columns
+    assert df["signal"].isin([-1, 0, 1]).all()
+    assert (df.loc[df["rsi"] <= 30, "signal"] == 1).all()
+    assert (df.loc[df["rsi"] >= 70, "signal"] == -1).all()
 
 
 def test_normalize_features(sample_df_with_indicators):
     df_norm = normalize_features(sample_df_with_indicators.copy())
 
     for col in FEATURE_COLUMNS:
-        if col in df_norm.columns and col not in ['ma_cross', 'signal']:
+        if col in df_norm.columns and col not in ["ma_cross", "signal"]:
             mean = df_norm[col].mean()
             std = df_norm[col].std()
             assert abs(mean) < 0.1, f"{col} mean not centered"
+            assert abs(std - 1) < 0.1, f"{col} std not normalized"
             assert abs(std - 1) < 0.1, f"{col} std not normalized"

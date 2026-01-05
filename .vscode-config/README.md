@@ -1,4 +1,4 @@
-# ⚙️ VS Code Workspace Configuration — Crypto Trading Bot
+# ⚙️ VS Code Workspace Configuration — Crypto Trading Bot-1
 
 This folder contains the modular VS Code configuration for the project.
 

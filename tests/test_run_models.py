@@ -1,14 +1,12 @@
 """Tests for CLI modes and training pipeline functionality."""
-import os
-import pytest
-from typing import List, Optional 
-from unittest.mock import patch, MagicMock
-import pandas as pd
+
 import numpy as np
+import pandas as pd
+import pytest
 from sklearn.model_selection import train_test_split
 
-from src.model_manager import train_xgboost_model, load_trained_model
-from src.config import FEATURE_COLUMNS, MODEL_SAVE_PATH, MODEL_SAVE_FILENAME
+from src.config import FEATURE_COLUMNS
+from src.model_manager import load_trained_model, train_xgboost_model
 
 
 @pytest.fixture

@@ -1,8 +1,9 @@
 # tests/notifications/test_notifier.py
-import os
 import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
+
 from src.notifier import TelegramNotifier, send_email_notification
 
 

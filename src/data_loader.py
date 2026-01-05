@@ -1,56 +1,85 @@
-import os
-import pandas as pd
-from typing import Union
-from pandas import DataFrame
+# src/data_loader.py
+
 import logging
+import os
+from typing import Final
+
 import numpy as np
+import pandas as pd
+from pandas import DataFrame
 
+LOG = logging.getLogger(__name__)
 
-DATA_FILE_PATH = os.path.join("data", "test_df_features.csv")
+DATA_FILE_PATH: Final[str] = os.path.join("data", "test_df_features.csv")
+
+REQUIRED_COLUMNS: Final[set[str]] = {
+    "timestamp",
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+}
+
 
 def load_and_preprocess_data(file_path: str) -> DataFrame:
     """
-    Loads historical cryptocurrency price data, converts timestamp,
-    sets index, sorts, and handles missing values.
+    Load and preprocess historical cryptocurrency price data.
+
+    Contract:
+        - Always returns a valid pandas DataFrame
+        - Raises if file is missing or schema is invalid
+
+    Processing steps:
+        1. Load CSV
+        2. Validate schema
+        3. Convert timestamp → datetime index
+        4. Sort chronologically
+        5. Forward-fill missing values
+        6. Median-impute numeric columns
     """
     try:
-        df: Union[pd.DataFrame, None] = pd.read_csv(file_path, sep=',')
-
-        # Convert timestamp to datetime and set as index
-        if df is not None and 'timestamp' in df.columns:
-            df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
-            df.set_index('timestamp', inplace=True)
-        else:
-            expected = ['timestamp', 'open', 'high', 'low', 'close', 'volume']
-            logging.warning(
-                f"No 'timestamp' column found. Ensure data is time-indexed. "
-                f"Expected schema includes: {expected}"
-            )
-
-        # Sort by index to ensure chronological order
-        if df is not None:
-            df = df.sort_index()
-
-        # Handle missing values
-        missing_count = df.isnull().sum()
-        if missing_count.any():
-            logging.warning(
-                f"Found missing values:\n{missing_count[missing_count > 0]}\n"
-                "→ Filling forward, then imputing numeric columns with median."
-            )
-            df = df.ffill()  # modern replacement for fillna(method='ffill')
-            numeric_cols = df.select_dtypes(include=np.number).columns
-            df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].median())
-
-        logging.info(f"Data loaded successfully. Shape: {df.shape}")
-        return df
-
+        df: DataFrame = pd.read_csv(file_path, sep=",")
     except FileNotFoundError:
-        logging.error(
-            f"Data file not found at {file_path}. "
-            "Ensure the file exists or update DATA_FILE_PATH in config.py"
+        LOG.error(
+            "Data file not found at %s. Ensure the file exists or update DATA_FILE_PATH.",
+            file_path,
         )
         raise
-    except Exception as e:
-        logging.error(f"Error loading or preprocessing data: {str(e)}")
+    except Exception as exc:
+        LOG.exception("Failed to read CSV file: %s", exc)
         raise
+
+    missing_cols = REQUIRED_COLUMNS - set(df.columns)
+    if missing_cols:
+        raise ValueError(f"Invalid data schema. Missing required columns: {sorted(missing_cols)}")
+
+    # Convert timestamp and set index
+    df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
+    df.set_index("timestamp", inplace=True)
+
+    # Drop rows with invalid timestamps
+    df = df[~df.index.isna()]
+
+    # If all rows were dropped, raise an error
+    if df.empty:
+        raise ValueError("All rows have invalid or missing timestamps. No data to process.")
+
+    # Sort chronologically
+    df.sort_index(inplace=True)
+
+    # Handle missing values
+    missing = df.isna().sum()
+    if missing.any():
+        LOG.warning(
+            "Missing values detected:\n%s\nApplying forward-fill and median imputation.",
+            missing[missing > 0],
+        )
+
+        df.ffill(inplace=True)
+
+        numeric_cols = df.select_dtypes(include=np.number).columns
+        df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].median())
+
+    LOG.info("Data loaded and preprocessed successfully. Shape=%s", df.shape)
+    return df

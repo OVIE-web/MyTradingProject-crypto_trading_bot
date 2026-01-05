@@ -1,14 +1,16 @@
 # src/auth.py
 import logging
 from datetime import datetime, timedelta
+from typing import Dict
+
+import pytz
+from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from dotenv import load_dotenv
+
 from src.config import settings
-from typing import Dict
-import pytz
 
 # Load environment variables
 load_dotenv()
@@ -16,7 +18,7 @@ load_dotenv()
 # Configure logging once (you can also do this globally in main_api.py)
 logging.basicConfig(
     level=logging.INFO,  # or DEBUG for more detail
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
 logger = logging.getLogger(__name__)
@@ -38,7 +40,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 fake_users_db = {
     ADMIN_USERNAME: {
         "username": ADMIN_USERNAME,
-        "hashed_password": pwd_context.hash(ADMIN_PASSWORD)
+        "hashed_password": pwd_context.hash(ADMIN_PASSWORD),
     }
 }
 
@@ -55,7 +57,9 @@ def authenticate_user(username: str, password: str):
     return user
 
 
-def create_access_token(data: Dict[str, str], expires_delta: timedelta = timedelta(minutes=15)) -> str:
+def create_access_token(
+    data: Dict[str, str], expires_delta: timedelta = timedelta(minutes=15)
+) -> str:
     """
     Create a JWT access token with the given data and expiration time.
 

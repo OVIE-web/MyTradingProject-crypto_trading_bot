@@ -1,7 +1,8 @@
-import logging
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 import pytest
-from src.notification import send_telegram_notification, send_email_notification
+
+from src.notification import send_email_notification, send_telegram_notification
 
 
 @pytest.fixture

@@ -1,9 +1,10 @@
-import pytest
+
 import psycopg2
+import pytest
 from psycopg2 import OperationalError
-import os
-from dotenv import load_dotenv
+
 from src.config import DATABASE_URL
+
 
 def test_database_connection(monkeypatch):
     """Ensure database connection works with test configuration."""

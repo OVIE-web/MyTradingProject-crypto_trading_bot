@@ -1,15 +1,17 @@
 # src/routers/predict.py
-from fastapi import APIRouter, HTTPException, Depends, status
+import logging
+import os
+from datetime import datetime, timedelta
+
+import pandas as pd
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
-from datetime import datetime, timedelta
-from pydantic import BaseModel
-from src.model_manager import load_trained_model, make_predictions
-from src.config import FEATURE_COLUMNS
 from passlib.context import CryptContext
-import pandas as pd
-import os
-import logging
+from pydantic import BaseModel
+
+from src.config import FEATURE_COLUMNS
+from src.model_manager import load_trained_model, make_predictions
 
 router = APIRouter()
 
@@ -30,14 +32,16 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "adminpass")
 fake_users_db = {
     ADMIN_USERNAME: {
         "username": ADMIN_USERNAME,
-        "hashed_password": pwd_context.hash(ADMIN_PASSWORD)
+        "hashed_password": pwd_context.hash(ADMIN_PASSWORD),
     }
 }
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/predict/token")
 
+
 def verify_password(plain, hashed):
     return pwd_context.verify(plain, hashed)
+
 
 def authenticate_user(username: str, password: str):
     user = fake_users_db.get(username)
@@ -45,11 +49,13 @@ def authenticate_user(username: str, password: str):
         return False
     return user
 
+
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
 
 def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
@@ -69,10 +75,12 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
     return user
 
+
 # --------------------------------------------------------------------------
 # Model and Schemas
 # --------------------------------------------------------------------------
 model = load_trained_model()
+
 
 class FeaturesInput(BaseModel):
     rsi: float
@@ -87,13 +95,16 @@ class FeaturesInput(BaseModel):
     atr: float
     atr_pct: float
 
+
 class Token(BaseModel):
     access_token: str
     token_type: str
 
+
 # --------------------------------------------------------------------------
 # Routes
 # --------------------------------------------------------------------------
+
 
 @router.post("/token", response_model=Token)
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -105,8 +116,7 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token = create_access_token(
-        data={"sub": user["username"]},
-        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        data={"sub": user["username"]}, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     return {"access_token": access_token, "token_type": "bearer"}
 

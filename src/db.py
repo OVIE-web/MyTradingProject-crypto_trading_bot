@@ -1,19 +1,15 @@
 # src/db.py
 import logging
-from datetime import datetime, UTC
-from typing import Generator, List
-from contextlib import contextmanager
 import time
-import psycopg2
-    
+from contextlib import contextmanager
+from datetime import UTC, datetime
+from typing import Generator, List
 
-from sqlalchemy import (
-    create_engine, Column, Integer, String, DateTime, inspect,
-    Numeric, MetaData
-)
-from sqlalchemy.orm import declarative_base, sessionmaker, Session
+import psycopg2
+from sqlalchemy import Column, DateTime, Integer, Numeric, String, create_engine, inspect
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 from src.config import DATABASE_URL
 
@@ -32,8 +28,10 @@ logging.info(f"📦 Connecting to database at: {safe_url}")
 # --------------------------------------------------------------------------
 Base = declarative_base()
 
+
 class Trade(Base):
     """ORM model for storing trade records."""
+
     __tablename__ = "trades"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -47,11 +45,13 @@ class Trade(Base):
     commission = Column(Numeric(20, 8), nullable=True)
     commission_asset = Column(String(10), nullable=True)
 
+
 # --------------------------------------------------------------------------
 # Engine and Session
 # --------------------------------------------------------------------------
 engine = create_engine(DATABASE_URL, future=True, echo=False, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
 
 # --------------------------------------------------------------------------
 # Helper functions
@@ -69,6 +69,7 @@ def get_db() -> Generator[Session, None, None]:
     finally:
         db.close()
 
+
 def init_db() -> None:
     """Initialize the database schema (create tables if not exist)."""
     logging.info("🚀 Starting database initialization...")
@@ -79,24 +80,26 @@ def init_db() -> None:
         logging.error(f"❌ Failed to initialize database: {e}")
         raise
 
+
 def list_tables() -> List[str]:
     """Return a list of existing tables in the database."""
     inspector = inspect(engine)
     return inspector.get_table_names()
 
+
 def wait_for_postgres(timeout_seconds: int = 30) -> bool:
     """
     Wait for PostgreSQL to become available.
-    
+
     Args:
         timeout_seconds: Maximum time to wait for connection.
-    
+
     Returns:
         bool: True if connection successful, raises TimeoutError if not.
     """
-    
+
     start_time = time.time()
-    
+
     while time.time() - start_time < timeout_seconds:
         try:
             conn = psycopg2.connect(DATABASE_URL)
@@ -105,5 +108,5 @@ def wait_for_postgres(timeout_seconds: int = 30) -> bool:
             return True
         except psycopg2.OperationalError:
             time.sleep(1)
-    
+
     raise TimeoutError("Failed to connect to PostgreSQL within timeout period")

@@ -1,67 +1,96 @@
-import os
+from __future__ import annotations
+
 import json
 import logging
-from pytz import timezone
+import os
 from datetime import datetime
-import xgboost as xgb
-import numpy as np
-from sklearn.metrics import accuracy_score
-from sklearn.model_selection import train_test_split, RandomizedSearchCV
-from dotenv import load_dotenv
-from typing import List, Optional
-import pandas as pd
-from typing import Tuple
+from typing import Any, Optional, Tuple
 
+import numpy as np
+import pandas as pd
+import xgboost as xgb
+from dotenv import load_dotenv
+from pytz import UTC
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+# -----------------------------------------------------------------
+# Types
+# -----------------------------------------------------------------
+NDArray = np.ndarray
+
+TrainTestSplit = Tuple[
+    NDArray,  # X_train
+    NDArray,  # X_test
+    NDArray,  # y_train
+    NDArray,  # y_test
+]
+
+PredictionResult = Tuple[NDArray, NDArray]
+
+# -----------------------------------------------------------------
+# Config
+# -----------------------------------------------------------------
+MODEL_SAVE_PATH: str = os.getenv("MODEL_SAVE_PATH", "src/models/xgboost_model.json")
+USE_MODEL_REGISTRY: bool = os.getenv("USE_MODEL_REGISTRY", "false").lower() == "true"
+
+# -----------------------------------------------------------------
+# Data Preparation
+# -----------------------------------------------------------------
 def prepare_model_data(
     df: pd.DataFrame,
-    feature_cols: Optional[list] = None,
-    target_col: Optional[str] = "target",
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    feature_cols: Optional[list[str]] = None,
+    target_col: str = "target",
+) -> TrainTestSplit:
     """
-    Compatibility helper for tests — split DataFrame into train/test sets.
+    Split DataFrame into NumPy train/test arrays.
     """
     if target_col not in df.columns:
-        raise KeyError(f"Target column '{target_col}' not found in DataFrame")
+        raise KeyError(f"Target column '{target_col}' not found")
 
-    X = df[feature_cols or [c for c in df.columns if c != target_col]]
-    y = df[target_col]
-    return train_test_split(X, y, test_size=0.2, random_state=42)
-# -----------------------------------------------------------------
-# ✅ Config
-# -----------------------------------------------------------------
-MODEL_SAVE_PATH = os.getenv("MODEL_SAVE_PATH", "src/models/xgboost_model.json")
-USE_MODEL_REGISTRY = os.getenv("USE_MODEL_REGISTRY", "False").lower() == "true"
+    features = feature_cols or [c for c in df.columns if c != target_col]
+
+    X = df[features].to_numpy()
+    y = df[target_col].to_numpy()
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+    
+    return X_train, X_test, y_train, y_test
+
 
 # -----------------------------------------------------------------
-# ✅ Optional Model Registry (activated by env variable)
+# Optional Model Registry
 # -----------------------------------------------------------------
 if USE_MODEL_REGISTRY:
     try:
         import psycopg2
         from psycopg2.extras import RealDictCursor
     except ImportError:
-        logger.warning("⚠️ psycopg2 not installed — ModelRegistry will be disabled.")
+        logger.warning("psycopg2 not installed — disabling model registry")
         USE_MODEL_REGISTRY = False
 
 if USE_MODEL_REGISTRY:
+
     class ModelRegistry:
-        def __init__(self):
+        def __init__(self) -> None:
             self.conn = psycopg2.connect(
                 host=os.getenv("POSTGRES_HOST", "localhost"),
                 dbname=os.getenv("POSTGRES_DB", "trading"),
                 user=os.getenv("POSTGRES_USER", "postgres"),
                 password=os.getenv("POSTGRES_PASSWORD", "postgres"),
             )
-            self.create_table()
+            self._create_table()
 
-        def create_table(self):
+        def _create_table(self) -> None:
             with self.conn.cursor() as cur:
-                cur.execute("""
+                cur.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS model_registry (
                         id SERIAL PRIMARY KEY,
                         model_name TEXT NOT NULL,
@@ -70,56 +99,72 @@ if USE_MODEL_REGISTRY:
                         params JSONB,
                         created_at TIMESTAMP DEFAULT NOW()
                     );
-                """)
+                    """
+                )
                 self.conn.commit()
 
-        def register_model(self, model_name, model_path, accuracy, params):
+        def register_model(
+            self,
+            model_name: str,
+            model_path: str,
+            accuracy: float,
+            params: dict[str, Any],
+        ) -> None:
             with self.conn.cursor() as cur:
-                cur.execute("""
+                cur.execute(
+                    """
                     INSERT INTO model_registry (model_name, model_path, accuracy, params)
                     VALUES (%s, %s, %s, %s)
-                """, (model_name, model_path, accuracy, json.dumps(params)))
+                    """,
+                    (model_name, model_path, accuracy, json.dumps(params)),
+                )
                 self.conn.commit()
-            logger.info(f"🧾 Registered model '{model_name}' with accuracy={accuracy:.4f}")
 
-        def latest(self):
+            logger.info("Registered model '%s' (accuracy=%.4f)", model_name, accuracy)
+
+        def latest(self) -> Optional[dict[str, Any]]:
             with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("SELECT * FROM model_registry ORDER BY id DESC LIMIT 1;")
-                record = cur.fetchone()
-                return record if record else None
+                cur.execute(
+                    "SELECT * FROM model_registry ORDER BY id DESC LIMIT 1;"
+                )
+                return cur.fetchone()
 
 
 # -----------------------------------------------------------------
-# ✅ Core Model Functions
+# Model Training
 # -----------------------------------------------------------------
-def train_xgboost_model(X_train, y_train, X_test, y_test, model_path: Optional[str] = None):
+def train_xgboost_model(
+    X_train: NDArray,
+    y_train: NDArray,
+    X_test: NDArray,
+    y_test: NDArray,
+    model_path: Optional[str] = None,
+) -> Tuple[xgb.XGBClassifier, dict[str, Any]]:
     """
-    Train an XGBoost model and save it (with registry or JSON metadata).
+    Train an XGBoost classifier and persist it.
     """
-    model_path = model_path or MODEL_SAVE_PATH
+    save_path = model_path or MODEL_SAVE_PATH
 
     model = xgb.XGBClassifier(
         eval_metric="mlogloss",
         random_state=42,
-        use_label_encoder=False
+        use_label_encoder=False,
     )
     model.fit(X_train, y_train)
 
     preds = model.predict(X_test)
     accuracy = accuracy_score(y_test, preds)
-    logger.info(f"✅ Model trained — Accuracy: {accuracy:.4f}")
 
-    model.save_model(model_path)
-    logger.info(f"📁 Model saved to {model_path}")
+    logger.info("Model trained — accuracy=%.4f", accuracy)
 
-    # ---------------------------------------------------------
-    # Save metadata (Registry or local JSON)
-    # ---------------------------------------------------------
-    metadata = {
+    model.save_model(save_path)
+    logger.info("Model saved to %s", save_path)
+
+    metadata: dict[str, Any] = {
         "model_name": "xgboost_signal_model",
-        "model_path": model_path,
+        "model_path": save_path,
         "accuracy": accuracy,
-        "trained_at": datetime.datetime.now(timezone('UTC')).isoformat(),
+        "trained_at": datetime.now(UTC).isoformat(),
     }
 
     try:
@@ -128,54 +173,63 @@ def train_xgboost_model(X_train, y_train, X_test, y_test, model_path: Optional[s
             registry.register_model(
                 model_name=metadata["model_name"],
                 model_path=metadata["model_path"],
-                accuracy=metadata["accuracy"],
+                accuracy=accuracy,
                 params=model.get_params(),
             )
         else:
-            meta_path = model_path.replace(".json", "_metadata.json")
-            with open(meta_path, "w") as f:
+            meta_path = save_path.replace(".json", "_metadata.json")
+            with open(meta_path, "w", encoding="utf-8") as f:
                 json.dump(metadata, f, indent=4)
-            logger.info(f"📝 Model metadata saved locally at {meta_path}")
+            logger.info("Metadata saved locally to %s", meta_path)
 
-    except Exception as e:
-        logger.error(f"⚠️ Failed to record model metadata: {e}", exc_info=True)
+    except Exception as exc:
+        logger.exception("Failed to store model metadata: %s", exc)
 
     return model, metadata
 
 
-def load_trained_model(model_path: Optional[str] = None):
+# -----------------------------------------------------------------
+# Model Loading
+# -----------------------------------------------------------------
+def load_trained_model(model_path: Optional[str] = None) -> Optional[xgb.XGBClassifier]:
     """
-    Load a previously trained XGBoost model from file or latest registry entry.
+    Load trained model from disk or registry.
     """
-    model_path = model_path or MODEL_SAVE_PATH
+    path = model_path or MODEL_SAVE_PATH
 
     try:
         if USE_MODEL_REGISTRY:
             registry = ModelRegistry()
             latest = registry.latest()
-            if latest:
-                model_path = latest["model_path"]
-                logger.info(f"📦 Loading latest model from registry: {model_path}")
+            if latest is not None:
+                path = latest["model_path"]
+                logger.info("Loading model from registry: %s", path)
 
         model = xgb.XGBClassifier()
-        model.load_model(model_path)
-        logger.info(f"✅ Model loaded successfully from {model_path}")
+        model.load_model(path)
+
+        logger.info("Model loaded from %s", path)
         return model
 
-    except Exception as e:
-        logger.error(f"❌ Failed to load model: {e}", exc_info=True)
+    except Exception as exc:
+        logger.exception("Failed to load model: %s", exc)
         return None
 
 
-def make_predictions(model, X, threshold: float = 0.5):
+# -----------------------------------------------------------------
+# Prediction
+# -----------------------------------------------------------------
+def make_predictions(
+    model: xgb.XGBClassifier,
+    X: NDArray,
+    threshold: float = 0.5,
+) -> PredictionResult:
     """
-    Generate predictions and confidence from trained model.
+    Generate class predictions and confidence scores.
     """
-    try:
-        proba = model.predict_proba(X)
-        confidence = np.max(proba, axis=1)
-        preds = np.argmax(proba, axis=1) - 1  # assuming labels [-1, 0, 1]
-        return preds, confidence
-    except Exception as e:
-        logger.error(f"❌ Prediction failed: {e}", exc_info=True)
-        return np.zeros(len(X)), np.zeros(len(X))
+    proba = model.predict_proba(X)
+
+    confidence = np.max(proba, axis=1)
+    preds = np.argmax(proba, axis=1) - 1  # [-1, 0, 1] convention
+
+    return preds, confidence

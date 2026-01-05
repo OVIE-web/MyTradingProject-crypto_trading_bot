@@ -1,9 +1,10 @@
-import pytest
 import logging
 from datetime import datetime
-from sqlalchemy.exc import OperationalError
 
-from src.db import init_db, SessionLocal, Trade, Base, engine  # Import engine for drop/create_all in tests
+from src.db import (  # Import engine for drop/create_all in tests
+    Trade,
+    init_db,
+)
 
 
 def test_init_db(db_session, caplog):

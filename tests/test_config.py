@@ -1,7 +1,7 @@
 import os
-import pytest
+
 from config import Config
-from typing import Optional
+
 
 def test_initial_balance(monkeypatch):
     monkeypatch.delenv("INITIAL_BALANCE", raising=False)

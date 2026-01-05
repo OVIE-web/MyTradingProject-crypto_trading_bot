@@ -1,9 +1,11 @@
-import os
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock, Mock
-from pytest import MonkeyPatch
 from psycopg2 import OperationalError
-from src.wait_for_postgres import wait_for_postgres, DATABASE_URL
+from pytest import MonkeyPatch
+
+from src.wait_for_postgres import DATABASE_URL, wait_for_postgres
+
 
 # --------------- SUCCESS CASE ----------------
 @patch("psycopg2.connect")

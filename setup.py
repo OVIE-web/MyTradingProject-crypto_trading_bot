@@ -1,11 +1,12 @@
-from setuptools import setup, find_packages
 from pathlib import Path
+
+from setuptools import find_packages, setup
 
 # --- Read README for PyPI long description ---
 this_dir = Path(__file__).parent
 try:
     readme = (this_dir / "README.md").read_text(encoding="utf-8") if (this_dir / "README.md").exists() else ""
-except Exception as e:
+except Exception:
     readme = ""
 
 setup(

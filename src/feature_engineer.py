@@ -1,140 +1,203 @@
 # src/feature_engineer.py
+from __future__ import annotations
 
-import pandas as pd
-import numpy as np
 import logging
-from ta.momentum import RSIIndicator
-from ta.volatility import AverageTrueRange, BollingerBands
-from ta.trend import SMAIndicator
+from typing import List, Tuple
+
+import numpy as np
+import pandas as pd
+from pandas import DataFrame, Series
 from sklearn.preprocessing import StandardScaler
+from ta.momentum import RSIIndicator
+from ta.trend import SMAIndicator
+from ta.volatility import AverageTrueRange, BollingerBands
 
 from src.config import (
-    RSI_WINDOW, BB_WINDOW, BB_WINDOW_DEV, SMA_SHORT_WINDOW, SMA_LONG_WINDOW,
-    ATR_WINDOW, RSI_LOWER_QUANTILE, RSI_UPPER_QUANTILE
+    ATR_WINDOW,
+    BB_WINDOW,
+    BB_WINDOW_DEV,
+    RSI_LOWER_QUANTILE,
+    RSI_UPPER_QUANTILE,
+    RSI_WINDOW,
+    SMA_LONG_WINDOW,
+    SMA_SHORT_WINDOW,
 )
 
+LOG = logging.getLogger(__name__)
 
-def calculate_technical_indicators(df):
+
+# ------------------------------------------------------------------
+# Feature creation
+# ------------------------------------------------------------------
+def calculate_technical_indicators(df: DataFrame) -> DataFrame:
     """
-    Calculates essential technical indicators and adds them to the DataFrame.
-    Ensures ATR and related features exist and drops rows with NaN.
+    Calculate technical indicators and return a cleaned DataFrame.
+
+    Contract:
+        - Input DataFrame is not mutated
+        - Output contains only valid numeric features
+        - No NaNs remain
     """
     if not isinstance(df, pd.DataFrame):
-        raise TypeError('Input for technical indicators must be a pandas DataFrame')
-    
-    required_cols = ['open', 'high', 'low', 'close', 'volume']
-    if not all(col in df.columns for col in required_cols):
-        missing = [col for col in required_cols if col not in df.columns]
-        logging.error(f"Missing required columns for indicators: {missing}")
-        raise ValueError(f"DataFrame must contain {required_cols} columns")
+        raise TypeError("df must be a pandas DataFrame")
 
-    try:
-        # RSI
-        df['rsi'] = RSIIndicator(close=df['close'], window=RSI_WINDOW).rsi()
-        
-        # Bollinger Bands
-        bb = BollingerBands(close=df['close'], window=BB_WINDOW, window_dev=BB_WINDOW_DEV)
-        df['bb_upper'] = bb.bollinger_hband()
-        df['bb_lower'] = bb.bollinger_lband()
-        df['bb_mid'] = bb.bollinger_mavg()
+    required_cols = {"open", "high", "low", "close", "volume"}
+    missing = required_cols - set(df.columns)
+    if missing:
+        raise ValueError(f"Missing required columns: {sorted(missing)}")
 
-        df['bb_pct_b'] = ((df['close'] - df['bb_lower']) /
-                          (df['bb_upper'] - df['bb_lower'])).replace([np.inf, -np.inf], np.nan)
-        
-        # Moving Averages and crossover
-        df['sma_20'] = SMAIndicator(close=df['close'], window=SMA_SHORT_WINDOW).sma_indicator()
-        df['sma_50'] = SMAIndicator(close=df['close'], window=SMA_LONG_WINDOW).sma_indicator()
-        df['ma_cross'] = (df['sma_20'] > df['sma_50']).astype(int)
+    df_feat = df.copy()
 
-        # Price momentum
-        df['price_momentum'] = df['close'].pct_change(periods=5)
-        
-        # ATR (Average True Range)
-        if df.empty or len(df) < ATR_WINDOW:
-            logging.warning(f"Insufficient data ({len(df)}) for ATR window {ATR_WINDOW}. Filling NaN.")
-            df['atr'] = np.nan
-            df['atr_pct'] = np.nan
-        else:
-            atr = AverageTrueRange(
-                high=df['high'],
-                low=df['low'],
-                close=df['close'],
-                window=ATR_WINDOW
-            )
-            df['atr'] = atr.average_true_range()
-            df['atr_pct'] = df['atr'] / df['close']
+    # RSI
+    df_feat["rsi"] = RSIIndicator(
+        close=df_feat["close"],
+        window=RSI_WINDOW,
+    ).rsi()
 
-        # Volume metrics
-        df['volume_pct_change'] = df['volume'].pct_change()
-        
-        # Drop possible legacy columns
-        drop_cols = ['BB_hband', 'BB_lband', 'BB_mavg', 'RSI', 'SMA_long', 'SMA_short']
-        df.drop(columns=[c for c in drop_cols if c in df.columns], inplace=True, errors='ignore')
-        
-        # Drop NaNs from rolling windows
-        original_len = len(df)
-        df.dropna(inplace=True)
-        logging.info(f"Calculated indicators. Dropped {original_len - len(df)} rows due to NaN.")
-        
-        return df
+    # Bollinger Bands
+    bb = BollingerBands(
+        close=df_feat["close"],
+        window=BB_WINDOW,
+        window_dev=BB_WINDOW_DEV,
+    )
+    df_feat["bb_upper"] = bb.bollinger_hband()
+    df_feat["bb_lower"] = bb.bollinger_lband()
+    df_feat["bb_mid"] = bb.bollinger_mavg()
 
-    except Exception as e:
-        logging.error(f"Error calculating technical indicators: {e}")
-        raise
+    denom = df_feat["bb_upper"] - df_feat["bb_lower"]
+    df_feat["bb_pct_b"] = ((df_feat["close"] - df_feat["bb_lower"]) / denom).replace(
+        [np.inf, -np.inf], np.nan
+    )
+
+    # Moving averages
+    df_feat["sma_short"] = SMAIndicator(
+        close=df_feat["close"],
+        window=SMA_SHORT_WINDOW,
+    ).sma_indicator()
+
+    df_feat["sma_long"] = SMAIndicator(
+        close=df_feat["close"],
+        window=SMA_LONG_WINDOW,
+    ).sma_indicator()
+
+    df_feat["ma_cross"] = (df_feat["sma_short"] > df_feat["sma_long"]).astype(int)
+
+    # Momentum
+    df_feat["price_momentum"] = df_feat["close"].pct_change(periods=5)
+
+    # ATR
+    if len(df_feat) < ATR_WINDOW:
+        LOG.warning(
+            "Insufficient rows (%d) for ATR window=%d — ATR features set to NaN",
+            len(df_feat),
+            ATR_WINDOW,
+        )
+        df_feat["atr"] = np.nan
+        df_feat["atr_pct"] = np.nan
+    else:
+        atr = AverageTrueRange(
+            high=df_feat["high"],
+            low=df_feat["low"],
+            close=df_feat["close"],
+            window=ATR_WINDOW,
+        )
+        df_feat["atr"] = atr.average_true_range()
+        df_feat["atr_pct"] = df_feat["atr"] / df_feat["close"]
+
+    # Volume change
+    df_feat["volume_pct_change"] = df_feat["volume"].pct_change()
+
+    # Drop NaNs from rolling indicators
+    before = len(df_feat)
+    df_feat.dropna(inplace=True)
+    dropped = before - len(df_feat)
+
+    if dropped:
+        LOG.info("Dropped %d rows due to rolling indicator NaNs", dropped)
+
+    return df_feat
 
 
-def get_rsi_quantile_thresholds(rsi_series, lower_quantile=RSI_LOWER_QUANTILE, upper_quantile=RSI_UPPER_QUANTILE):
-    """Compute dynamic RSI thresholds."""
+# ------------------------------------------------------------------
+# RSI thresholds & labeling
+# ------------------------------------------------------------------
+def get_rsi_quantile_thresholds(
+    rsi_series: Series,
+    lower_quantile: float = RSI_LOWER_QUANTILE,
+    upper_quantile: float = RSI_UPPER_QUANTILE,
+) -> Tuple[float, float]:
+    """
+    Compute dynamic RSI thresholds based on quantiles.
+    """
     if not isinstance(rsi_series, pd.Series):
-        raise TypeError('rsi_series must be a pandas Series')
+        raise TypeError("rsi_series must be a pandas Series")
+
+    if not (0.0 < lower_quantile < upper_quantile < 1.0):
+        raise ValueError("Quantiles must satisfy 0 < lower < upper < 1")
 
     rsi_clean = rsi_series.dropna()
     if rsi_clean.empty:
-        logging.warning("Empty RSI series, using default thresholds 30/70.")
-        return 30, 70
+        LOG.warning("Empty RSI series — falling back to default thresholds")
+        return 30.0, 70.0
 
-    if not (0 < lower_quantile < upper_quantile < 1):
-        raise ValueError('Quantiles must be between 0 and 1 and lower < upper')
+    lower = float(rsi_clean.quantile(lower_quantile))
+    upper = float(rsi_clean.quantile(upper_quantile))
 
-    lower_th = rsi_clean.quantile(lower_quantile)
-    upper_th = rsi_clean.quantile(upper_quantile)
-    return max(0, lower_th), min(100, upper_th)
+    return max(0.0, lower), min(100.0, upper)
 
 
-def apply_rsi_labels(df, rsi_col='rsi', lower_threshold=30, upper_threshold=70):
-    """Generate trading signal labels based on RSI."""
-    if not isinstance(df, pd.DataFrame):
-        raise TypeError('Input must be a pandas DataFrame')
+def apply_rsi_labels(
+    df: DataFrame,
+    rsi_col: str = "rsi",
+    lower_threshold: float = 30.0,
+    upper_threshold: float = 70.0,
+) -> DataFrame:
+    """
+    Generate trading signals from RSI values.
+
+    Signals:
+        1  → Buy
+        0  → Hold
+       -1  → Sell
+    """
     if rsi_col not in df.columns:
-        raise ValueError(f'Missing RSI column: {rsi_col}')
+        raise ValueError(f"Missing RSI column: {rsi_col}")
 
-    df = df.copy()
-    df['signal'] = 0
-    df.loc[df[rsi_col] <= lower_threshold, 'signal'] = 1
-    df.loc[df[rsi_col] >= upper_threshold, 'signal'] = -1
-    df['signal'] = df['signal'].astype(int)
-    return df
+    df_labeled = df.copy()
+    df_labeled["signal"] = 0
+
+    df_labeled.loc[df_labeled[rsi_col] <= lower_threshold, "signal"] = 1
+    df_labeled.loc[df_labeled[rsi_col] >= upper_threshold, "signal"] = -1
+
+    df_labeled["signal"] = df_labeled["signal"].astype(int)
+    return df_labeled
 
 
-def normalize_features(df):
-    """Normalize numeric columns (excluding binary) using StandardScaler."""
-    if not isinstance(df, pd.DataFrame):
-        raise TypeError('Input must be a pandas DataFrame')
+# ------------------------------------------------------------------
+# Normalization
+# ------------------------------------------------------------------
+def normalize_features(df: DataFrame) -> DataFrame:
+    """
+    Normalize numeric features using StandardScaler.
 
-    binary_cols = [c for c in ['ma_cross', 'signal'] if c in df.columns]
-    num_cols = df.select_dtypes(include=np.number).columns.difference(binary_cols)
+    Binary columns (e.g. signals) are preserved and column order is stable.
+    """
+    df_norm = df.copy()
 
-    if num_cols.empty:
-        logging.warning("No numeric columns to normalize.")
-        return df.copy()
+    binary_cols = [c for c in ("ma_cross", "signal") if c in df_norm.columns]
+    numeric_cols: List[str] = (
+        df_norm.select_dtypes(include=np.number).columns.difference(binary_cols).tolist()
+    )
+
+    if not numeric_cols:
+        LOG.warning("No numeric columns found for normalization")
+        return df_norm
 
     scaler = StandardScaler()
-    df_scaled = pd.DataFrame(
-        scaler.fit_transform(df[num_cols]),
-        columns=num_cols,
-        index=df.index
-    )
-    if binary_cols:
-        df_scaled = pd.concat([df_scaled, df[binary_cols]], axis=1)
+    df_norm[numeric_cols] = scaler.fit_transform(df_norm[numeric_cols])
 
-    return df_scaled
+    # Preserve column order
+    ordered_cols = numeric_cols + binary_cols
+    remaining = [c for c in df_norm.columns if c not in ordered_cols]
+
+    return df_norm[ordered_cols + remaining]

@@ -1,11 +1,13 @@
 # src/notification.py
+import logging
 import os
 import smtplib
-import logging
-import requests
 from email.mime.text import MIMEText
 
+import requests
+
 logger = logging.getLogger(__name__)
+
 
 def send_telegram_notification(message: str) -> bool:
     """Sync fallback Telegram notification via requests."""

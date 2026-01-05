@@ -1,6 +1,8 @@
 # scripts/smoke_notify.py
 import asyncio
+
 from src.notifier import TelegramNotifier, send_email_notification
+
 
 async def main():
     notifier = TelegramNotifier()

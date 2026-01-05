@@ -1,19 +1,19 @@
-import pytest
 import os
 import sys
 import warnings
-import pandas as pd
+from unittest.mock import Mock
+
 import numpy as np
+import pandas as pd
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from unittest.mock import Mock
 
 # Insert repo root (one level up from tests/) so project `src` package can be imported
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Now import project symbols (after adding repo root to sys.path)
 from src.db import Base
-
 
 
 @pytest.fixture(autouse=True, scope="session")

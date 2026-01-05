@@ -1,6 +1,7 @@
 # File: tests/notifications/conftest.py
 import pytest
 
+
 @pytest.fixture
 def mock_env(monkeypatch):
     """Provides consistent environment variables for all notification tests."""

@@ -1,17 +1,13 @@
-import pytest
-from typing import List, Optional
+import logging
+from unittest.mock import MagicMock, patch
+
 import numpy as np
 import pandas as pd
-import logging
-from unittest.mock import patch, MagicMock
+import pytest
 from sklearn.model_selection import train_test_split
 
-
-from src.model_manager import (
-    train_xgboost_model,
-    make_predictions
-)
-from src.config import FEATURE_COLUMNS, TARGET_COLUMN, RANDOM_STATE, CONFIDENCE_THRESHOLD
+from src.config import FEATURE_COLUMNS, RANDOM_STATE, TARGET_COLUMN
+from src.model_manager import make_predictions, train_xgboost_model
 
 
 # -------------------------------------------------

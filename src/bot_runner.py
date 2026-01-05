@@ -5,19 +5,19 @@ import os
 import signal
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from typing import Dict, Optional, Tuple, Any
+from typing import Any, Dict, Optional
 
 import backoff
 
 from src.binance_manager import BinanceManager
+from src.config import ATR_WINDOW, INITIAL_CANDLES_HISTORY
+from src.db import SessionLocal
 from src.feature_engineer import calculate_technical_indicators
 from src.model_manager import load_trained_model, make_predictions
-from src.db import SessionLocal
-from src.config import INITIAL_CANDLES_HISTORY, ATR_WINDOW 
-
-# async notifier (primary) + sync fallback helpers
-from src.notifier import TelegramNotifier, send_email_notification as send_email_async_safe
-from src.notification import send_telegram_notification, send_email_notification as send_email_sync
+from src.notification import send_email_notification as send_email_sync
+from src.notification import send_telegram_notification
+from src.notifier import TelegramNotifier
+from src.notifier import send_email_notification as send_email_async_safe
 
 LOG = logging.getLogger("bot_runner")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -31,7 +31,11 @@ CONCURRENCY_LIMIT = int(os.getenv("BOT_CONCURRENCY", "3"))
 # ======================================================================================
 @asynccontextmanager
 async def lifespan():
-    """Startup/teardown for trading bot resources."""
+    """
+    Startup/teardown for trading bot resources.
+    Yields:
+        dict containing model, metadata, binance client, notifier, db session
+    """
     LOG.info("Starting bot lifespan: init resources...")
 
     # load_trained_model may return either model or (model, metadata).
@@ -45,7 +49,7 @@ async def lifespan():
     notifier = TelegramNotifier(max_retries=3)
     db = SessionLocal()
 
-    resources: Dict[str, object] = {
+    resources: Dict[str, Any] = {
         "model": model,
         "metadata": metadata,
         "binance": binance,
@@ -84,28 +88,29 @@ async def notify_all_channels(notifier: TelegramNotifier, subject: str, message:
     """
     Sends notifications through all available channels:
       1) Async TelegramNotifier (awaited)
-      2) Sync Telegram REST fallback (requests)
-      3) Async-safe (sync) Email fallback (synchronous with retry in notifier or sync helper)
-    The function tries async primary first and falls back to sync helpers on errors.
+      2) Sync Telegram REST fallback (requests via send_telegram_notification)
+      3) Sync Email fallback (send_email_sync)
     """
-    # 1) Primary async Telegram notifier
+    # Primary async Telegram notifier
     try:
         sent = await notifier.send_message(message)
         if sent:
             LOG.info("Primary async Telegram notification succeeded.")
         else:
-            LOG.warning("Primary async Telegram notifier returned False. Falling back to sync Telegram.")
-            # fallback to sync HTTP-based notification (requests)
+            LOG.warning(
+                "Primary async Telegram notifier returned False. Falling back to sync Telegram."
+            )
             send_telegram_notification(message)
     except Exception as exc:
-        LOG.error("Async Telegram notifier raised exception: %s. Falling back to sync Telegram.", exc)
+        LOG.error(
+            "Async Telegram notifier raised exception: %s. Falling back to sync Telegram.", exc
+        )
         try:
             send_telegram_notification(message)
         except Exception as exc2:
             LOG.error("Sync Telegram fallback also failed: %s", exc2)
 
-    # 2) Email (primary email in src.notifier is sync but production-ready)
-    # try the notifier email first (send_email_async_safe is the same sync function in src.notifier)
+    # Email (try notifier's email helper first and fallback to sync)
     try:
         ok = send_email_async_safe(subject, message)
         if ok:
@@ -125,7 +130,7 @@ async def notify_all_channels(notifier: TelegramNotifier, subject: str, message:
 #  CORE TRADING ITERATION
 # ======================================================================================
 @backoff.on_exception(backoff.expo, Exception, max_tries=5, jitter=backoff.full_jitter)
-async def do_iteration(resources: Dict[str, object]) -> None:
+async def do_iteration(resources: Dict[str, Any]) -> None:
     """
     One full trading iteration:
       - Fetch latest OHLCV
@@ -136,23 +141,57 @@ async def do_iteration(resources: Dict[str, object]) -> None:
     """
     LOG.info("Starting iteration")
 
-    # Fetch data
-    candles = resources["binance"].get_latest_ohlcv("BTCUSDT", "4h", limit=max(INITIAL_CANDLES_HISTORY, ATR_WINDOW + 5))
-    features = calculate_technical_indicators(candles)
-
-    # Make predictions (returns pd.Series and confidence)
-    decoded_preds, confidence = make_predictions(resources["model"], features)
-
-    latest_signal = int(decoded_preds.iloc[-1]) if not decoded_preds.empty else 0
-    latest_conf = float(confidence.iloc[-1]) if not confidence.empty else 0.0
+    binance: BinanceManager = resources["binance"]
+    model = resources["model"]
     notifier: TelegramNotifier = resources["notifier"]
+    session = resources["db"]
+
+    # Fetch data (defensive: handle binance errors)
+    try:
+        limit = max(INITIAL_CANDLES_HISTORY, ATR_WINDOW + 5)
+        candles = binance.get_latest_ohlcv("BTCUSDT", "4h", limit=limit)
+    except Exception:
+        LOG.exception("Failed to fetch OHLCV data from Binance")
+        return
+
+    # Compute features
+    try:
+        features = calculate_technical_indicators(candles)
+    except Exception:
+        LOG.exception("Failed to calculate technical indicators")
+        return
+
+    # Make predictions (returns decoded_preds, confidence)
+    try:
+        decoded_preds, confidence = make_predictions(model, features)
+    except Exception:
+        LOG.exception("Prediction failed")
+        return
+
+    latest_signal = (
+        int(decoded_preds.iloc[-1])
+        if (hasattr(decoded_preds, "iloc") and not decoded_preds.empty)
+        else 0
+    )
+    latest_conf = (
+        float(confidence.iloc[-1])
+        if (hasattr(confidence, "iloc") and not confidence.empty)
+        else 0.0
+    )
     symbol = "BTCUSDT"
 
     # Prepare trade and notification flow
+    trade_result: Optional[Dict[str, Any]] = None
     if latest_signal == 1:
         LOG.info("BUY signal detected (conf=%.2f).", latest_conf)
         # Simulate order execution (replace with real order call)
-        trade_result = {"symbol": symbol, "side": "BUY", "status": "FILLED", "price": "68000", "qty": "0.001"}
+        trade_result = {
+            "symbol": symbol,
+            "side": "BUY",
+            "status": "FILLED",
+            "price": "68000",
+            "qty": "0.001",
+        }
         if trade_result.get("status") == "FILLED":
             message = (
                 f"🚀 Trade Executed Successfully!\n"
@@ -166,7 +205,13 @@ async def do_iteration(resources: Dict[str, object]) -> None:
 
     elif latest_signal == -1:
         LOG.info("SELL signal detected (conf=%.2f).", latest_conf)
-        trade_result = {"symbol": symbol, "side": "SELL", "status": "FILLED", "price": "68200", "qty": "0.001"}
+        trade_result = {
+            "symbol": symbol,
+            "side": "SELL",
+            "status": "FILLED",
+            "price": "68200",
+            "qty": "0.001",
+        }
         if trade_result.get("status") == "FILLED":
             message = (
                 f"📉 Trade Executed Successfully!\n"
@@ -181,7 +226,6 @@ async def do_iteration(resources: Dict[str, object]) -> None:
         LOG.info("No actionable signal this round (HOLD position).")
 
     # Persist trade record to DB here (example)
-    session = resources["db"]
     try:
         # Example placeholder for saving trades to DB (uncomment and wire to ORM)
         # trade = Trade(symbol=symbol, side=trade_result['side'], price=trade_result['price'], qty=trade_result['qty'], confidence=latest_conf)
@@ -190,7 +234,8 @@ async def do_iteration(resources: Dict[str, object]) -> None:
     except Exception as exc:
         LOG.exception("DB persistence failed: %s", exc)
         try:
-            session.rollback()
+            if hasattr(session, "rollback"):
+                session.rollback()
         except Exception:
             LOG.exception("DB rollback failed")
 
@@ -200,7 +245,10 @@ async def do_iteration(resources: Dict[str, object]) -> None:
 # ======================================================================================
 #  RUNNER LOOP
 # ======================================================================================
-async def runner_loop(run_once: bool = False, interval_seconds: int = DEFAULT_INTERVAL):
+async def runner_loop(run_once: bool = False, interval_seconds: int = DEFAULT_INTERVAL) -> None:
+    """
+    Main event loop that schedules iterations and handles graceful shutdown.
+    """
     last_run_finished = True
     last_run_time: Optional[datetime] = None
     sem = asyncio.Semaphore(CONCURRENCY_LIMIT)
@@ -208,7 +256,7 @@ async def runner_loop(run_once: bool = False, interval_seconds: int = DEFAULT_IN
     async with lifespan() as resources:
         stop_event = asyncio.Event()
 
-        def _stop_signal():
+        def _stop_signal() -> None:
             LOG.info("Received stop signal")
             stop_event.set()
 
@@ -220,7 +268,7 @@ async def runner_loop(run_once: bool = False, interval_seconds: int = DEFAULT_IN
         except NotImplementedError:
             LOG.warning("Signal handlers not supported in this environment.")
 
-        background_tasks = set()
+        background_tasks: set = set()
 
         while not stop_event.is_set():
             if should_skip_if_running(last_run_finished):
@@ -229,7 +277,7 @@ async def runner_loop(run_once: bool = False, interval_seconds: int = DEFAULT_IN
                 last_run_finished = False
                 last_run_time = datetime.now(timezone.utc)
 
-                async def _run_task():
+                async def _run_task() -> None:
                     nonlocal last_run_finished
                     try:
                         async with sem:
@@ -261,6 +309,9 @@ async def runner_loop(run_once: bool = False, interval_seconds: int = DEFAULT_IN
 #  ENTRYPOINTS
 # ======================================================================================
 async def run_once_test() -> bool:
+    """
+    Convenience helper for running a single iteration (returns True if succeed).
+    """
     async with lifespan() as resources:
         try:
             await do_iteration(resources)
@@ -271,9 +322,9 @@ async def run_once_test() -> bool:
             return False
 
 
-def main():
+def main() -> None:
     run_once_flag = os.getenv("BOT_RUN_ONCE", "0") == "1"
-    interval = int(os.getenv("BOT_INTERVAL_SECONDS", DEFAULT_INTERVAL))
+    interval = int(os.getenv("BOT_INTERVAL_SECONDS", str(DEFAULT_INTERVAL)))
 
     if run_once_flag:
         asyncio.run(run_once_test())

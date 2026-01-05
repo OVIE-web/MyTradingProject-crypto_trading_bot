@@ -1,16 +1,18 @@
 # src/notifier.py
-import os
-import smtplib
-import logging
 import asyncio
+import logging
+import os
 import random
-from email.mime.text import MIMEText
-from telegram import Bot
+import smtplib
 import time
 import typing
+from email.mime.text import MIMEText
 from typing import Optional
 
+from telegram import Bot
+
 logger = logging.getLogger(__name__)
+
 
 def _backoff_delay(attempt: int, base: float = 1.0, cap: float = 30.0) -> float:
     """Calculate exponential backoff with jitter."""
@@ -20,6 +22,7 @@ def _backoff_delay(attempt: int, base: float = 1.0, cap: float = 30.0) -> float:
 
 class TelegramNotifier:
     """Handles asynchronous Telegram notifications with retries."""
+
     def __init__(self, max_retries: int = 3):
         self.token: Optional[str] = os.getenv("TELEGRAM_BOT_TOKEN")
         self.chat_id: Optional[str] = os.getenv("TELEGRAM_CHAT_ID")
@@ -33,11 +36,11 @@ class TelegramNotifier:
         if not self.enabled:
             logger.warning("Telegram Notifier not enabled.")
             return False
-        
+
         if self.bot is None:
             logger.error("Telegram Bot is not initialized.")
             return False
-        
+
         if self.chat_id is not None:
             await self.bot.send_message(chat_id=self.chat_id, text=message)
         else:
