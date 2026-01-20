@@ -2,120 +2,115 @@
 
 [![CI Status](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot-1/actions/workflows/tests.yml/badge.svg)](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot-1/actions/workflows/tests.yml)
 
-A modular, production-ready crypto trading system built with FastAPI, PostgreSQL, XGBoost, and Telegram + Email notifications — powered by uv, Docker, and GitHub Actions CI.
+A modular, type-safe, production-oriented crypto trading system built with **FastAPI**, **PostgreSQL**, **SQLAlchemy 2.0**, **XGBoost**, and **Plotly**, with a strong focus on correctness, security, and long-term maintainability.
 
 ---
 
-## 🚀 Overview
+## 🚀 Project Status (Current Phase)
 
-This project provides an end-to-end automated trading pipeline:
+**Status:** 🚧 Active Development  
+**Current Focus:**  
+✅ Type safety (mypy)  
+✅ Configuration hardening  
+✅ Authentication & JWT security  
+✅ Backtesting correctness  
+🟡 API stabilization  
+🔜 Live trading hardening
 
-- **Machine-learning signal generation**
-- **Backtesting and visualization**
-- **Live trading on Binance Testnet**
-- **Notifications and dashboards**
-- **Continuous Integration / Delivery**
-
-Designed for scalability, reproducibility, and test-driven development.
-
----
-
-## ✨ Key Features
+This repository is currently in a **production-hardening phase**, prioritizing correctness and safety over feature expansion.
 
 ---
 
-### 🧠 Machine Learning & Strategy
+## 🧩 Core Capabilities (Implemented)
 
-XGBoost classifier for buy/sell/hold signals
-RandomizedSearchCV + SMOTE for optimization and balance
-Feature engineering with RSI, SMA, Bollinger Bands, ATR, Momentum
+### 🔐 Authentication & Security
 
-### 📊 Backtesting & Visualization
+- JWT-based authentication
+- Centralized, validated configuration via `settings.py`
+- Environment-based safety checks (dev vs non-dev)
+- No default or weak credentials in production environments
 
-- Full performance metrics: CAGR, Sharpe Ratio, Max Drawdown  
-- Plotly interactive charts and Streamlit analytics UI  
-- Backtesting logic in `backtester.py`
+### 🗄️ Database Layer
 
-### 🔗 API & Automation
+- SQLAlchemy **2.0-style ORM**
+- PostgreSQL support
+- Typed session management
+- Trade persistence model (`Trade`)
 
-- REST endpoints via **FastAPI** (`/predict`, `/train`, `/health`)
-- **MLflow** experiment tracking  
-- **SQLAlchemy + PostgreSQL** model registry  
+### 🧠 Machine Learning
 
-### 🔔 Notification System
+- Feature-based signal generation (RSI, SMA, Bollinger Bands, ATR, momentum)
+- XGBoost classifier integration
+- Deterministic model loading & prediction paths
+- Model lifecycle handled in `model_manager.py`
 
-- Modular **Telegram Bot** + **SMTP Email** alerts  
-- Centralized `notifier.py` with async retry logic  
+### 📊 Backtesting & Analytics
 
-### 🧩 Infrastructure & CI
+- Deterministic backtesting engine (`backtester.py`)
+- Fee-aware trade execution logic
+- Portfolio value tracking
+- Win-rate, returns, and trade-level metrics
+- Interactive Plotly visualizations (`visualizer.py`)
 
-- **Docker Compose** orchestrates FastAPI, Postgres, Streamlit, MLflow  
-- **GitHub Actions CI** for linting, testing, and builds  
-- **uv** manages reproducible environments  
+### 🌐 API Layer
+
+- FastAPI application (`main_api.py`)
+- Token issuance endpoint (`/token`)
+- Trade inspection endpoints (`/trades`)
+- Fully typed request/response models
 
 ---
 
 ## 🧱 Project Structure
 
-crypto_trading_bot
-  crypto_trading_bot-1/
+crypto_trading_bot-1/
 ├── src/
-│   ├── main_api.py          # FastAPI entrypoint
-│   ├── bot_runner.py        # Telegram bot
-│   ├── notifier.py          # Alert dispatch (email/telegram)
-│   ├── notification.py      # Notification utilities
-│   ├── binance_manager.py   # Binance Testnet integration
-│   ├── feature_engineer.py  # Technical indicators
-│   ├── backtester.py        # Backtesting logic
-│   ├── db.py                # SQLAlchemy ORM models
-│   ├── config.py            # Global settings
-│   ├── model_manager.py     # Model load/train/save
-│   ├── visualizer.py        # Plotly charts
-│   ├── streamlit_app.py     # Streamlit dashboard
-│   └── -**init.py**      # src package initializer
+│ ├── main_api.py # FastAPI entrypoint
+│ ├── auth.py # JWT auth & password hashing
+│ ├── settings.py # Strict, validated runtime settings
+│ ├── config.py # Legacy + ML/trading config (being phased out)
+│ ├── db.py # SQLAlchemy 2.0 ORM + session handling
+│ ├── model_manager.py # ML model lifecycle
+│ ├── backtester.py # Backtesting engine
+│ ├── visualizer.py # Plotly analytics
+│ ├── binance_manager.py # Binance Testnet integration
+│ ├── notifier.py # Email / Telegram alerts
+│ ├── bot_runner.py # Trading bot runtime
+│ ├── streamlit_app.py # Analytics UI (optional)
+│ └── init.py
 │
-├── tests/                   # Unit & integration tests
-├── data/                    # Sample CSV datasets
-├── requirements.txt
-├── requirements.dev.txt
-├── pyproject.toml
-├── setup.py
+├── tests/ # Unit & integration tests
 ├── docker-compose.yml
 ├── Dockerfile
-├── .dockerignore
-├── .gitignore
-├── .python-version
-├── pg_hba.conf
-├── LICENSE
+├── pyproject.toml
 ├── README.md
-├── RulesFORAI.md
-├── BeautyOfTheStruggle.md
-├── crypto_trading_bot.ipynb
-├── main.py
 └── .github/workflows/tests.yml
 
 ---
 
-## ⚙️ Installation & Setup
+---
+
+## ⚙️ Local Development Setup
 
 ### Prerequisites
 
 - **Python ≥ 3.12**
-- **uv** (modern package manager)
-- **Docker Desktop**
-- **PostgreSQL** (local or via Docker)
+- **uv**
+- **Docker**
+- **PostgreSQL**
 
-### Steps
+### Setup
 
 ```bash
-# 1️⃣ Clone
 git clone https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot-1.git
 cd MyTradingProject-crypto_trading_bot-1
 
-# 2️⃣ Create & activate virtual env
 uv venv
-.venv\Scripts\activate        # Windows
-source .venv/bin/activate     # macOS/Linux
+source .venv/bin/activate   # macOS/Linux
+.venv\Scripts\activate      # Windows
+
+uv sync --extra dev
+
 
 # 3️⃣ Sync dependencies
 uv pip compile --extra dev pyproject.toml -o requirements.dev.txt
@@ -129,6 +124,12 @@ setx SMTP_PORT "587"
 setx SMTP_USER "you@gmail.com"
 setx SMTP_PASS "app_password"
 
+DATABASE_URL=postgresql://user:pass@localhost:5432/tradingbot
+JWT_SECRET_KEY=<secure-random-32+ chars>
+ADMIN_USERNAME=<admin_user>
+ADMIN_PASSWORD=<strong_password>
+
+
 # 5️⃣ Run tests
 pytest -v --disable-warnings
 
@@ -137,12 +138,27 @@ pytest -v --disable-warnings
 # FastAPI backend
 uvicorn src.main_api:app --reload
 
+# Backtesting/Research
+python -m src.backtester
+
 # Telegram Bot
 python -m src.bot_runner
 
 # Streamlit Dashboard
 streamlit run src/streamlit_app.py
 ```
+
+## 🧪 Quality Gates
+
+mypy for static typing
+
+pytest for unit/integration tests
+
+SQLAlchemy 2.0 typing
+
+Logging-first (no prints)
+
+Fail-fast configuration validation
 
 ## 🐳 Docker Deployment
 
@@ -173,30 +189,37 @@ Secure secret management via GitHub secrets
 
 ## 🔒 Security Best Practices
 
-Secrets stored only in GitHub or .env (never committed)
+No secrets committed
 
-Docker services run with limited permissions
+Strong runtime validation
 
-Use Binance Testnet API keys for safety
+JWT secrets enforced
 
-CI masks sensitive data automatically
+Testnet-only trading by default
 
-🛠️ Future Enhancements
+Explicit environment separation
 
-🧩 LSTM / Transformer model integration
+## 🛠️ Future Enhancements
 
-📈 Real-time WebSocket signal dashboard
+✅ Full mypy pass across codebase
 
-🧠 Model versioning & ensemble strategies
+🔜 JWT token hardening for /users/me
 
-🔔 Async notification queues (Redis/RabbitMQ)
+🔜 Binance live-trading safeguards
 
-📊 Monitoring via Prometheus + Grafana
+🔜 Async task queues (Redis)
 
-🧪 Coverage reports (Codecov)
+🔜 Monitoring & metrics
 
-## Author: Ovie
+🔜 Model versioning & ensembles
 
-License: MIT
+## 👤 Author: Ovie
+
+Data Scientist & Machine Learning Engineer
+Focused on correctness-first, production-grade systems.
+
+## 📄License
+
+MIT
 Status: 🚧 Active Development
-Last Updated: November 2025
+Last updated: January 2026
