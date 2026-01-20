@@ -1,6 +1,6 @@
 # 🧠 Crypto Trading Bot 1
 
-![CI](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot-1/actions/workflows/tests.yml/badge.svg)
+[![CI](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot-1/actions/workflows/tests.yml/badge.svg)](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot-1/actions)
 ![Python](https://img.shields.io/badge/python-3.12+-blue.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?logo=fastapi)
 ![Type%20Checked](https://img.shields.io/badge/mypy-checked-blueviolet)
