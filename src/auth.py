@@ -1,7 +1,7 @@
 # src/auth.py
 import logging
 from datetime import datetime, timedelta
-from typing import Dict
+from typing import Dict, Optional, TypedDict, cast
 
 import pytz
 from dotenv import load_dotenv
@@ -10,7 +10,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-from src.config import settings
+from src.settings import settings
 
 # Load environment variables
 load_dotenv()
@@ -50,11 +50,18 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def authenticate_user(username: str, password: str):
+class AuthUser(TypedDict):
+    username: str
+    hashed_password: str
+
+
+def authenticate_user(username: str, password: str) -> Optional[AuthUser]:
     user = fake_users_db.get(username)
-    if not user or not verify_password(password, user["hashed_password"]):
-        return False
-    return user
+    if not user:
+        return None
+    if not verify_password(password, user["hashed_password"]):
+        return None
+    return cast(AuthUser, user)
 
 
 def create_access_token(
@@ -82,7 +89,7 @@ def create_access_token(
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def get_current_user(token: str = Depends(oauth2_scheme)):
+def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     """Decode and verify JWT token"""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,

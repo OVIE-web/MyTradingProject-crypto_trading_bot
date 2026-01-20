@@ -1,14 +1,20 @@
 # src/visualizer.py
 
 import logging
+from typing import Optional
 
+import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 
 def visualize_trading_results(
-    df_with_indicators, trades_df, daily_portfolio_df, rsi_lower_thresh=30, rsi_upper_thresh=70
-):
+    df_with_indicators: pd.DataFrame,
+    trades_df: pd.DataFrame,
+    daily_portfolio_df: pd.DataFrame,
+    rsi_lower_thresh: float = 30,
+    rsi_upper_thresh: float = 70,
+) -> Optional[go.Figure]:
     """
     Creates interactive candlestick chart with trading signals, volume,
     account value, and technical indicators.
@@ -189,20 +195,19 @@ def visualize_trading_results(
                 y=rsi_upper_thresh,
                 line_dash="dot",
                 line_color="red",
-                row=3,
-                col=1,
+                row="3",
+                col="1",
                 name="RSI Overbought",
             )
             fig.add_hline(
                 y=rsi_lower_thresh,
                 line_dash="dot",
                 line_color="green",
-                row=3,
-                col=1,
+                row="3",
+                col="1",
                 name="RSI Oversold",
             )
-            fig.update_yaxes(range=[0, 100], row=3, col=1)  # Standard RSI range
-
+            fig.update_yaxes(range=[0, 100], row="3", col="1")  # Standard RSI range
         # --- Row 4: Average True Range (ATR) ---
         if "atr" in df_with_indicators.columns:
             fig.add_trace(

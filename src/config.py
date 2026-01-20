@@ -1,3 +1,6 @@
+# src/config.py
+from __future__ import annotations
+
 import os
 from dataclasses import dataclass, field
 from typing import List, Optional
@@ -91,19 +94,9 @@ class Config:
     telegram_bot_token: Optional[str] = os.getenv("TELEGRAM_BOT_TOKEN")
     telegram_chat_id: int = get_env_int("TELEGRAM_CHAT_ID", 0)
 
-    # JWT / Admin
-    jwt_secret_key: str = get_env_str("JWT_SECRET_KEY", "test-secret-key")
-    jwt_algorithm: str = get_env_str("JWT_ALGORITHM", "HS256")
-    access_token_expire_minutes: int = get_env_int("ACCESS_TOKEN_EXPIRE_MINUTES", 30)
-    admin_username: str = get_env_str("ADMIN_USERNAME", "admin")
-    admin_password: str = get_env_str("ADMIN_PASSWORD", "admin123")
-
 
 # Instantiate config
 config = Config()
-
-# Provide settings alias for backward compatibility
-settings = config
 
 # ---- Legacy compatibility constants (uppercase required by tests) ----
 

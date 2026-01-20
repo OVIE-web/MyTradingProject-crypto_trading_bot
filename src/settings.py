@@ -11,10 +11,6 @@ load_dotenv()
 
 
 def _get_env(name: str, default: Optional[str] = None) -> str:
-    """
-    Fetch environment variable with optional default.
-    Raises RuntimeError if missing and no default provided.
-    """
     value = os.getenv(name, default)
     if value is None:
         raise RuntimeError(f"Missing required environment variable: {name}")
@@ -22,10 +18,6 @@ def _get_env(name: str, default: Optional[str] = None) -> str:
 
 
 def _get_env_int(name: str, default: Optional[int] = None) -> int:
-    """
-    Fetch environment variable as integer with default.
-    Raises RuntimeError if missing or not an integer.
-    """
     value = os.getenv(name)
     if value is None:
         if default is not None:
@@ -33,12 +25,19 @@ def _get_env_int(name: str, default: Optional[int] = None) -> int:
         raise RuntimeError(f"Missing required environment variable: {name}")
     try:
         return int(value)
-    except ValueError:
-        raise RuntimeError(f"Environment variable {name} must be a valid integer, got: {value}")
+    except ValueError as exc:
+        raise RuntimeError(
+            f"Environment variable {name} must be a valid integer, got: {value}"
+        ) from exc
 
 
 @dataclass(frozen=True, slots=True)
 class Settings:
+    # ------------------------
+    # Environment
+    # ------------------------
+    ENV: Final[str] = os.getenv("ENV", "development")
+
     # ------------------------
     # Database
     # ------------------------
@@ -52,24 +51,30 @@ class Settings:
     ACCESS_TOKEN_EXPIRE_MINUTES: Final[int] = _get_env_int("ACCESS_TOKEN_EXPIRE_MINUTES", 30)
 
     # ------------------------
-    # Admin user (no defaults)
+    # Admin user
     # ------------------------
     ADMIN_USERNAME: Final[str] = _get_env("ADMIN_USERNAME")
     ADMIN_PASSWORD: Final[str] = _get_env("ADMIN_PASSWORD")
 
 
-# Singleton-style settings object
 settings = Settings()
 
 
-# --- Startup validation for weak/test credentials ---
 def _validate_settings(settings: Settings) -> None:
-    if settings.ADMIN_USERNAME == "admin" and settings.ADMIN_PASSWORD == "admin":
-        raise RuntimeError(
-            "Default admin credentials detected! Set strong ADMIN_USERNAME and ADMIN_PASSWORD."
-        )
-    if "testuser:testpass" in settings.DATABASE_URL:
-        raise RuntimeError("Default/test database credentials detected! Set a secure DATABASE_URL.")
+    """
+    Fail fast on insecure configuration in non-development environments.
+    """
+    if settings.ENV != "development":
+        if settings.ADMIN_USERNAME == "admin" and settings.ADMIN_PASSWORD == "admin":
+            raise RuntimeError("Default admin credentials detected in non-development environment.")
+
+        if "testuser:testpass" in settings.DATABASE_URL:
+            raise RuntimeError("Test database credentials detected in non-development environment.")
+
+        if len(settings.JWT_SECRET_KEY) < 32:
+            raise RuntimeError(
+                "JWT_SECRET_KEY is too short. Use a strong, random secret (>=32 chars)."
+            )
 
 
 _validate_settings(settings)
