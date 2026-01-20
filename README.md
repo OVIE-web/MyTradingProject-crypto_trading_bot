@@ -1,6 +1,10 @@
 # 🧠 Crypto Trading Bot 1
 
-[![CI Status](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot-1/actions/workflows/tests.yml/badge.svg)](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot-1/actions/workflows/tests.yml)
+![CI](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot-1/actions/workflows/tests.yml/badge.svg)
+![Python](https://img.shields.io/badge/python-3.12+-blue.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?logo=fastapi)
+![Type%20Checked](https://img.shields.io/badge/mypy-checked-blueviolet)
+![License](https://img.shields.io/badge/license-MIT-green)
 
 A modular, type-safe, production-oriented crypto trading system built with **FastAPI**, **PostgreSQL**, **SQLAlchemy 2.0**, **XGBoost**, and **Plotly**, with a strong focus on correctness, security, and long-term maintainability.
 
