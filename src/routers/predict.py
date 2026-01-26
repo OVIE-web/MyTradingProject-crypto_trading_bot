@@ -1,87 +1,31 @@
 # src/routers/predict.py
-import logging
-import os
-from datetime import datetime, timedelta
+from __future__ import annotations
 
+import logging
+from typing import Dict
+
+import numpy as np
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jose import JWTError, jwt
-from passlib.context import CryptContext
 from pydantic import BaseModel
 
+from src.auth import get_current_user
 from src.config import FEATURE_COLUMNS
 from src.model_manager import load_trained_model, make_predictions
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 # --------------------------------------------------------------------------
-# JWT/OAuth2 Setup
-# --------------------------------------------------------------------------
-SECRET_KEY = os.getenv("JWT_SECRET_KEY")
-if not SECRET_KEY:
-    raise RuntimeError("JWT_SECRET_KEY environment variable not set!")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "adminpass")
-
-fake_users_db = {
-    ADMIN_USERNAME: {
-        "username": ADMIN_USERNAME,
-        "hashed_password": pwd_context.hash(ADMIN_PASSWORD),
-    }
-}
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/predict/token")
-
-
-def verify_password(plain, hashed):
-    return pwd_context.verify(plain, hashed)
-
-
-def authenticate_user(username: str, password: str):
-    user = fake_users_db.get(username)
-    if not user or not verify_password(password, user["hashed_password"]):
-        return False
-    return user
-
-
-def create_access_token(data: dict, expires_delta: timedelta = None):
-    to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
-
-def get_current_user(token: str = Depends(oauth2_scheme)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-    user = fake_users_db.get(username)
-    if user is None:
-        raise credentials_exception
-    return user
-
-
-# --------------------------------------------------------------------------
-# Model and Schemas
+# Load model once at startup
 # --------------------------------------------------------------------------
 model = load_trained_model()
 
 
+# --------------------------------------------------------------------------
+# Schemas
+# --------------------------------------------------------------------------
 class FeaturesInput(BaseModel):
     rsi: float
     bb_upper: float
@@ -96,50 +40,64 @@ class FeaturesInput(BaseModel):
     atr_pct: float
 
 
-class Token(BaseModel):
-    access_token: str
-    token_type: str
+class PredictionResponse(BaseModel):
+    prediction: int
+    confidence: float
 
 
 # --------------------------------------------------------------------------
 # Routes
 # --------------------------------------------------------------------------
-
-
-@router.post("/token", response_model=Token)
-def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = authenticate_user(form_data.username, form_data.password)
-    if not user:
+@router.post(
+    "/predict",
+    response_model=PredictionResponse,
+    status_code=status.HTTP_200_OK,
+)
+def predict(
+    features: FeaturesInput,
+    user: Dict[str, str] = Depends(get_current_user),
+) -> PredictionResponse:
+    """
+    Run model prediction (JWT protected).
+    """
+    if model is None:
+        logger.error("Prediction requested but model is not loaded")
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Model not loaded",
         )
-    access_token = create_access_token(
-        data={"sub": user["username"]}, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
 
-
-@router.post("/predict")
-def predict(features: FeaturesInput, user: dict = Depends(get_current_user)):
-    """Run model predictions with authentication."""
     try:
-        X = pd.DataFrame([features.dict()])[FEATURE_COLUMNS]
+        df = pd.DataFrame([features.model_dump()])[FEATURE_COLUMNS]
+        X: np.ndarray = df.to_numpy()
+
         preds, probs = make_predictions(model, X)
-        return {"prediction": int(preds[0]), "confidence": float(probs[0])}
-    except Exception as e:
-        logging.error(f"Prediction error: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+
+        return PredictionResponse(
+            prediction=int(preds[0]),
+            confidence=float(probs[0]),
+        )
+
+    except Exception as exc:
+        logger.exception("Prediction failed")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
 
 
-@router.post("/reload-model")
-def reload_model(user: dict = Depends(get_current_user)):
-    """Reload model from disk."""
+@router.post("/reload-model", status_code=status.HTTP_200_OK)
+def reload_model(user: Dict[str, str] = Depends(get_current_user)) -> Dict[str, str]:
+    """
+    Reload model from disk (admin-only endpoint).
+    """
     global model
     try:
         model = load_trained_model()
-        return {"status": "Model reloaded"}
-    except Exception as e:
-        logging.error(f"Model reload error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to reload model")
+        return {"status": "Model reloaded successfully"}
+    except Exception:
+        logger.exception("Model reload failed")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to reload model",
+        )

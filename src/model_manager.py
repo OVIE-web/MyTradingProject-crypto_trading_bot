@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import xgboost as xgb
 from dotenv import load_dotenv
+from numpy.typing import NDArray
 from pytz import UTC
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
@@ -21,8 +22,6 @@ logger = logging.getLogger(__name__)
 # -----------------------------------------------------------------
 # Types
 # -----------------------------------------------------------------
-NDArray = np.ndarray
-
 TrainTestSplit = Tuple[
     NDArray,  # X_train
     NDArray,  # X_test
@@ -37,6 +36,7 @@ PredictionResult = Tuple[NDArray, NDArray]
 # -----------------------------------------------------------------
 MODEL_SAVE_PATH: str = os.getenv("MODEL_SAVE_PATH", "src/models/xgboost_model.json")
 USE_MODEL_REGISTRY: bool = os.getenv("USE_MODEL_REGISTRY", "false").lower() == "true"
+
 
 # -----------------------------------------------------------------
 # Data Preparation
@@ -57,10 +57,8 @@ def prepare_model_data(
     X = df[features].to_numpy()
     y = df[target_col].to_numpy()
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
-    )
-    
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
     return X_train, X_test, y_train, y_test
 
 
@@ -124,9 +122,7 @@ if USE_MODEL_REGISTRY:
 
         def latest(self) -> Optional[dict[str, Any]]:
             with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute(
-                    "SELECT * FROM model_registry ORDER BY id DESC LIMIT 1;"
-                )
+                cur.execute("SELECT * FROM model_registry ORDER BY id DESC LIMIT 1;")
                 return cur.fetchone()
 
 
@@ -173,7 +169,7 @@ def train_xgboost_model(
             registry.register_model(
                 model_name=metadata["model_name"],
                 model_path=metadata["model_path"],
-                accuracy=accuracy,
+                accuracy=float(accuracy),
                 params=model.get_params(),
             )
         else:
@@ -221,15 +217,51 @@ def load_trained_model(model_path: Optional[str] = None) -> Optional[xgb.XGBClas
 # -----------------------------------------------------------------
 def make_predictions(
     model: xgb.XGBClassifier,
-    X: NDArray,
+    X: pd.DataFrame | NDArray,
     threshold: float = 0.5,
 ) -> PredictionResult:
     """
     Generate class predictions and confidence scores.
+
+    Handles both DataFrame and NumPy array inputs. Automatically filters
+    out datetime and object columns that XGBoost cannot process.
+
+    Args:
+        model: Trained XGBoost classifier
+        X: Feature data (DataFrame or NDArray)
+        threshold: Confidence threshold (reserved for future filtering)
+
+    Returns:
+        PredictionResult: Tuple of (predictions, confidence_scores)
+            - predictions: Array of class labels [-1, 0, 1]
+            - confidence_scores: Array of max probabilities per sample
+
+    Raises:
+        ValueError: If no numeric features or prediction fails
     """
-    proba = model.predict_proba(X)
+    try:
+        # Convert DataFrame to numeric-only array if needed
+        if isinstance(X, pd.DataFrame):
+            X_numeric = X.select_dtypes(include=["int64", "int32", "float64", "float32", "bool"])
+            if X_numeric.empty:
+                raise ValueError("No numeric features available for prediction")
+            X_array = X_numeric.to_numpy()
+        else:
+            X_array = X
 
-    confidence = np.max(proba, axis=1)
-    preds = np.argmax(proba, axis=1) - 1  # [-1, 0, 1] convention
+        # Get probability predictions
+        proba = model.predict_proba(X_array)
 
-    return preds, confidence
+        # Extract confidence (max probability across classes)
+        confidence = np.max(proba, axis=1)
+
+        # Get class predictions: argmax -> map to [-1, 0, 1] convention
+        preds = np.argmax(proba, axis=1) - 1
+
+        return preds, confidence
+
+    except ValueError:
+        raise
+    except Exception as exc:
+        logger.exception("Prediction failed: %s", exc)
+        raise ValueError(f"Prediction failed: {str(exc)}") from exc

@@ -145,3 +145,9 @@ CONFIDENCE_THRESHOLD = config.confidence_threshold
 # Model paths
 MODEL_SAVE_FILENAME = config.model_save_filename
 MODEL_SAVE_PATH = config.model_save_path
+
+# ------------------------------------------------------------------
+# Security constants
+# ------------------------------------------------------------------
+ISSUER = "crypto-trading-bot"
+AUDIENCE = "crypto-trading-api"

@@ -27,7 +27,7 @@ LOG = logging.getLogger(__name__)
 
 
 # ------------------------------------------------------------------
-# Feature creation
+# Features creation
 # ------------------------------------------------------------------
 def calculate_technical_indicators(df: DataFrame) -> DataFrame:
     """

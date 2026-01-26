@@ -2,12 +2,13 @@ from __future__ import annotations  # OPTIONAL but nice now
 
 import logging
 from datetime import timedelta
+from typing import Any, Dict
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 
-from src.auth import authenticate_user, create_access_token
+from src.auth import authenticate_user, create_access_token, get_current_user
 from src.routers import trades
 from src.settings import settings
 
@@ -26,7 +27,7 @@ app.include_router(trades.router, prefix="/trades", tags=["Trades"])
 
 
 @app.get("/")
-def root() -> dict[str, str]:
+def root() -> Dict[str, str]:
     return {"message": "🚀 Trading Bot API is running!"}
 
 
@@ -43,7 +44,7 @@ def login_for_access_token(
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 
     access_token = create_access_token(
-        data={"sub": user["username"]},
+        subject=user["username"],
         expires_delta=access_token_expires,
     )
 
@@ -54,5 +55,7 @@ def login_for_access_token(
 
 
 @app.get("/users/me")
-def read_users_token(token: str = Depends(oauth2_scheme)) -> dict[str, str]:
-    return {"message": f"Hello, user with token {token}"}
+def read_users_me(
+    current_user: Dict[str, Any] = Depends(get_current_user),
+) -> Dict[str, Any]:
+    return current_user

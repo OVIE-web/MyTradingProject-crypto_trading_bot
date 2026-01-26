@@ -120,22 +120,16 @@ uv sync --extra dev
 uv pip compile --extra dev pyproject.toml -o requirements.dev.txt
 uv sync --frozen --extra dev
 
-# 4️⃣ Set environment variables
-setx TELEGRAM_BOT_TOKEN "123456789:ABC..."
-setx TELEGRAM_CHAT_ID "987654321"
-setx SMTP_HOST "smtp.gmail.com"
-setx SMTP_PORT "587"
-setx SMTP_USER "you@gmail.com"
-setx SMTP_PASS "app_password"
+# Environment variables
 
-DATABASE_URL=postgresql://user:pass@localhost:5432/tradingbot
-JWT_SECRET_KEY=<secure-random-32+ chars>
-ADMIN_USERNAME=<admin_user>
-ADMIN_PASSWORD=<strong_password>
+export DATABASE_URL=postgresql://user:pass@localhost:5432/tradingbot
+export JWT_SECRET_KEY=<secure-random-32+ chars>
+export ADMIN_USERNAME=<admin_user>
+export ADMIN_PASSWORD=<strong_password>
 
 
-# 5️⃣ Run tests
-pytest -v --disable-warnings
+# Run tests
+pytest -v --disable-warnings --maxfail=3
 
 ## 🧠 Running the Application
 
@@ -148,13 +142,15 @@ python -m src.backtester
 # Telegram Bot
 python -m src.bot_runner
 
-# Streamlit Dashboard
+# Streamlit Dashboard (Optional)
 streamlit run src/streamlit_app.py
 ```
 
 ## 🧪 Quality Gates
 
 mypy for static typing
+
+ruff for linting
 
 pytest for unit/integration tests
 
@@ -182,7 +178,7 @@ GitHub Actions workflow (.github/workflows/tests.yml) automates:
 
 Dependency installation via uv
 
-Linting (black, flake8, isort, mypy)
+Linting (mypy, ruff)
 
 Testing (pytest + Postgres service)
 

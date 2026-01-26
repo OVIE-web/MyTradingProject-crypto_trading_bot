@@ -1,10 +1,10 @@
 # src/auth.py
-import logging
-from datetime import datetime, timedelta
-from typing import Dict, Optional, TypedDict, cast
+from __future__ import annotations
 
-import pytz
-from dotenv import load_dotenv
+import logging
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, Optional
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
@@ -12,98 +12,105 @@ from passlib.context import CryptContext
 
 from src.settings import settings
 
-# Load environment variables
-load_dotenv()
-
-# Configure logging once (you can also do this globally in main_api.py)
-logging.basicConfig(
-    level=logging.INFO,  # or DEBUG for more detail
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-
 logger = logging.getLogger(__name__)
 
+# ------------------------------------------------------------------
+# Security constants
+# ------------------------------------------------------------------
+ISSUER = "crypto-trading-bot"
+AUDIENCE = "crypto-trading-api"
 
-# --- JWT and Password Configuration ---
-SECRET_KEY = settings.JWT_SECRET_KEY
-ALGORITHM = settings.JWT_ALGORITHM
-ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
-
-ADMIN_USERNAME = settings.ADMIN_USERNAME
-ADMIN_PASSWORD = settings.ADMIN_PASSWORD
-
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-
-fake_users_db = {
-    ADMIN_USERNAME: {
-        "username": ADMIN_USERNAME,
-        "hashed_password": pwd_context.hash(ADMIN_PASSWORD),
+# ------------------------------------------------------------------
+# Fake admin user (intentional for now)
+# ------------------------------------------------------------------
+_fake_users_db: Dict[str, Dict[str, str]] = {
+    settings.ADMIN_USERNAME: {
+        "username": settings.ADMIN_USERNAME,
+        "hashed_password": pwd_context.hash(settings.ADMIN_PASSWORD),
     }
 }
 
-
-# --- Helper Functions ---
+# ------------------------------------------------------------------
+# Password helpers
+# ------------------------------------------------------------------
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-class AuthUser(TypedDict):
-    username: str
-    hashed_password: str
-
-
-def authenticate_user(username: str, password: str) -> Optional[AuthUser]:
-    user = fake_users_db.get(username)
+def authenticate_user(username: str, password: str) -> Optional[Dict[str, str]]:
+    user = _fake_users_db.get(username)
     if not user:
         return None
     if not verify_password(password, user["hashed_password"]):
         return None
-    return cast(AuthUser, user)
+    return user
 
 
+# ------------------------------------------------------------------
+# JWT creation
+# ------------------------------------------------------------------
 def create_access_token(
-    data: Dict[str, str], expires_delta: timedelta = timedelta(minutes=15)
+    *,
+    subject: str,
+    expires_delta: Optional[timedelta] = None,
 ) -> str:
-    """
-    Create a JWT access token with the given data and expiration time.
+    now = datetime.now(tz=timezone.utc)
+    expire = now + (
+        expires_delta
+        if expires_delta is not None
+        else timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
 
-    Args:
-        data (Dict[str, str]): A dictionary containing the data to be encoded in the JWT.
-        expires_delta (timedelta, optional): The expiration time of the JWT. Defaults to timedelta(minutes=15).
+    payload: Dict[str, Any] = {
+        "sub": subject,
+        "iat": int(now.timestamp()),
+        "exp": int(expire.timestamp()),
+        "iss": ISSUER,
+        "aud": AUDIENCE,
+    }
 
-    Returns:
-        str: The encoded JWT access token.
-
-    Raises:
-        ValueError: If the expires_delta value is negative.
-    """
-    if expires_delta < timedelta(0):  # handle negative values
-        raise ValueError("Invalid expires_delta value")
-    to_encode = data.copy()
-    now = datetime.now(pytz.utc)
-    expire = now + expires_delta
-    to_encode["exp"] = expire.strftime("%s")
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(
+        payload,
+        settings.JWT_SECRET_KEY,
+        algorithm=settings.JWT_ALGORITHM,
+    )
 
 
-def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
-    """Decode and verify JWT token"""
+# ------------------------------------------------------------------
+# JWT decoding (USED BY /users/me)
+# ------------------------------------------------------------------
+def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, str]:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+        detail="Invalid or expired authentication token",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str | None = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-    except JWTError:
+        payload = jwt.decode(
+            token,
+            settings.JWT_SECRET_KEY,
+            algorithms=[settings.JWT_ALGORITHM],
+            audience=AUDIENCE,
+            issuer=ISSUER,
+            options={"require": ["exp", "sub", "iss", "aud"]},
+        )
+    except JWTError as exc:
+        logger.warning("JWT decode failed: %s", exc)
         raise credentials_exception
-    user = fake_users_db.get(username)
+
+    username = payload.get("sub")
+    if not isinstance(username, str):
+        raise credentials_exception
+
+    user = _fake_users_db.get(username)
     if user is None:
         raise credentials_exception
-    return user
+
+    return {"username": username}
+
+
+# -------------------- End of auth.py --------------------

@@ -1,4 +1,6 @@
 # src/bot_runner.py
+from __future__ import annotations
+
 import asyncio
 import logging
 import os
@@ -8,6 +10,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 import backoff
+import pandas as pd
 
 from src.binance_manager import BinanceManager
 from src.config import ATR_WINDOW, INITIAL_CANDLES_HISTORY
@@ -168,16 +171,16 @@ async def do_iteration(resources: Dict[str, Any]) -> None:
         LOG.exception("Prediction failed")
         return
 
-    latest_signal = (
-        int(decoded_preds.iloc[-1])
-        if (hasattr(decoded_preds, "iloc") and not decoded_preds.empty)
-        else 0
-    )
-    latest_conf = (
-        float(confidence.iloc[-1])
-        if (hasattr(confidence, "iloc") and not confidence.empty)
-        else 0.0
-    )
+    if isinstance(decoded_preds, pd.DataFrame) and not decoded_preds.empty:
+        latest_signal = int(decoded_preds.iloc[-1].iloc[0])  # convert the entire row to an integer
+    else:
+        latest_signal = 0
+
+    if isinstance(confidence, pd.DataFrame) and not confidence.empty:
+        latest_conf = float(confidence.iloc[-1].iloc[0])  # Convert the value to a float
+    else:
+        latest_conf = 0.0
+
     symbol = "BTCUSDT"
 
     # Prepare trade and notification flow

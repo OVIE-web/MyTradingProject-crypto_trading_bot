@@ -1,6 +1,8 @@
 # src/routers/trades.py
+from __future__ import annotations
+
 from datetime import datetime, timezone
-from typing import List
+from typing import Any, Generator, List
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -14,7 +16,7 @@ router = APIRouter()
 # --------------------------------------------------------------------------
 # Database Dependency
 # --------------------------------------------------------------------------
-def get_db():
+def get_db() -> Generator[Session, Any, None]:
     """Provide a transactional scope for DB operations."""
     db = SessionLocal()
     try:
@@ -53,9 +55,9 @@ class TradeRead(TradeBase):
 # Routes
 # --------------------------------------------------------------------------
 @router.post("/", response_model=TradeRead)
-def create_trade(trade: TradeCreate, db: Session = Depends(get_db)):
+def create_trade(trade: TradeCreate, db: Session = Depends(get_db)) -> Trade:
     """Create a new trade record."""
-    db_trade = Trade(**trade.dict(), timestamp=datetime.now(timezone.utc))
+    db_trade = Trade(**trade.model_dump(), timestamp=datetime.now(timezone.utc))
     db.add(db_trade)
     db.commit()
     db.refresh(db_trade)
@@ -63,13 +65,13 @@ def create_trade(trade: TradeCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/", response_model=List[TradeRead])
-def get_trades(db: Session = Depends(get_db)):
+def get_trades(db: Session = Depends(get_db)) -> List[Trade]:
     """Retrieve all trade records."""
     return db.query(Trade).all()
 
 
 @router.get("/{trade_id}", response_model=TradeRead)
-def get_trade(trade_id: int, db: Session = Depends(get_db)):
+def get_trade(trade_id: int, db: Session = Depends(get_db)) -> Trade:
     """Retrieve a single trade by ID."""
     trade = db.query(Trade).filter(Trade.id == trade_id).first()
     if not trade:
@@ -78,7 +80,7 @@ def get_trade(trade_id: int, db: Session = Depends(get_db)):
 
 
 @router.delete("/{trade_id}")
-def delete_trade(trade_id: int, db: Session = Depends(get_db)):
+def delete_trade(trade_id: int, db: Session = Depends(get_db)) -> dict[str, str]:
     """Delete a trade by ID."""
     trade = db.query(Trade).filter(Trade.id == trade_id).first()
     if not trade:
