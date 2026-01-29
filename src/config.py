@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from typing import List, Optional
 
 
 def get_env_str(key: str, default: str) -> str:
@@ -24,8 +23,8 @@ def get_env_float(key: str, default: float) -> float:
 @dataclass(frozen=True)
 class Config:
     # Binance
-    binance_api_key: Optional[str] = os.getenv("BINANCE_API_KEY")
-    binance_api_secret: Optional[str] = os.getenv("BINANCE_API_SECRET")
+    binance_api_key: str | None = os.getenv("BINANCE_API_KEY")
+    binance_api_secret: str | None = os.getenv("BINANCE_API_SECRET")
     binance_testnet: bool = os.getenv("BINANCE_TESTNET", "False").lower() == "true"
 
     # Database
@@ -69,7 +68,7 @@ class Config:
     random_state: int = 42
     confidence_threshold: float = 0.30
 
-    feature_columns: List[str] = field(
+    feature_columns: list[str] = field(
         default_factory=lambda: [
             "rsi",
             "bb_upper",
@@ -86,12 +85,12 @@ class Config:
     )
 
     # Notifications
-    email_host: Optional[str] = os.getenv("EMAIL_HOST")
+    email_host: str | None = os.getenv("EMAIL_HOST")
     email_port: int = get_env_int("EMAIL_PORT", 587)
-    email_user: Optional[str] = os.getenv("EMAIL_USER")
-    email_pass: Optional[str] = os.getenv("EMAIL_PASS")
-    email_to: Optional[str] = os.getenv("EMAIL_TO")
-    telegram_bot_token: Optional[str] = os.getenv("TELEGRAM_BOT_TOKEN")
+    email_user: str | None = os.getenv("EMAIL_USER")
+    email_pass: str | None = os.getenv("EMAIL_PASS")
+    email_to: str | None = os.getenv("EMAIL_TO")
+    telegram_bot_token: str | None = os.getenv("TELEGRAM_BOT_TOKEN")
     telegram_chat_id: int = get_env_int("TELEGRAM_CHAT_ID", 0)
 
 

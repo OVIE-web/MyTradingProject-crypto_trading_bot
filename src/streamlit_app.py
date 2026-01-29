@@ -6,8 +6,6 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.notifier import TelegramNotifier
-
 # Add the repository root to Python path
 repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, repo_root)
@@ -17,10 +15,12 @@ try:
     from src.config import FEATURE_COLUMNS, TRADE_SYMBOL
     from src.db import SessionLocal, Trade
     from src.model_manager import load_trained_model, make_predictions
+    from src.notifier import TelegramNotifier
 
     HAS_DEPENDENCIES = True
-except ImportError:
+except ImportError as e:
     HAS_DEPENDENCIES = False
+    st.warning(f"Some dependencies missing: {e}")
     # Define fallback constants
     FEATURE_COLUMNS = [
         "rsi",
@@ -32,6 +32,8 @@ except ImportError:
         "sma_50",
         "ma_cross",
         "price_momentum",
+        "atr",
+        "atr_pct",
     ]
     TRADE_SYMBOL = "BTCUSDT"
 
@@ -68,6 +70,7 @@ if HAS_DEPENDENCIES:
 
     @st.cache_resource
     def get_model():
+        """Load trained model with caching."""
         try:
             return load_trained_model()
         except Exception as e:
@@ -75,8 +78,6 @@ if HAS_DEPENDENCIES:
             return None
 
     model = get_model()
-
-# Layout with columns
 
 # Initialize Telegram Notifier
 telegram_notifier = None
@@ -86,6 +87,7 @@ if HAS_DEPENDENCIES:
     except Exception as e:
         st.warning(f"Could not initialize Telegram Notifier: {e}")
 
+# Layout with columns
 col1, col2 = st.columns([2, 1])
 
 with col2:
@@ -96,28 +98,38 @@ with col2:
             user_input[col] = st.number_input(col, value=0.0, help=f"Enter value for {col}")
 
         if st.button("Generate Signal", use_container_width=True):
-            X = pd.DataFrame([user_input])[FEATURE_COLUMNS]
-            preds, probs = make_predictions(model, X)
+            if model is None:
+                st.error("Model not loaded. Cannot generate signal.")
+            else:
+                try:
+                    X = pd.DataFrame([user_input])[FEATURE_COLUMNS]
+                    preds, probs = make_predictions(model, X)
 
-            signal_map = {-1: "SELL 🔴", 0: "HOLD ⚪", 1: "BUY 🟢"}
-            signal = signal_map.get(int(preds[0]), "HOLD ⚪")
+                    signal_map = {-1: "SELL 🔴", 0: "HOLD ⚪", 1: "BUY 🟢"}
+                    signal = signal_map.get(int(preds[0]), "HOLD ⚪")
+                    confidence = float(probs[0])
 
-            st.markdown(
-                f"""
-                <div style='background-color: #f0f2f6; padding: 1rem; border-radius: 10px;'>
-                    <h3 style='text-align: center; margin: 0;'>Signal: {signal}</h3>
-                    <p style='text-align: center; margin: 0.5rem 0;'>Confidence: {float(probs[0]):.2f}</p>
-                </div>
-            """,
-                unsafe_allow_html=True,
-            )
+                    st.markdown(
+                        f"""
+                        <div style='background-color: #f0f2f6; padding: 1rem; border-radius: 10px;'>
+                            <h3 style='text-align: center; margin: 0;'>Signal: {signal}</h3>
+                            <p style='text-align: center; margin: 0.5rem 0;'>Confidence: {confidence:.4f}</p>
+                        </div>
+                    """,
+                        unsafe_allow_html=True,
+                    )
+                except Exception as e:
+                    st.error(f"Error generating signal: {e}")
 
     st.markdown("### Telegram Bot")
     telegram_message = st.text_area("Message to send via Telegram:", "", key="telegram_message")
     if st.button("Send Telegram Message", use_container_width=True, key="send_telegram_btn"):
         if telegram_notifier is not None:
             try:
-                telegram_notifier.send_message(telegram_message)
+                # Note: send_message is async, so we need to handle it properly
+                import asyncio
+
+                asyncio.run(telegram_notifier.send_message(telegram_message))
                 st.success("Message sent to Telegram!")
             except Exception as e:
                 st.error(f"Failed to send Telegram message: {e}")
@@ -128,7 +140,7 @@ with col1:
     st.markdown("### Portfolio Overview")
 
     # Get recent trades from database if available
-    recent_trades = []
+    trades_data = []
     if HAS_DEPENDENCIES:
         try:
             db = SessionLocal()
@@ -145,9 +157,9 @@ with col1:
                 }
                 for trade in recent_trades
             ]
-        except Exception:
-            st.warning("Could not connect to database. Showing demo data.")
-            # Create demo trades directly as dictionaries
+        except Exception as db_error:
+            st.warning(f"Could not connect to database: {db_error}. Showing demo data.")
+            # Create demo trades as fallback
             trades_data = [
                 {
                     "Time": (datetime.now() - timedelta(minutes=i * 15)).strftime("%Y-%m-%d %H:%M"),
@@ -174,10 +186,10 @@ with col1:
     else:
         st.info("No recent trades found.")
 
-    # Placeholder for charts
+    # Performance chart
     st.markdown("### Performance Chart")
 
-    # Sample performance data (replace with real data)
+    # Sample performance data (replace with real data from database)
     dates = pd.date_range(start="2025-01-01", end="2025-10-31", freq="D")
     performance = pd.DataFrame(
         {"date": dates, "value": [1000 * (1 + i / 100) for i in range(len(dates))]}

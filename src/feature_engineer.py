@@ -38,15 +38,15 @@ def calculate_technical_indicators(df: DataFrame) -> DataFrame:
         - Output contains only valid numeric features
         - No NaNs remain
     """
+    df_feat = df.copy()
+
     if not isinstance(df, pd.DataFrame):
         raise TypeError("df must be a pandas DataFrame")
 
     required_cols = {"open", "high", "low", "close", "volume"}
-    missing = required_cols - set(df.columns)
+    missing = [col for col in required_cols if col not in df.columns]
     if missing:
-        raise ValueError(f"Missing required columns: {sorted(missing)}")
-
-    df_feat = df.copy()
+        raise ValueError(f"Missing required columns: {missing}")
 
     # RSI
     df_feat["rsi"] = RSIIndicator(
@@ -70,17 +70,17 @@ def calculate_technical_indicators(df: DataFrame) -> DataFrame:
     )
 
     # Moving averages
-    df_feat["sma_short"] = SMAIndicator(
+    df_feat["sma_20"] = SMAIndicator(
         close=df_feat["close"],
         window=SMA_SHORT_WINDOW,
     ).sma_indicator()
 
-    df_feat["sma_long"] = SMAIndicator(
+    df_feat["sma_50"] = SMAIndicator(
         close=df_feat["close"],
         window=SMA_LONG_WINDOW,
     ).sma_indicator()
 
-    df_feat["ma_cross"] = (df_feat["sma_short"] > df_feat["sma_long"]).astype(int)
+    df_feat["ma_cross"] = (df_feat["sma_20"] > df_feat["sma_50"]).astype(int)
 
     # Momentum
     df_feat["price_momentum"] = df_feat["close"].pct_change(periods=5)
@@ -105,7 +105,23 @@ def calculate_technical_indicators(df: DataFrame) -> DataFrame:
         df_feat["atr_pct"] = df_feat["atr"] / df_feat["close"]
 
     # Volume change
-    df_feat["volume_pct_change"] = df_feat["volume"].pct_change()
+    # df_feat["volume_pct_change"] = df_feat["volume"].pct_change()
+
+    # ===== SELECT ONLY THE 11 MODEL-EXPECTED FEATURES =====
+    model_features = [
+        "rsi",
+        "bb_upper",
+        "bb_lower",
+        "bb_mid",
+        "bb_pct_b",
+        "sma_20",
+        "sma_50",
+        "ma_cross",
+        "price_momentum",
+        "atr",
+        "atr_pct",
+    ]
+    df_feat = df_feat[model_features]
 
     # Drop NaNs from rolling indicators
     before = len(df_feat)

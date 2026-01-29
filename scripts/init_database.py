@@ -4,13 +4,14 @@ Initialize the database schema (creates tables if missing).
 Run with:
     python -m scripts.init_database [--test]
 """
+
 import argparse
 import logging
 import os
 import sys
 
 from src.config import DATABASE_URL
-from src.db import init_db, list_tables
+from src.db import Trade, init_db
 
 # Ensure project root is in import path
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
@@ -28,15 +29,15 @@ def init_database(is_test: bool = False) -> None:
 
     try:
         init_db()
-        tables = list_tables()
-        logging.info(f"📊 Tables in database: {tables}")
+        trades = Trade()
+        logging.info(f"📊 Tables in database: {trades}")
         logging.info("✅ Database initialization complete.")
     except Exception as e:
         logging.critical(f"❌ Database initialization failed: {e}", exc_info=True)
         sys.exit(1)
 
 
-def main():
+def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
     parser = argparse.ArgumentParser(description="Initialize the database schema.")

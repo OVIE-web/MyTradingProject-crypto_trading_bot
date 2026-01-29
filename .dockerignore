@@ -42,6 +42,7 @@ __tmp__/
 # =====================
 .env
 .env.*
+.env.local
 secrets/
 keys/
 

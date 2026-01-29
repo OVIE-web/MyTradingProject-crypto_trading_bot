@@ -1,61 +1,85 @@
-services:
-  # ==========================
-  # 🚀 Main Application (FastAPI + Streamlit)
-  # ==========================
-  tradingbot:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: runtime
-    container_name: crypto_trading_bot_app
-    env_file:
-      - .env
-    ports:
-      - "8000:8000"   # FastAPI
-      - "8501:8501"   # Streamlit
-      - "5000:5000"   # MLflow or analytics
-    volumes:
-      - ./src:/app/src:cached
-      - ./main.py:/app/main.py:cached
-      - ./logs:/app/logs
-      - models_data:/app/src/models
-      - .env:/app/.env:ro
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: unless-stopped
-    command: >
-      sh -c "python main.py"
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+version: "3.8"
 
+services:
   # ==========================
   # 🗄️ Database Service (PostgreSQL)
   # ==========================
   db:
-    image: postgres:16
+    image: postgres:16-alpine
     container_name: tradingbot_postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-trading}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-trading} || exit 1",
+        ]
       interval: 5s
       timeout: 3s
-      retries: 3
-      start_period: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - trading_network
+    restart: unless-stopped
 
   # ==========================
-  # 🤖 Worker Service (Trading Bot Engine)
+  # 📊 PgAdmin 4 (Database UI)
+  # ==========================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: tradingbot_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    ports:
+      - "5050:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - trading_network
+    restart: unless-stopped
+
+  # ==========================
+  # 📈 Streamlit Dashboard
+  # ==========================
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: tradingbot_streamlit
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-trading}
+    ports:
+      - "8501:8501"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src:cached
+      - ./logs:/app/logs
+      - models_data:/app/src/models
+    command: >
+      streamlit run src/streamlit_app.py 
+      --server.port=8501 
+      --server.address=0.0.0.0 
+      --server.headless=true
+    networks:
+      - trading_network
+    restart: unless-stopped
+
+  # ==========================
+  # 🤖 Trading Bot Worker
   # ==========================
   bot:
     build:
@@ -65,20 +89,25 @@ services:
     container_name: tradingbot_worker
     env_file:
       - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-trading}
     depends_on:
       db:
         condition: service_healthy
-    restart: unless-stopped
     volumes:
+      - ./src:/app/src:cached
+      - ./logs:/app/logs
       - models_data:/app/src/models
     command: >
-      sh -c "python src/bot_runner.py"
-    healthcheck:
-      test: ["CMD-SHELL", "pgrep -f bot_runner || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+      sh -c "python -m src.bot_runner"
+    networks:
+      - trading_network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ==========================
   # 🧪 Testing Container
@@ -91,18 +120,35 @@ services:
     container_name: tradingbot_tests
     env_file:
       - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-trading}_test
     depends_on:
       db:
         condition: service_healthy
     volumes:
+      - ./src:/app/src:cached
+      - ./tests:/app/tests:cached
+      - ./coverage:/app/coverage
       - models_data:/app/src/models
     command: >
-      sh -c "pytest -v --maxfail=1 --disable-warnings -q"
+      sh -c "pytest -v --tb=short --disable-warnings tests/"
+    networks:
+      - trading_network
+    # Don't auto-start: use 'docker-compose run test'
 
 # ==========================
 # 📦 Persistent Volumes
 # ==========================
 volumes:
   postgres_data:
+    driver: local
   models_data:
     name: tradingbot_models
+    driver: local
+
+# ==========================
+# 🌐 Networks
+# ==========================
+networks:
+  trading_network:
+    driver: bridge

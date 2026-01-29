@@ -17,7 +17,18 @@ ENV/
 
 # Environment variables
 .env
-.env.*
+.env.local
+.env.*.local
+.env.production
+.env.staging
+.env.development
+
+# Secrets
+*.pem
+*.key
+*.crt
+secrets/
+EOF
 
 # Data files
 # *.csv

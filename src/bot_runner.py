@@ -7,13 +7,14 @@ import os
 import signal
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, AsyncGenerator, Dict, Optional
 
 import backoff
+import numpy as np
 import pandas as pd
 
 from src.binance_manager import BinanceManager
-from src.config import ATR_WINDOW, INITIAL_CANDLES_HISTORY
+from src.config import ATR_WINDOW, FEATURE_COLUMNS, INITIAL_CANDLES_HISTORY
 from src.db import SessionLocal
 from src.feature_engineer import calculate_technical_indicators
 from src.model_manager import load_trained_model, make_predictions
@@ -33,7 +34,7 @@ CONCURRENCY_LIMIT = int(os.getenv("BOT_CONCURRENCY", "3"))
 #  RESOURCE LIFESPAN MANAGEMENT
 # ======================================================================================
 @asynccontextmanager
-async def lifespan():
+async def lifespan() -> AsyncGenerator[Dict[str, Any], None]:
     """
     Startup/teardown for trading bot resources.
     Yields:
@@ -149,7 +150,7 @@ async def do_iteration(resources: Dict[str, Any]) -> None:
     notifier: TelegramNotifier = resources["notifier"]
     session = resources["db"]
 
-    # Fetch data (defensive: handle binance errors)
+    # === 1. Fetch data ===
     try:
         limit = max(INITIAL_CANDLES_HISTORY, ATR_WINDOW + 5)
         candles = binance.get_latest_ohlcv("BTCUSDT", "4h", limit=limit)
@@ -157,34 +158,62 @@ async def do_iteration(resources: Dict[str, Any]) -> None:
         LOG.exception("Failed to fetch OHLCV data from Binance")
         return
 
-    # Compute features
+    # === 2. Compute features ===
     try:
-        features = calculate_technical_indicators(candles)
+        features_df = calculate_technical_indicators(candles)
+
+        # Check all required features exist
+        missing_features = [f for f in FEATURE_COLUMNS if f not in features_df.columns]
+        if missing_features:
+            LOG.error(f"Missing required features: {missing_features}")
+            return
+
+        # Select only the model-expected features in correct order
+        features_df = features_df[FEATURE_COLUMNS]
+
+        LOG.info(f"Features computed: shape={features_df.shape}, cols={list(features_df.columns)}")
+
     except Exception:
         LOG.exception("Failed to calculate technical indicators")
         return
 
-    # Make predictions (returns decoded_preds, confidence)
+    if features_df.empty:
+        LOG.warning("No valid features after computation (all NaN rows dropped)")
+        return
+
+    # === 3. Make predictions ===
     try:
-        decoded_preds, confidence = make_predictions(model, features)
+        # Pass the filtered DataFrame directly
+        decoded_preds, confidence = make_predictions(model, features_df)
+    except ValueError as e:
+        LOG.error(f"Prediction error: {e}")
+        return
     except Exception:
         LOG.exception("Prediction failed")
         return
 
-    if isinstance(decoded_preds, pd.DataFrame) and not decoded_preds.empty:
-        latest_signal = int(decoded_preds.iloc[-1].iloc[0])  # convert the entire row to an integer
+    # === 4. Extract latest signal and confidence ===
+    if isinstance(decoded_preds, (list, np.ndarray)):
+        latest_signal = int(decoded_preds[-1]) if len(decoded_preds) > 0 else 0
+    elif isinstance(decoded_preds, pd.DataFrame) and not decoded_preds.empty:
+        latest_signal = int(decoded_preds.iloc[-1].iloc[0])
     else:
         latest_signal = 0
 
-    if isinstance(confidence, pd.DataFrame) and not confidence.empty:
-        latest_conf = float(confidence.iloc[-1].iloc[0])  # Convert the value to a float
+    if isinstance(confidence, (list, np.ndarray)):
+        latest_conf = float(confidence[-1]) if len(confidence) > 0 else 0.0
+    elif isinstance(confidence, pd.DataFrame) and not confidence.empty:
+        latest_conf = float(confidence.iloc[-1].iloc[0])
     else:
         latest_conf = 0.0
 
+    LOG.info(f"Prediction result: signal={latest_signal}, confidence={latest_conf:.4f}")
+
     symbol = "BTCUSDT"
 
-    # Prepare trade and notification flow
+    # === 5. Execute trades based on signal ===
     trade_result: Optional[Dict[str, Any]] = None
+
     if latest_signal == 1:
         LOG.info("BUY signal detected (conf=%.2f).", latest_conf)
         # Simulate order execution (replace with real order call)
@@ -228,11 +257,14 @@ async def do_iteration(resources: Dict[str, Any]) -> None:
     else:
         LOG.info("No actionable signal this round (HOLD position).")
 
-    # Persist trade record to DB here (example)
+    # === 6. Persist trade record ===
     try:
         # Example placeholder for saving trades to DB (uncomment and wire to ORM)
-        # trade = Trade(symbol=symbol, side=trade_result['side'], price=trade_result['price'], qty=trade_result['qty'], confidence=latest_conf)
-        # session.add(trade); session.commit()
+        # trade = Trade(symbol=symbol, side=trade_result['side'],
+        #               price=trade_result['price'], qty=trade_result['qty'],
+        #               confidence=latest_conf)
+        # session.add(trade)
+        # session.commit()
         pass
     except Exception as exc:
         LOG.exception("DB persistence failed: %s", exc)
