@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Any
 
 from setuptools import find_packages, setup
 
@@ -59,7 +58,7 @@ install_requires = [
 ]
 
 # --- Developer dependencies ---
-extras_require: dict[str, Any] = {
+extras_require = {
     "dev": [
         "pytest==8.4.1",
         "pytest-asyncio==1.3.0",

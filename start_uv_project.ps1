@@ -61,11 +61,12 @@ python --version
 
 # 2️⃣ Core imports verification
 Write-Host "🧠 Checking core library imports..."
-python - <<'PYCODE'
+$pyCoreImports = @"
 import sys
 import fastapi, sqlalchemy, pandas, numpy, requests
 print("✅ Core libraries imported successfully!")
-PYCODE
+"@
+python -c $pyCoreImports
 
 # 3️⃣ .env presence check
 if (Test-Path ".env") {
@@ -76,7 +77,7 @@ if (Test-Path ".env") {
 
 # 4️⃣ PostgreSQL connectivity test (optional)
 Write-Host "🗄️ Checking database connectivity (if configured)..."
-python - <<'PYCODE'
+$pyPostgresCheck = @"
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -91,18 +92,21 @@ try:
     conn.close()
 except Exception as e:
     print(f"⚠️ Could not connect to PostgreSQL: {e}")
-PYCODE
+"@
+python -c $pyPostgresCheck
 
 # 5️⃣ FastAPI app import test
 Write-Host "🌐 Validating FastAPI app import..."
-python - <<'PYCODE'
+$pyFastApiImport = @"
+import sys
 try:
     from src.main_api import app
     print("✅ FastAPI app imported successfully.")
 except Exception as e:
     print(f"❌ FastAPI app failed to import: {e}")
     sys.exit(1)
-PYCODE
+"@
+python -c $pyFastApiImport
 
 # 6️⃣ Directory structure verification
 $dirs = @("src", "tests", "data")

@@ -16,7 +16,6 @@ from src.binance_manager import BinanceManager
 
 # -------------------- Imports --------------------
 from src.config import (
-    DATA_FILE_PATH,
     FEATURE_COLUMNS,
     INITIAL_CANDLES_HISTORY,
     MODEL_SAVE_PATH,
