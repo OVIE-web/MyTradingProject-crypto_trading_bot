@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Generator
 from datetime import UTC, datetime
-from typing import Generator
 
 from sqlalchemy import DateTime, Integer, Numeric, String, create_engine
 from sqlalchemy.engine import Engine

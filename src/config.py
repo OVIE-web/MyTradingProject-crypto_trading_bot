@@ -93,6 +93,11 @@ class Config:
     telegram_bot_token: str | None = os.getenv("TELEGRAM_BOT_TOKEN")
     telegram_chat_id: int = get_env_int("TELEGRAM_CHAT_ID", 0)
 
+    # JWT / Authentication
+    jwt_secret_key: str = get_env_str("JWT_SECRET_KEY", "dev-secret-key-change-in-production")
+    jwt_algorithm: str = get_env_str("JWT_ALGORITHM", "HS256")
+    access_token_expire_minutes: int = get_env_int("ACCESS_TOKEN_EXPIRE_MINUTES", 30)
+
 
 # Instantiate config
 config = Config()
@@ -133,6 +138,11 @@ EMAIL_USER = config.email_user
 EMAIL_PASS = config.email_pass
 TELEGRAM_BOT_TOKEN = config.telegram_bot_token
 TELEGRAM_CHAT_ID = config.telegram_chat_id
+
+# JWT / Authentication
+JWT_SECRET_KEY = config.jwt_secret_key
+JWT_ALGORITHM = config.jwt_algorithm
+ACCESS_TOKEN_EXPIRE_MINUTES = config.access_token_expire_minutes
 
 # ML / Training
 FEATURE_COLUMNS = config.feature_columns

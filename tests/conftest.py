@@ -1,7 +1,8 @@
 import os
 import sys
 import warnings
-from typing import Any, Generator
+from collections.abc import Generator
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import numpy as np
@@ -52,8 +53,25 @@ def mock_binance_client(monkeypatch: MonkeyPatch) -> Generator[MagicMock, Any, N
 
 
 @pytest.fixture(autouse=True, scope="session")
-def set_test_db_url() -> None:
-    os.environ["DATABASE_URL"] = "postgresql://testuser:testpass@localhost:5432/tradingbot_test"
+def setup_test_env() -> None:
+    """Set up all required environment variables for testing."""
+    os.environ["ENV"] = "test"
+
+    # JWT Settings
+    if not os.getenv("JWT_SECRET_KEY"):
+        os.environ["JWT_SECRET_KEY"] = "test-secret-key-32-characters-minimum-for-jwt-testing"
+
+    os.environ.setdefault("JWT_ALGORITHM", "HS256")
+    os.environ.setdefault("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
+
+    # Admin Credentials
+    os.environ.setdefault("ADMIN_USERNAME", "testadmin")
+    os.environ.setdefault("ADMIN_PASSWORD", "testpass123")
+
+    # Database
+    os.environ.setdefault(
+        "DATABASE_URL", "postgresql://testuser:testpass@localhost:5432/tradingbot_test"
+    )
 
 
 @pytest.fixture(autouse=True)

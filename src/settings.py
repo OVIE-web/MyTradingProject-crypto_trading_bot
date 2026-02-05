@@ -3,21 +3,21 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from typing import Final, Optional
+from typing import Final
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
 
-def _get_env(name: str, default: Optional[str] = None) -> str:
+def _get_env(name: str, default: str | None = None) -> str:
     value = os.getenv(name, default)
     if value is None:
         raise RuntimeError(f"Missing required environment variable: {name}")
     return value
 
 
-def _get_env_int(name: str, default: Optional[int] = None) -> int:
+def _get_env_int(name: str, default: int | None = None) -> int:
     value = os.getenv(name)
     if value is None:
         if default is not None:
