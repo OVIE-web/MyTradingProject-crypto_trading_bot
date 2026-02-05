@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -26,7 +26,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # ------------------------------------------------------------------
 # Fake admin user (intentional for now)
 # ------------------------------------------------------------------
-_fake_users_db: Dict[str, Dict[str, str]] = {
+_fake_users_db: dict[str, dict[str, str]] = {
     settings.ADMIN_USERNAME: {
         "username": settings.ADMIN_USERNAME,
         "hashed_password": pwd_context.hash(settings.ADMIN_PASSWORD),
@@ -40,7 +40,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def authenticate_user(username: str, password: str) -> Optional[Dict[str, str]]:
+def authenticate_user(username: str, password: str) -> dict[str, str] | None:
     user = _fake_users_db.get(username)
     if not user:
         return None
@@ -55,16 +55,16 @@ def authenticate_user(username: str, password: str) -> Optional[Dict[str, str]]:
 def create_access_token(
     *,
     subject: str,
-    expires_delta: Optional[timedelta] = None,
+    expires_delta: timedelta | None = None,
 ) -> str:
-    now = datetime.now(tz=timezone.utc)
+    now = datetime.now(tz=UTC)
     expire = now + (
         expires_delta
         if expires_delta is not None
         else timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
-    payload: Dict[str, Any] = {
+    payload: dict[str, Any] = {
         "sub": subject,
         "iat": int(now.timestamp()),
         "exp": int(expire.timestamp()),
@@ -82,7 +82,7 @@ def create_access_token(
 # ------------------------------------------------------------------
 # JWT decoding (USED BY /users/me)
 # ------------------------------------------------------------------
-def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, str]:
+def get_current_user(token: str = Depends(oauth2_scheme)) -> dict[str, str]:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid or expired authentication token",

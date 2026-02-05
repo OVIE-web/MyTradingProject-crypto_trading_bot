@@ -5,9 +5,10 @@ import asyncio
 import logging
 import os
 import signal
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
-from typing import Any, AsyncGenerator, Dict, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 import backoff
 import numpy as np
@@ -34,7 +35,7 @@ CONCURRENCY_LIMIT = int(os.getenv("BOT_CONCURRENCY", "3"))
 #  RESOURCE LIFESPAN MANAGEMENT
 # ======================================================================================
 @asynccontextmanager
-async def lifespan() -> AsyncGenerator[Dict[str, Any], None]:
+async def lifespan() -> AsyncGenerator[dict[str, Any], None]:
     """
     Startup/teardown for trading bot resources.
     Yields:
@@ -53,7 +54,7 @@ async def lifespan() -> AsyncGenerator[Dict[str, Any], None]:
     notifier = TelegramNotifier(max_retries=3)
     db = SessionLocal()
 
-    resources: Dict[str, Any] = {
+    resources: dict[str, Any] = {
         "model": model,
         "metadata": metadata,
         "binance": binance,
@@ -74,10 +75,10 @@ async def lifespan() -> AsyncGenerator[Dict[str, Any], None]:
 # ======================================================================================
 #  SCHEDULING HELPERS
 # ======================================================================================
-def is_time_to_run(last_run: Optional[datetime], interval_seconds: int) -> bool:
+def is_time_to_run(last_run: datetime | None, interval_seconds: int) -> bool:
     if last_run is None:
         return True
-    return (datetime.now(timezone.utc) - last_run).total_seconds() >= interval_seconds
+    return (datetime.now(UTC) - last_run).total_seconds() >= interval_seconds
 
 
 def should_skip_if_running(last_task_finished: bool) -> bool:
@@ -134,7 +135,7 @@ async def notify_all_channels(notifier: TelegramNotifier, subject: str, message:
 #  CORE TRADING ITERATION
 # ======================================================================================
 @backoff.on_exception(backoff.expo, Exception, max_tries=5, jitter=backoff.full_jitter)
-async def do_iteration(resources: Dict[str, Any]) -> None:
+async def do_iteration(resources: dict[str, Any]) -> None:
     """
     One full trading iteration:
       - Fetch latest OHLCV
@@ -212,7 +213,7 @@ async def do_iteration(resources: Dict[str, Any]) -> None:
     symbol = "BTCUSDT"
 
     # === 5. Execute trades based on signal ===
-    trade_result: Optional[Dict[str, Any]] = None
+    trade_result: dict[str, Any] | None = None
 
     if latest_signal == 1:
         LOG.info("BUY signal detected (conf=%.2f).", latest_conf)
@@ -285,7 +286,7 @@ async def runner_loop(run_once: bool = False, interval_seconds: int = DEFAULT_IN
     Main event loop that schedules iterations and handles graceful shutdown.
     """
     last_run_finished = True
-    last_run_time: Optional[datetime] = None
+    last_run_time: datetime | None = None
     sem = asyncio.Semaphore(CONCURRENCY_LIMIT)
 
     async with lifespan() as resources:
@@ -310,7 +311,7 @@ async def runner_loop(run_once: bool = False, interval_seconds: int = DEFAULT_IN
                 LOG.warning("Previous run still in progress; skipping scheduled run.")
             elif is_time_to_run(last_run_time, interval_seconds):
                 last_run_finished = False
-                last_run_time = datetime.now(timezone.utc)
+                last_run_time = datetime.now(UTC)
 
                 async def _run_task() -> None:
                     nonlocal last_run_finished
@@ -332,7 +333,7 @@ async def runner_loop(run_once: bool = False, interval_seconds: int = DEFAULT_IN
 
             try:
                 await asyncio.wait_for(stop_event.wait(), timeout=interval_seconds)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue
 
         LOG.info("Runner loop exiting; waiting for background tasks to finish...")

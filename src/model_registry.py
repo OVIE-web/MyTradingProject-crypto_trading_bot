@@ -10,8 +10,9 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Mapping, Sequence
 from types import TracebackType
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from typing import Any
 
 import psycopg2
 from psycopg2.extensions import connection as _Connection
@@ -30,7 +31,7 @@ class ModelRegistry:
     table and provides basic CRUD operations.
     """
 
-    def __init__(self, dsn: Optional[str] = None) -> None:
+    def __init__(self, dsn: str | None = None) -> None:
         self._dsn: str = dsn or DATABASE_URL
 
         try:
@@ -44,14 +45,14 @@ class ModelRegistry:
     # ------------------------------------------------------------------
     # Context manager support (PRODUCTION REQUIRED)
     # ------------------------------------------------------------------
-    def __enter__(self) -> "ModelRegistry":
+    def __enter__(self) -> ModelRegistry:
         return self
 
     def __exit__(
         self,
-        exc_type: Optional[type[BaseException]],
-        exc: Optional[BaseException],
-        tb: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
     ) -> None:
         self.close()
 
@@ -80,7 +81,7 @@ class ModelRegistry:
         with self.conn.cursor() as cur:
             cur.execute(create_sql)
 
-    def _row_to_dict(self, row: Mapping[str, Any]) -> Dict[str, Any]:
+    def _row_to_dict(self, row: Mapping[str, Any]) -> dict[str, Any]:
         out = dict(row)
         params = out.get("params")
 
@@ -128,7 +129,7 @@ class ModelRegistry:
             LOG.exception("Failed to register model '%s'", model_name)
             raise
 
-    def get_model(self, model_name: str) -> Optional[Dict[str, Any]]:
+    def get_model(self, model_name: str) -> dict[str, Any] | None:
         """
         Retrieve the most recent model entry by name.
         Args:
@@ -146,13 +147,13 @@ class ModelRegistry:
         try:
             with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(query, (model_name,))
-                row: Optional[Mapping[str, Any]] = cur.fetchone()
+                row: Mapping[str, Any] | None = cur.fetchone()
             return self._row_to_dict(row) if row else None
         except Exception:
             LOG.exception("Failed to get model '%s'", model_name)
             raise
 
-    def list_models(self) -> List[Dict[str, Any]]:
+    def list_models(self) -> list[dict[str, Any]]:
         """
         List the most recent entry for each model name.
         Returns:
@@ -197,5 +198,5 @@ class ModelRegistry:
 # ------------------------------------------------------------------
 # Factory (safe for tests / DI)
 # ------------------------------------------------------------------
-def create_registry(dsn: Optional[str] = None) -> ModelRegistry:
+def create_registry(dsn: str | None = None) -> ModelRegistry:
     return ModelRegistry(dsn)

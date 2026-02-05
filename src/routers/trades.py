@@ -1,8 +1,9 @@
 # src/routers/trades.py
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any, Generator, List
+from collections.abc import Generator
+from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -57,15 +58,15 @@ class TradeRead(TradeBase):
 @router.post("/", response_model=TradeRead)
 def create_trade(trade: TradeCreate, db: Session = Depends(get_db)) -> Trade:
     """Create a new trade record."""
-    db_trade = Trade(**trade.model_dump(), timestamp=datetime.now(timezone.utc))
+    db_trade = Trade(**trade.model_dump(), timestamp=datetime.now(UTC))
     db.add(db_trade)
     db.commit()
     db.refresh(db_trade)
     return db_trade
 
 
-@router.get("/", response_model=List[TradeRead])
-def get_trades(db: Session = Depends(get_db)) -> List[Trade]:
+@router.get("/", response_model=list[TradeRead])
+def get_trades(db: Session = Depends(get_db)) -> list[Trade]:
     """Retrieve all trade records."""
     return db.query(Trade).all()
 

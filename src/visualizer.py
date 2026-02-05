@@ -1,7 +1,6 @@
 # src/visualizer.py
 
 import logging
-from typing import Optional
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -14,7 +13,7 @@ def visualize_trading_results(
     daily_portfolio_df: pd.DataFrame,
     rsi_lower_thresh: float = 30,
     rsi_upper_thresh: float = 70,
-) -> Optional[go.Figure]:
+) -> go.Figure | None:
     """
     Creates interactive candlestick chart with trading signals, volume,
     account value, and technical indicators.

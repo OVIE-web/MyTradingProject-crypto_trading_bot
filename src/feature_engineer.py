@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import logging
-from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -141,7 +140,7 @@ def get_rsi_quantile_thresholds(
     rsi_series: Series,
     lower_quantile: float = RSI_LOWER_QUANTILE,
     upper_quantile: float = RSI_UPPER_QUANTILE,
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """
     Compute dynamic RSI thresholds based on quantiles.
     """
@@ -201,7 +200,7 @@ def normalize_features(df: DataFrame) -> DataFrame:
     df_norm = df.copy()
 
     binary_cols = [c for c in ("ma_cross", "signal") if c in df_norm.columns]
-    numeric_cols: List[str] = (
+    numeric_cols: list[str] = (
         df_norm.select_dtypes(include=np.number).columns.difference(binary_cols).tolist()
     )
 

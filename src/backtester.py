@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Tuple
 
 import pandas as pd
 
@@ -16,7 +15,7 @@ def backtest_strategy(
     predictions: pd.Series,
     initial_balance: float = INITIAL_BALANCE,
     transaction_fee_pct: float = TRANSACTION_FEE_PCT,
-) -> Tuple[pd.DataFrame, pd.DataFrame]:
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Backtests the trading strategy based on generated predictions.
     Assumes df_original and predictions are aligned by index.

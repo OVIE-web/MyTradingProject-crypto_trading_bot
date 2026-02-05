@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict
 
 import numpy as np
 import pandas as pd
@@ -55,7 +54,7 @@ class PredictionResponse(BaseModel):
 )
 def predict(
     features: FeaturesInput,
-    user: Dict[str, str] = Depends(get_current_user),
+    user: dict[str, str] = Depends(get_current_user),
 ) -> PredictionResponse:
     """
     Run model prediction (JWT protected).
@@ -87,7 +86,7 @@ def predict(
 
 
 @router.post("/reload-model", status_code=status.HTTP_200_OK)
-def reload_model(user: Dict[str, str] = Depends(get_current_user)) -> Dict[str, str]:
+def reload_model(user: dict[str, str] = Depends(get_current_user)) -> dict[str, str]:
     """
     Reload model from disk (admin-only endpoint).
     """

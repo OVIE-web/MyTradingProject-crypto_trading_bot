@@ -2,7 +2,7 @@ from __future__ import annotations  # OPTIONAL but nice now
 
 import logging
 from datetime import timedelta
-from typing import Any, Dict
+from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -27,7 +27,7 @@ app.include_router(trades.router, prefix="/trades", tags=["Trades"])
 
 
 @app.get("/")
-def root() -> Dict[str, str]:
+def root() -> dict[str, str]:
     return {"message": "🚀 Trading Bot API is running!"}
 
 
@@ -56,6 +56,6 @@ def login_for_access_token(
 
 @app.get("/users/me")
 def read_users_me(
-    current_user: Dict[str, Any] = Depends(get_current_user),
-) -> Dict[str, Any]:
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> dict[str, Any]:
     return current_user

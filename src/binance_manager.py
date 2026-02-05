@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 import os
 import time
-from typing import Any, Dict, Optional, cast
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
@@ -53,7 +53,7 @@ class BinanceManager:
             logger.warning("Binance unreachable — switching to OFFLINE mode.")
             self.offline_mode = True
 
-        self.account_info: Dict[str, Any] = {}
+        self.account_info: dict[str, Any] = {}
         if not self.offline_mode:
             try:
                 self.account_info = self.client.get_account()
@@ -173,7 +173,7 @@ class BinanceManager:
             if balance_raw is None:
                 return 0.0
 
-            balance_raw = cast(Dict[str, Any], balance_raw)
+            balance_raw = cast(dict[str, Any], balance_raw)
             return float(balance_raw.get("free", 0.0))
         except Exception as exc:
             logger.error("Failed to fetch  Binance account balance: %s", exc, exc_info=True)
@@ -181,7 +181,7 @@ class BinanceManager:
 
     def place_market_order(
         self, symbol: str, quantity: float, side: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         if self.offline_mode:
             return {
                 "symbol": symbol,
@@ -200,15 +200,15 @@ class BinanceManager:
                 type=ORDER_TYPE_MARKET,
                 quantity=quantity,
             )
-            return cast(Dict[str, Any], order_raw)
+            return cast(dict[str, Any], order_raw)
         except Exception as exc:
             logger.error("Order failed: %s", exc, exc_info=True)
             return None
 
-    def get_server_time(self) -> Optional[int]:
+    def get_server_time(self) -> int | None:
         try:
             response = self.client.get_server_time()
-            return int(cast(Dict[str, Any], response)["serverTime"])
+            return int(cast(dict[str, Any], response)["serverTime"])
         except Exception:
             return None
 

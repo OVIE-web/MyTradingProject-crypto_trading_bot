@@ -7,7 +7,6 @@ import smtplib
 import time
 import typing
 from email.mime.text import MIMEText
-from typing import Optional
 
 from telegram import Bot
 
@@ -24,8 +23,8 @@ class TelegramNotifier:
     """Handles asynchronous Telegram notifications with retries."""
 
     def __init__(self, max_retries: int = 3):
-        self.token: Optional[str] = os.getenv("TELEGRAM_BOT_TOKEN")
-        self.chat_id: Optional[str] = os.getenv("TELEGRAM_CHAT_ID")
+        self.token: str | None = os.getenv("TELEGRAM_BOT_TOKEN")
+        self.chat_id: str | None = os.getenv("TELEGRAM_CHAT_ID")
         self.enabled = bool(self.token and self.chat_id)
         self.bot = Bot(token=typing.cast(str, self.token)) if self.enabled else None
         self.max_retries = max_retries

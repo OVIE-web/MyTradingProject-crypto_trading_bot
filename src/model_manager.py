@@ -4,7 +4,7 @@ import json
 import logging
 import os
 from datetime import datetime
-from typing import Any, Optional, Tuple
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -22,14 +22,14 @@ logger = logging.getLogger(__name__)
 # -----------------------------------------------------------------
 # Types
 # -----------------------------------------------------------------
-TrainTestSplit = Tuple[
+TrainTestSplit = tuple[
     NDArray,  # X_train
     NDArray,  # X_test
     NDArray,  # y_train
     NDArray,  # y_test
 ]
 
-PredictionResult = Tuple[NDArray, NDArray]
+PredictionResult = tuple[NDArray, NDArray]
 
 # -----------------------------------------------------------------
 # Config
@@ -43,7 +43,7 @@ USE_MODEL_REGISTRY: bool = os.getenv("USE_MODEL_REGISTRY", "false").lower() == "
 # -----------------------------------------------------------------
 def prepare_model_data(
     df: pd.DataFrame,
-    feature_cols: Optional[list[str]] = None,
+    feature_cols: list[str] | None = None,
     target_col: str = "target",
 ) -> TrainTestSplit:
     """
@@ -120,7 +120,7 @@ if USE_MODEL_REGISTRY:
 
             logger.info("Registered model '%s' (accuracy=%.4f)", model_name, accuracy)
 
-        def latest(self) -> Optional[dict[str, Any]]:
+        def latest(self) -> dict[str, Any] | None:
             with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("SELECT * FROM model_registry ORDER BY id DESC LIMIT 1;")
                 return cur.fetchone()
@@ -134,8 +134,8 @@ def train_xgboost_model(
     y_train: NDArray,
     X_test: NDArray,
     y_test: NDArray,
-    model_path: Optional[str] = None,
-) -> Tuple[xgb.XGBClassifier, dict[str, Any]]:
+    model_path: str | None = None,
+) -> tuple[xgb.XGBClassifier, dict[str, Any]]:
     """
     Train an XGBoost classifier and persist it.
     """
@@ -187,7 +187,7 @@ def train_xgboost_model(
 # -----------------------------------------------------------------
 # Model Loading
 # -----------------------------------------------------------------
-def load_trained_model(model_path: Optional[str] = None) -> Optional[xgb.XGBClassifier]:
+def load_trained_model(model_path: str | None = None) -> xgb.XGBClassifier | None:
     """
     Load trained model from disk or registry.
     """
