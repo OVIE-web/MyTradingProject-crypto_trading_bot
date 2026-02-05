@@ -1,5 +1,6 @@
 import importlib
-from typing import Any, Generator, List
+from collections.abc import Generator
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -39,7 +40,7 @@ def mock_binance_client() -> Generator[MagicMock, Any, None]:
 
 # --- Mock klines data ---
 @pytest.fixture
-def mock_klines_data() -> List[List[int | str]]:
+def mock_klines_data() -> list[list[int | str]]:
     return [
         [
             1672531200000,
@@ -111,7 +112,7 @@ def test_binance_manager_init_no_api_keys(monkeypatch: MonkeyPatch) -> None:
 
 
 def test_get_latest_ohlcv(
-    mock_binance_client: MagicMock, mock_klines_data: List[List[int]]
+    mock_binance_client: MagicMock, mock_klines_data: list[list[int]]
 ) -> None:
     mock_binance_client.get_historical_klines.return_value = mock_klines_data
     manager = BinanceManager()
