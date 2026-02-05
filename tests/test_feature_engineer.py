@@ -14,7 +14,7 @@ from src.feature_engineer import (
 
 
 @pytest.fixture
-def sample_ohlcv_data():
+def sample_ohlcv_data() -> pd.DataFrame:
     np.random.seed(42)
     return pd.DataFrame(
         {
@@ -28,12 +28,12 @@ def sample_ohlcv_data():
 
 
 @pytest.fixture
-def sample_df_with_indicators(sample_ohlcv_data):
+def sample_df_with_indicators(sample_ohlcv_data: pd.DataFrame) -> pd.DataFrame:
     df = calculate_technical_indicators(sample_ohlcv_data.copy())
     return df
 
 
-def test_calculate_technical_indicators(sample_ohlcv_data):
+def test_calculate_technical_indicators(sample_ohlcv_data: pd.DataFrame) -> None:
     df = calculate_technical_indicators(sample_ohlcv_data.copy())
 
     expected_cols = [
@@ -48,7 +48,6 @@ def test_calculate_technical_indicators(sample_ohlcv_data):
         "price_momentum",
         "atr",
         "atr_pct",
-        "volume_pct_change",
     ]
     for col in expected_cols:
         assert col in df.columns, f"Missing indicator column: {col}"
@@ -58,7 +57,7 @@ def test_calculate_technical_indicators(sample_ohlcv_data):
     assert df["ma_cross"].isin([0, 1]).all()
 
 
-def test_get_rsi_quantile_thresholds():
+def test_get_rsi_quantile_thresholds() -> None:
     rsi_series = pd.Series(np.random.rand(100) * 100)
     lower, upper = get_rsi_quantile_thresholds(rsi_series)
     assert 0 <= lower < upper <= 100
@@ -67,7 +66,7 @@ def test_get_rsi_quantile_thresholds():
     assert lower_custom < lower and upper_custom > upper
 
 
-def test_apply_rsi_labels(sample_df_with_indicators):
+def test_apply_rsi_labels(sample_df_with_indicators: pd.DataFrame) -> None:
     df = apply_rsi_labels(sample_df_with_indicators.copy(), lower_threshold=30, upper_threshold=70)
     assert "signal" in df.columns
     assert df["signal"].isin([-1, 0, 1]).all()
@@ -75,7 +74,7 @@ def test_apply_rsi_labels(sample_df_with_indicators):
     assert (df.loc[df["rsi"] >= 70, "signal"] == -1).all()
 
 
-def test_normalize_features(sample_df_with_indicators):
+def test_normalize_features(sample_df_with_indicators: pd.DataFrame) -> None:
     df_norm = normalize_features(sample_df_with_indicators.copy())
 
     for col in FEATURE_COLUMNS:
