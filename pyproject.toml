@@ -28,6 +28,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
+
 dependencies = [
     # --- Web Framework ---
     "fastapi==0.111.0",
@@ -210,23 +211,12 @@ exclude_lines = [
 precision = 2
 show_missing = true
 
-# ============================================================
-# 📄 BLACK - Code Formatter (Optional)
-# ============================================================
-[tool.black]
-line-length = 100
-target-version = ["py312"]
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.git
-  | \.venv
-  | venv
-  | __pycache__
-  | \.mypy_cache
-  | \.pytest_cache
-  | migrations
-  | build
-  | dist
-)/
-'''
+[project.urls]
+Homepage = "https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
