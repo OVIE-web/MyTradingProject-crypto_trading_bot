@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   # ==========================
   # 🗄️ Database Service (PostgreSQL)
@@ -8,18 +6,22 @@ services:
     image: postgres:16-alpine
     container_name: tradingbot_postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-trading}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      # ⚠️ CRITICAL: Load from .env file, NEVER hardcode credentials
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # PostgreSQL settings
+      POSTGRES_INITDB_ARGS: "-c max_connections=100"
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-trading} || exit 1",
+          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} || exit 1",
         ]
       interval: 5s
       timeout: 3s
@@ -28,24 +30,95 @@ services:
     networks:
       - trading_network
     restart: unless-stopped
+    # Security: Don't expose to host in production
+    # Remove ports: section and use network-only access
+    labels:
+      - "com.example.description=Trading Bot PostgreSQL Database"
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ==========================
   # 📊 PgAdmin 4 (Database UI)
   # ==========================
+  # ⚠️ WARNING: PgAdmin should ONLY be used in development
+  # Remove this service in production or place behind authentication
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: tradingbot_pgadmin
     environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+      PGADMIN_CONFIG_PROXY_X_FOR_COUNT: 1
+      PGADMIN_CONFIG_PROXY_X_PROTO_COUNT: 1
+      # Disable telemetry
+      PGADMIN_CONFIG_TELEMETRY_ENABLED: "false"
     ports:
-      - "5050:80"
+      - "${PGADMIN_PORT:-5050}:80"
     depends_on:
       db:
         condition: service_healthy
     networks:
       - trading_network
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Security note: Expose only on localhost in production
+    # ports:
+    #   - "127.0.0.1:5050:80"
+
+  # ==========================
+  # 🔐 API Server (FastAPI)
+  # ==========================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: tradingbot_api
+    env_file:
+      - .env
+    environment:
+      # ⚠️ Load DATABASE_URL from .env, never hardcode credentials
+      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
+      # Application settings
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src:ro
+      - ./logs:/app/logs
+      - models_data:/app/src/models:ro
+    command: >
+      uvicorn src.main_api:app 
+      --host 0.0.0.0 
+      --port 8000
+      --log-level=${LOG_LEVEL:-info}
+    networks:
+      - trading_network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # ==========================
   # 📈 Streamlit Dashboard
@@ -59,24 +132,35 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-trading}
+      # ⚠️ Load credentials from .env file
+      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     ports:
-      - "8501:8501"
+      - "${STREAMLIT_PORT:-8501}:8501"
     depends_on:
       db:
         condition: service_healthy
+      api:
+        condition: service_healthy
     volumes:
-      - ./src:/app/src:cached
+      - ./src:/app/src:ro
       - ./logs:/app/logs
-      - models_data:/app/src/models
+      - models_data:/app/src/models:ro
     command: >
       streamlit run src/streamlit_app.py 
       --server.port=8501 
       --server.address=0.0.0.0 
       --server.headless=true
+      --logger.level=${LOG_LEVEL:-info}
     networks:
       - trading_network
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ==========================
   # 🤖 Trading Bot Worker
@@ -90,19 +174,28 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-trading}
+      # ⚠️ Load credentials from .env file
+      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
+      # Trading configuration
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      BINANCE_API_KEY: ${BINANCE_API_KEY}
+      BINANCE_API_SECRET: ${BINANCE_API_SECRET}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     depends_on:
       db:
         condition: service_healthy
+      api:
+        condition: service_healthy
     volumes:
-      - ./src:/app/src:cached
+      - ./src:/app/src:ro
       - ./logs:/app/logs
-      - models_data:/app/src/models
+      - models_data:/app/src/models:ro
     command: >
-      sh -c "python -m src.bot_runner"
+      python -m src.bot_runner
     networks:
       - trading_network
-    restart: unless-stopped
+    restart: on-failure
     logging:
       driver: "json-file"
       options:
@@ -121,20 +214,28 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-trading}_test
+      # ⚠️ Load credentials from .env file
+      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}_test"
+      ENVIRONMENT: test
+      LOG_LEVEL: DEBUG
     depends_on:
       db:
         condition: service_healthy
     volumes:
-      - ./src:/app/src:cached
-      - ./tests:/app/tests:cached
+      - ./src:/app/src:ro
+      - ./tests:/app/tests:ro
       - ./coverage:/app/coverage
-      - models_data:/app/src/models
+      - models_data:/app/src/models:ro
     command: >
-      sh -c "pytest -v --tb=short --disable-warnings tests/"
+      pytest -v --tb=short --disable-warnings tests/
     networks:
       - trading_network
-    # Don't auto-start: use 'docker-compose run test'
+    # Note: Don't auto-start; use 'docker-compose run test'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 # ==========================
 # 📦 Persistent Volumes

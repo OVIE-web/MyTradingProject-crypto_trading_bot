@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip install "uv==0.4.18"
 
 # Copy dependency metadata first (for caching)
-COPY pyproject.toml uv.lock ./mydir/mydir/
+COPY pyproject.toml uv.lock ./
 
 # Install Python dependencies (system-wide, cached layer)
 RUN uv pip install --system .
