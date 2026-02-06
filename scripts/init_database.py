@@ -38,6 +38,18 @@ def init_database(is_test: bool = False) -> None:
 
 
 def main() -> None:
+    """Main entry point for the script.
+
+    Initializes the logging module and an argument parser.
+
+    The argument parser is configured to accept a single boolean flag
+    (--test) which determines whether the main or test database
+    should be initialized.
+
+    The init_database function is called with the parsed argument
+    value for --test.
+
+    """
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
     parser = argparse.ArgumentParser(description="Initialize the database schema.")
