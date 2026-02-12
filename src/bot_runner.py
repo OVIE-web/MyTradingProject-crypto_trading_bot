@@ -16,7 +16,7 @@ import pandas as pd
 
 from src.binance_manager import BinanceManager
 from src.config import ATR_WINDOW, FEATURE_COLUMNS, INITIAL_CANDLES_HISTORY
-from src.db import SessionLocal
+from src.db import SessionLocal, Trade
 from src.feature_engineer import calculate_technical_indicators
 from src.model_manager import load_trained_model, make_predictions
 from src.notification import send_email_notification as send_email_sync
@@ -259,21 +259,25 @@ async def do_iteration(resources: dict[str, Any]) -> None:
         LOG.info("No actionable signal this round (HOLD position).")
 
     # === 6. Persist trade record ===
-    try:
-        # Example placeholder for saving trades to DB (uncomment and wire to ORM)
-        # trade = Trade(symbol=symbol, side=trade_result['side'],
-        #               price=trade_result['price'], qty=trade_result['qty'],
-        #               confidence=latest_conf)
-        # session.add(trade)
-        # session.commit()
-        pass
-    except Exception as exc:
-        LOG.exception("DB persistence failed: %s", exc)
+    if trade_result is not None:
         try:
-            if hasattr(session, "rollback"):
-                session.rollback()
-        except Exception:
-            LOG.exception("DB rollback failed")
+            assert trade_result is not None
+            trade = Trade(
+                symbol=symbol,
+                side=trade_result["side"],
+                price=trade_result["price"],
+                qty=trade_result["qty"],
+                confidence=latest_conf,
+            )
+            session.add(trade)
+            session.commit()
+        except Exception as exc:
+            LOG.exception("DB persistence failed: %s", exc)
+            try:
+                if hasattr(session, "rollback"):
+                    session.rollback()
+            except Exception:
+                LOG.exception("DB rollback failed")
 
     LOG.info("Iteration complete")
 
@@ -302,7 +306,7 @@ async def runner_loop(run_once: bool = False, interval_seconds: int = DEFAULT_IN
             loop.add_signal_handler(signal.SIGINT, _stop_signal)
             loop.add_signal_handler(signal.SIGTERM, _stop_signal)
         except NotImplementedError:
-            LOG.warning("Signal handlers not supported in this environment.")
+            LOG.debug("Signal handlers not supported in this environment.")
 
         background_tasks: set = set()
 

@@ -8,8 +8,7 @@ version = "1.1.0"
 description = "A modular crypto trading bot with FastAPI backend, PostgreSQL model registry, ML pipeline, and notifier integration."
 requires-python = ">=3.10"
 authors = [{ name = "Ovie", email = "oviemsaniyo30@gmail.com" }]
-readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
 keywords = ["crypto", "trading", "bot", "xgboost", "machine-learning", "binance", "fastapi"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -17,7 +16,6 @@ classifiers = [
     "Framework :: FastAPI",
     "Intended Audience :: Developers",
     "Intended Audience :: Financial and Insurance Industry",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
@@ -27,7 +25,6 @@ classifiers = [
     "Topic :: Office/Business :: Financial :: Investment",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-
 
 dependencies = [
     # --- Web Framework ---
@@ -68,7 +65,7 @@ dependencies = [
     "plotly==6.1.2",
     "streamlit>=1.28.0",
     # --- ML Experiment Tracking ---
-    "mlflow==2.13.0",
+    #"mlflow==2.13.0",
     # --- Templates ---
     "jinja2==3.1.6",
 ]
@@ -150,43 +147,6 @@ module = [
 ignore_missing_imports = true
 
 # ============================================================
-# 🧪 PYTEST - Testing Framework
-# ============================================================
-[tool.pytest.ini_options]
-minversion = "8.0"
-testpaths = ["tests"]
-asyncio_mode = "auto"
-log_cli = true
-log_cli_level = "INFO"
-
-addopts = [
-    "-v",
-    "--maxfail=3",
-    "--tb=short",
-    "--strict-markers",
-    "--disable-warnings",
-    "--cov=src",
-    "--cov-report=term-missing:skip-covered",
-    "--cov-report=html",
-    "--cov-report=xml",
-    "--cov-report=json",
-]
-
-filterwarnings = [
-    "ignore::DeprecationWarning:sqlalchemy.*",
-    "ignore::RuntimeWarning:numpy.*",
-    "ignore::DeprecationWarning:distutils.*",
-]
-
-markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "integration: marks tests as integration tests",
-    "unit: marks tests as unit tests",
-    "integration: marks tests as integration tests (need DB)",
-    "unit: marks tests as unit tests",
-]
-
-# ============================================================
 # 📦 COVERAGE - Code Coverage Analysis
 # ============================================================
 [tool.coverage.run]
@@ -219,4 +179,3 @@ where = ["src"]
 
 [tool.setuptools.package-dir]
 "" = "src"
-
