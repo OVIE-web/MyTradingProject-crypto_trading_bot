@@ -20,6 +20,9 @@ jobs:
       POSTGRES_DB: trading_test
       DATABASE_URL: postgresql://testuser:testpass@localhost:5432/trading_test
       BINANCE_TESTNET: "true"
+      JWT_SECRET_KEY: "ci-test-secret-key-at-least-32-chars-long"
+      ADMIN_USERNAME: "ci_admin"
+      ADMIN_PASSWORD: "ci_password"
 
     services:
       postgres:
