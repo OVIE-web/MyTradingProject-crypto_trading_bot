@@ -75,7 +75,7 @@ jobs:
                   socket.create_connection(('localhost', 5432), timeout=2)
                   print('✅ PostgreSQL is ready')
                   exit(0)
-              except:
+              except Exception:
                   print(f'⏳ Waiting for PostgreSQL... ({i+1}/30)')
                   time.sleep(1)
           exit(1)
