@@ -106,21 +106,7 @@ def calculate_technical_indicators(df: DataFrame) -> DataFrame:
     # Volume change
     # df_feat["volume_pct_change"] = df_feat["volume"].pct_change()
 
-    # ===== SELECT ONLY THE 11 MODEL-EXPECTED FEATURES =====
-    model_features = [
-        "rsi",
-        "bb_upper",
-        "bb_lower",
-        "bb_mid",
-        "bb_pct_b",
-        "sma_20",
-        "sma_50",
-        "ma_cross",
-        "price_momentum",
-        "atr",
-        "atr_pct",
-    ]
-    df_feat = df_feat[model_features]
+    # Feature sub-selection is intentionally not applied here.
 
     # Drop NaNs from rolling indicators
     before = len(df_feat)
@@ -200,8 +186,9 @@ def normalize_features(df: DataFrame) -> DataFrame:
     df_norm = df.copy()
 
     binary_cols = [c for c in ("ma_cross", "signal") if c in df_norm.columns]
+    exclude_cols = binary_cols + ["open", "high", "low", "close", "volume"]
     numeric_cols: list[str] = (
-        df_norm.select_dtypes(include=np.number).columns.difference(binary_cols).tolist()
+        df_norm.select_dtypes(include=np.number).columns.difference(exclude_cols).tolist()
     )
 
     if not numeric_cols:
