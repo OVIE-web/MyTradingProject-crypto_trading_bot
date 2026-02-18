@@ -1,87 +1,106 @@
-# Rules for AI Interaction
+# Rules for AI Interaction (`RulesFORAI.md`)
 
-      ## Project Structure
-      - All historical data files must be placed in the `data/` directory
-      - Model files should be saved to the configured model directory (controlled by MODEL_DIR env var)
-      - Tests must be placed in the `tests/` directory following the pattern `test_*.py`
-      - Source code belongs in the `src/` directory
+## 🚀 Current Project Stage: Live Trading Integration (Phase 3)
 
-      ## Code Standards
-      1. All Python code must:
-         - Be compatible with Python 3.12+
-         - Follow PEP 8 style guidelines
-         - Include type hints for function parameters and return values
-         - Include docstrings for modules, classes, and functions
+This document outlines the rules and standards for interacting with the **MyTradingProject-crypto_trading_bot** codebase.
 
-      2. Testing Requirements:
-         - All new features must include corresponding tests
-         - Tests should use pytest fixtures where appropriate
-         - Mock external services (Binance API, database) in tests
-         - Maintain test coverage above 80%
+---
 
-      3. Documentation:
-         - Keep README.md up to date with new features
-         - Document all environment variables in .env.example
-         - Include clear error messages and logging
-         - Add comments for complex algorithms or business logic
+### 📂 Project Structure
 
-      ## Development Workflow
-      1. Environment Setup:
-         - Use uv for dependency management
-         - Always update requirements.txt when adding new dependencies
-         - Keep pyproject.toml in sync with requirements
+The project follows a modular architecture using the `src/` layout:
 
-      2. Docker:
-         - Update docker-compose.yml when adding new services
-         - Use volumes for persistent data (models, databases)
-         - Document any new environment variables needed for containers
+- **`src/`**: Core source code.
+  - `main.py`: **Entry Point**. Orchestrates both Backtesting and Live Trading modes.
+  - `data_loader.py`: Fetches and preprocesses OHLCV data from Binance.
+  - `feature_engineer.py`: Calculates technical indicators (RSI, MACD, ATR, etc.).
+  - `model_manager.py`: Manages XGBoost model training, saving, loading, and prediction.
+  - `backtester.py`: Runs strategy simulations on historical data.
+  - `notifier.py`: Handles Telegram and Email notifications.
+  - `db.py`: Manages PostgreSQL database connections and sessions.
+  - `binance_manager.py`: Interfaces with CCXT/Binance API for live market data and order execution.
+  - `config.py`: Centralized configuration (loads from `.env`).
 
-      3. Database:
-         - Follow database migration best practices
-         - Update pg_hba.conf when changing authentication rules
-         - Include database setup scripts in scripts/
+- **`data/`**: Stores historical market data (CSV/Pickle) and trained models (`.json`/`.pkl`).
+- **`tests/`**: Contains all unit and integration tests (`pytest`).
+- **`scripts/`**: Utility scripts for database setup, maintenance, etc.
+- **`docker-compose.yml`**: Defines services (PostgreSQL, App).
 
-      ## Security
-      1. Never commit:
-         - .env files with real credentials
-         - API keys or secrets
-         - Personal trading data
-         - Large model files or datasets
+---
 
-      2. Always use:
-         - Environment variables for configuration
-         - Secure connection strings
-         - Rate limiting for API calls
-         - Input validation for all data
+### 🛠️ Tech Stack & Standards
 
-      ## Trading Bot Specific
-      1. Risk Management:
-         - Implement position size limits
-         - Include stop-loss mechanisms
-         - Add logging for all trades
-         - Validate order parameters
+**Core Technologies:**
 
-      2. Model Management:
-         - Version control trained models
-         - Document feature engineering steps
-         - Include model performance metrics
-         - Save model evaluation results
+- **Language**: Python 3.12+ (Managed via `uv`)
+- **Web Framework**: FastAPI (for future API endpoints/dashboard)
+- **Database**: PostgreSQL 16 + SQLAlchemy ORM (Async support)
+- **ML Engine**: XGBoost + Scikit-learn + Pandas
+- **Testing**: Pytest (with `pytest-asyncio`, `pytest-mock`)
+- **Containerization**: Docker & Docker Compose
 
-      3. Data Processing:
-         - Validate data quality before training
-         - Handle missing values appropriately
-         - Document data preprocessing steps
-         - Include data sanity checks
+**Code Style Rules:**
 
-      ## Contribution Guidelines
-      1. Code Changes:
-         - Write clear commit messages
-         - Update tests for new features
-         - Follow existing code style
-         - Document breaking changes
+1. **Type Hinting**: STRICT. All functions must have type hints (`def foo(a: int) -> str:`).
+2. **Docstrings**: Google-style docstrings for all modules, classes, and complex functions.
+3. **Linting**: Follow `ruff` or `flake8` standards. (PEP 8 compliant).
+4. **Async/Await**: Use `async def` for I/O bound operations (DB, API calls).
+5. **Error Handling**: Use `try/except` blocks with specific exceptions. Log errors via `logging`, do not just `print`.
 
-      2. Review Process:
-         - Run full test suite before commits
-         - Update documentation as needed
-         - Check for security implications
-         - Verify Docker builds successfully
+---
+
+### ⚙️ Development Workflow
+
+1. **Dependency Management (`uv`):**
+    - Add dependency: `uv pip install <package>`
+    - Update requirements: `uv pip compile pyproject.toml -o requirements.txt` (or manually maintain `requirements.txt`).
+    - Sync environment: `uv pip sync requirements.txt`
+
+2. **Testing:**
+    - Run all tests: `pytest`
+    - Run specific test file: `pytest tests/test_model.py`
+    - Run with coverage: `pytest --cov=src`
+
+3. **Database Migrations:**
+    - (If using Alembic in future) `alembic revision --autogenerate -m "message"`
+    - Current: Ensure `init_db()` in `src/db.py` is called to create tables.
+
+4. **Docker:**
+    - Start services: `docker-compose up -d`
+    - Rebuild: `docker-compose up -d --build`
+    - View logs: `docker-compose logs -f`
+
+---
+
+### 🤖 Trading & ML Specifics
+
+1. **Model Versioning:**
+    - Models are saved with timestamps or version tags in `data/models/`.
+    - `model_manager.py` handles loading the latest valid model.
+
+2. **Risk Management:**
+    - **Stop-Loss / Take-Profit**: Must be calculated *before* placing orders.
+    - **Position Sizing**: Adhere to `TRADE_QUANTITY` in `config.py`.
+    - **Live Safety**: `main.py` includes a global exception handler to catch crashes and notify via Telegram.
+
+3. **Data Consistency:**
+    - `data_loader.py` fetches historical data.
+    - `binance_manager.py` fetches live data.
+    - **CRITICAL**: Ensure feature engineering logic in `feature_engineer.py` is IDENTICAL for both historical (training) and live (inference) data to avoid skew.
+
+---
+
+### 🔐 Security & Secrets
+
+- **`.env` File**: NEVER commit `.env`. Use `.env.example` as a template.
+- **API Keys**: stored in `.env` (BINANCE_API_KEY, BINANCE_SECRET_KEY).
+- **Database Credentials**: stored in `.env` (POSTGRES_USER, POSTGRES_PASSWORD).
+
+---
+
+### 📝 Contribution Checklist
+
+- [ ] Run `pytest` to ensure no regressions.
+- [ ] Update `requirements.txt` if adding libs.
+- [ ] Update `README.md` or `BeautyOfTheStruggle.md` if architecture changes.
+- [ ] Format code (e.g., ruff check . --fix`).

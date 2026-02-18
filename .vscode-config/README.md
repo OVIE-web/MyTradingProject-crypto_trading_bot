@@ -15,7 +15,7 @@ Breaking settings into logical categories improves:
 ## 📦 Files
 
 | File | Purpose |
-|------|---------|
+| --- | --- |
 | `settings-core.json` | UI, formatting, editor behavior |
 | `settings-python.json` | Interpreter, linting, formatting |
 | `settings-copilot.json` | Copilot + instructions |
@@ -23,6 +23,7 @@ Breaking settings into logical categories improves:
 | `settings-boolean.json` | Boolean flags like env activation |
 | `settings-git.json` | Git + GitLens behavior |
 | `settings-languages.json` | YAML, DockerCompose, workflows |
+| `settings-geminicodeassist.json` | Google Gemini Code Assist configuration |
 | `settings-data.json` | SQL, Jupyter |
 
 ## 🚀 How VS Code loads this config

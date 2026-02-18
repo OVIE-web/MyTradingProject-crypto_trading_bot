@@ -17,13 +17,13 @@ Every bug, failed test, and broken pipeline became a stepping stone toward maste
 ## 🧩 Tech Stack
 
 | Area | Tools / Frameworks |
-|------|--------------------|
+| :--- | :--- |
 | **Core Language** | Python 3 |
 | **Backend Framework** | FastAPI |
 | **Database** | PostgreSQL + SQLAlchemy ORM |
 | **Testing** | Pytest (fixtures, mocks, CI integration) |
 | **Data Source** | Binance API (Live Market Data) |
-| **ML/Stats** | NumPy, Pandas, Scikit-learn |
+| **ML/Stats** | NumPy, Pandas, Scikit-learn, XGBoost |
 | **Automation** | GitHub Actions (CI/CD) |
 | **Deployment** | Docker |
 | **Communication** | Telegram Bot API |
@@ -53,17 +53,21 @@ Every bug, failed test, and broken pipeline became a stepping stone toward maste
                 └─────────────────┘
 Core Modules
 
-data_loader.py → Fetches & preprocesses live Binance data
+src/data_loader.py → Fetches & preprocesses live Binance data (via CCXT/Binance API)
 
-strategy.py → Defines technical indicators (RSI, volatility, etc.)
+src/feature_engineer.py → Calculates technical indicators (RSI, MACD, etc.)
 
-model.py → Trains and predicts using ML algorithms
+src/model_manager.py → Trains XGBoost models and generates predictions
 
-notifiers/telegram_notifier.py → Sends trading alerts to Telegram
+src/backtester.py → Simulates trading strategies on historical data
 
-database.py → Manages PostgreSQL interactions
+src/notifier.py → Handles Telegram and email notifications
 
-main.py → Orchestrates workflow and executes trades
+src/db.py → Manages PostgreSQL database connections
+
+src/binance_manager.py → Interfaces with Binance API for live trading
+
+main.py → Unified entry point for Backtesting and Live Trading modes
 
 💥 The Rough Ride
 
