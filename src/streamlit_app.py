@@ -67,9 +67,10 @@ st.markdown("<h1 class='main-title'>CryptoSignal Trading Assistant</h1>", unsafe
 # Load model if dependencies are available
 model = None
 if HAS_DEPENDENCIES:
+    from xgboost import XGBClassifier
 
     @st.cache_resource
-    def get_model():
+    def get_model() -> XGBClassifier | None:
         """Load trained model with caching."""
         try:
             return load_trained_model()

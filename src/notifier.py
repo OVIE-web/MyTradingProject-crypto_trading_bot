@@ -15,14 +15,14 @@ logger = logging.getLogger(__name__)
 
 def _backoff_delay(attempt: int, base: float = 1.0, cap: float = 30.0) -> float:
     """Calculate exponential backoff with jitter."""
-    exp = min(cap, base * (2 ** (attempt - 1)))
-    return exp / 2 + random.uniform(0, exp / 2)
+    exp: float = min(cap, base * (2 ** (attempt - 1)))
+    return float(exp / 2 + random.uniform(0, exp / 2))
 
 
 class TelegramNotifier:
     """Handles asynchronous Telegram notifications with retries."""
 
-    def __init__(self, max_retries: int = 3):
+    def __init__(self, max_retries: int = 3) -> None:
         self.token: str | None = os.getenv("TELEGRAM_BOT_TOKEN")
         self.chat_id: str | None = os.getenv("TELEGRAM_CHAT_ID")
         self.enabled = bool(self.token and self.chat_id)

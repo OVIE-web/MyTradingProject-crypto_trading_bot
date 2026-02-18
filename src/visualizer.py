@@ -194,19 +194,19 @@ def visualize_trading_results(
                 y=rsi_upper_thresh,
                 line_dash="dot",
                 line_color="red",
-                row="3",
-                col="1",
+                row=3,
+                col=1,
                 name="RSI Overbought",
             )
             fig.add_hline(
                 y=rsi_lower_thresh,
                 line_dash="dot",
                 line_color="green",
-                row="3",
-                col="1",
+                row=3,
+                col=1,
                 name="RSI Oversold",
             )
-            fig.update_yaxes(range=[0, 100], row="3", col="1")  # Standard RSI range
+            fig.update_yaxes(range=[0, 100], row=3, col=1)  # Standard RSI range
         # --- Row 4: Average True Range (ATR) ---
         if "atr" in df_with_indicators.columns:
             fig.add_trace(
