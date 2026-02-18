@@ -14,7 +14,7 @@ except Exception:
     readme = ""
 
 # --- Core dependencies ---
-install_requires = [
+install_requires: list[str] = [
     # --- Web Framework ---
     "fastapi==0.111.0",
     "uvicorn==0.35.0",
@@ -58,7 +58,7 @@ install_requires = [
 ]
 
 # --- Developer dependencies ---
-extras_require = {
+extras_require: dict[str, list[str]] = {
     "dev": [
         "pytest==8.4.1",
         "pytest-asyncio==1.3.0",
@@ -91,7 +91,7 @@ setup(
     include_package_data=True,
     python_requires=">=3.10",
     install_requires=install_requires,
-    extras_require=extras_require,
+    extras_require=extras_require,  # type: ignore[arg-type]
     classifiers=[
         "Development Status :: 4 - Beta",
         "Environment :: Console",
