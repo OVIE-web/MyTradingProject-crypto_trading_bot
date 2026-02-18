@@ -13,10 +13,10 @@ def mock_env(monkeypatch: MonkeyPatch) -> Generator[None, Any, None]:
     """Mock environment variables for consistent notification tests."""
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "mock_token_123")
     monkeypatch.setenv("TELEGRAM_CHAT_ID", "mock_chat_id_456")
-    monkeypatch.setenv("EMAIL_HOST", "smtp.test.com")
-    monkeypatch.setenv("EMAIL_PORT", "587")
-    monkeypatch.setenv("EMAIL_USER", "sender@test.com")
-    monkeypatch.setenv("EMAIL_PASS", "password123")
+    monkeypatch.setenv("SMTP_HOST", "smtp.test.com")
+    monkeypatch.setenv("SMTP_PORT", "587")
+    monkeypatch.setenv("SMTP_USER", "sender@test.com")
+    monkeypatch.setenv("SMTP_PASS", "password123")
     monkeypatch.setenv("EMAIL_TO", "receiver@test.com")
     yield
 
@@ -76,7 +76,8 @@ def test_send_telegram_notification_missing_config(monkeypatch: MonkeyPatch) -> 
 # =====================================================================================
 
 
-def test_send_email_notification_success() -> None:
+@pytest.mark.usefixtures("mock_env")
+def test_send_email_notification_success(mock_env: None) -> None:
     """✅ Should send email successfully using mock SMTP."""
     with patch("smtplib.SMTP") as mock_smtp_cls:
         # Setup mock SMTP instance
@@ -105,7 +106,7 @@ def test_send_email_notification_success() -> None:
 
 def test_send_email_notification_missing_config(monkeypatch: MonkeyPatch) -> None:
     """❌ Should log error when email environment is incomplete."""
-    email_vars = ["EMAIL_HOST", "EMAIL_PORT", "EMAIL_USER", "EMAIL_PASS", "EMAIL_TO"]
+    email_vars = ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "EMAIL_TO"]
 
     # Remove all email config variables
     for var in email_vars:

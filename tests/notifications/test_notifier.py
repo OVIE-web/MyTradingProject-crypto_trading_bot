@@ -14,6 +14,11 @@ def mock_env(monkeypatch: MonkeyPatch) -> Generator[None, Any, None]:
     """Mock environment variables for notifier tests."""
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "fake_token")
     monkeypatch.setenv("TELEGRAM_CHAT_ID", "123456")
+    monkeypatch.setenv("SMTP_HOST", "smtp.test.com")
+    monkeypatch.setenv("SMTP_PORT", "587")
+    monkeypatch.setenv("SMTP_USER", "sender@test.com")
+    monkeypatch.setenv("SMTP_PASS", "password")
+    monkeypatch.setenv("EMAIL_TO", "receiver@test.com")
     yield
 
 
@@ -79,10 +84,10 @@ def test_telegram_notifier_send_message_failure(mock_env: None) -> None:
 # --------------------------------------------------------------
 def test_send_email_notification_success(monkeypatch: MonkeyPatch) -> None:
     """✅ Test successful email send."""
-    monkeypatch.setenv("EMAIL_HOST", "smtp.test.com")
-    monkeypatch.setenv("EMAIL_PORT", "587")
-    monkeypatch.setenv("EMAIL_USER", "sender@test.com")
-    monkeypatch.setenv("EMAIL_PASS", "password")
+    monkeypatch.setenv("SMTP_HOST", "smtp.test.com")
+    monkeypatch.setenv("SMTP_PORT", "587")
+    monkeypatch.setenv("SMTP_USER", "sender@test.com")
+    monkeypatch.setenv("SMTP_PASS", "password")
     monkeypatch.setenv("EMAIL_TO", "receiver@test.com")
 
     with patch("smtplib.SMTP") as mock_smtp_cls:
@@ -100,10 +105,10 @@ def test_send_email_notification_success(monkeypatch: MonkeyPatch) -> None:
 
 def test_send_email_notification_failure(monkeypatch: MonkeyPatch) -> None:
     """❌ Test error handling when SMTP fails."""
-    monkeypatch.setenv("EMAIL_HOST", "smtp.test.com")
-    monkeypatch.setenv("EMAIL_PORT", "587")
-    monkeypatch.setenv("EMAIL_USER", "sender@test.com")
-    monkeypatch.setenv("EMAIL_PASS", "password")
+    monkeypatch.setenv("SMTP_HOST", "smtp.test.com")
+    monkeypatch.setenv("SMTP_PORT", "587")
+    monkeypatch.setenv("SMTP_USER", "sender@test.com")
+    monkeypatch.setenv("SMTP_PASS", "password")
     monkeypatch.setenv("EMAIL_TO", "receiver@test.com")
 
     with patch("smtplib.SMTP", side_effect=Exception("SMTP Failure")):

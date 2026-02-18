@@ -2,6 +2,7 @@ import asyncio
 import logging
 import traceback
 from typing import Literal
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -40,8 +41,13 @@ async def test_runner_loop_run_once(monkeypatch: pytest.MonkeyPatch):
     """Test bot runner handles iterations correctly."""
     called: dict[str, bool] = {}
 
+    # Mock external resources to prevent live connections
+    monkeypatch.setattr(bot_runner, "BinanceManager", MagicMock())
+    monkeypatch.setattr(bot_runner, "TelegramNotifier", MagicMock())
+    monkeypatch.setattr(bot_runner, "load_trained_model", MagicMock(return_value=(MagicMock(), {})))
+
     # --- Test 1: Simulate successful iteration ---
-    async def fake_iteration(resources):  # ✅ ADD resources PARAMETER
+    async def fake_iteration(resources):
         logging.info("Iteration completed")
         called["done"] = True
 
@@ -57,17 +63,20 @@ async def test_runner_loop_run_once(monkeypatch: pytest.MonkeyPatch):
 async def test_runner_loop_error_handling(monkeypatch: pytest.MonkeyPatch):
     """Test bot runner handles iteration errors gracefully."""
 
+    # Mock external resources to prevent live connections
+    monkeypatch.setattr(bot_runner, "BinanceManager", MagicMock())
+    monkeypatch.setattr(bot_runner, "TelegramNotifier", MagicMock())
+    monkeypatch.setattr(bot_runner, "load_trained_model", MagicMock(return_value=(MagicMock(), {})))
+
     # --- Test 2: Simulate error handling ---
-    async def bad_iteration(resources):  # ✅ ADD resources PARAMETER
+    async def bad_iteration(resources):
         raise Exception("Test iteration error")
 
     monkeypatch.setattr(bot_runner, "do_iteration", bad_iteration)
 
     # The runner should catch the error and log it, not raise
-    # (depends on your bot_runner implementation)
     try:
         await bot_runner.runner_loop(run_once=True, interval_seconds=0)
-        # If no exception raised, that's OK - bot caught it
     except Exception as e:
         # If exception raised, it should be our test error
         assert "Test iteration error" in str(e)
