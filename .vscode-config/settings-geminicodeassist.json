@@ -1,0 +1,21 @@
+{
+  "google.gemini.enabled": true,
+  "google.gemini.codeAssist.enabled": true,
+  "google.gemini.inlineSuggestions.enabled": true,
+  "google.gemini.chat.enabled": true,
+
+  "google.gemini.customInstructions": [
+    "Project: MyTradingProject-crypto_trading_bot (Live Trading Integration Phase)",
+    "Tech Stack: Python 3.12+, FastAPI, PostgreSQL + SQLAlchemy (Async), XGBoost, CCXT/Binance API.",
+    "Architecture: Modular 'src/' layout. 'main.py' is the entry point orchestrating Backtesting and Live Trading.",
+    "Coding Standards: STRICT type hinting for all functions, Google-style docstrings, PEP 8 (ruff/flake8 compliant).",
+    "Async: Use 'async def' for I/O bound operations (Database, API calls).",
+    "Dependency Management: Managed via 'uv'. Dependencies in 'requirements.txt' and 'pyproject.toml'.",
+    "Security: NEVER include secrets, API keys, or database credentials in code. Use '.env' and load via 'src/config.py'.",
+    "Trading Logic: Ensure feature engineering is identical for both historical training and live inference.",
+    "Testing: Comprehensive tests using 'pytest' in the 'tests/' directory."
+  ],
+
+  "google.gemini.contextAwareness.enabled": true,
+  "google.gemini.contextAwareness.maxContextFiles": 10
+}
