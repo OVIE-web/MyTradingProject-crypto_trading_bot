@@ -5,10 +5,11 @@ These concise rules guide Copilot’s behavior when generating, refactoring, or 
 ---
 
 ## 🧠 General Guidelines
-- Always produce **production-ready Python 3.12 code** that follows **PEP 8** and uses **type hints + docstrings**.  
-- Keep code **modular**, **async-safe**, and **secure** — no hardcoded credentials, only `os.getenv()`.  
-- Structure logic around the project’s architecture (`src/`, `tests/`, `notifications/`, etc.).  
-- Use **logging**, not `print()`.  
+
+- Always produce **production-ready Python 3.12 code** that follows **PEP 8** and uses **type hints + docstrings**.
+- Keep code **modular**, **async-safe**, and **secure** — no hardcoded credentials, only `os.getenv()`.
+- Structure logic around the project’s architecture (`src/`, `tests/`, `notifications/`, etc.).
+- Use **logging**, not `print()`.
 - Follow the configuration rules in `pyproject.toml`.
 
 ---
@@ -16,67 +17,75 @@ These concise rules guide Copilot’s behavior when generating, refactoring, or 
 ## 🧩 Code Generation Rules
 
 ### FastAPI
-- Use `async def` endpoints with Pydantic validation.  
-- Return structured responses with proper status codes.  
-- Include at least one test for each endpoint.  
+
+- Use `async def` endpoints with Pydantic validation.
+- Return structured responses with proper status codes.
+- Include at least one test for each endpoint.
 
 ### Database (SQLAlchemy)
-- Use `DeclarativeBase` models and `SessionLocal()` for sessions.  
-- Wrap DB operations in try/except blocks.  
-- Ensure migrations are consistent with Alembic.  
+
+- Use `DeclarativeBase` models and `SessionLocal()` for sessions.
+- Wrap DB operations in try/except blocks.
+- Ensure migrations are consistent with Alembic.
 
 ### Machine Learning
-- Use `pandas`, `scikit-learn`, `xgboost`.  
-- Save models under `/models` with clear versioning.  
-- Implement reproducible results with random seeds.  
+
+- Use `pandas`, `scikit-learn`, `xgboost`.
+- Save models under `/models` with clear versioning.
+- Implement reproducible results with random seeds.
 
 ### Notifications
-- Use async APIs (`python-telegram-bot`, `aiosmtplib`).  
-- Apply retry logic via `backoff`.  
-- Centralize logic in `notifier.py`.  
+
+- Use async APIs (`python-telegram-bot`, `aiosmtplib`).
+- Apply retry logic via `backoff`.
+- Centralize logic in `notifier.py`.
 
 ### Formatting & Linting
-- Auto-format with **Black**, **isort**, **flake8** before commits.  
-- Match rules in `pyproject.toml`.  
+
+- Auto-format with **Black**, **isort**, **flake8** before commits.
+- Match rules in `pyproject.toml`.
 
 ---
 
 ## 🧪 Testing Standards
-- Use `pytest` + `pytest-asyncio`.  
-- Mirror `src/` structure inside `tests/`.  
-- Mock external APIs (Telegram, Binance).  
-- Include Arrange–Act–Assert sections.  
-- Avoid real network or DB calls unless mocked.  
+
+- Use `pytest` + `pytest-asyncio`.
+- Mirror `src/` structure inside `tests/`.
+- Mock external APIs (Telegram, Binance).
+- Include Arrange–Act–Assert sections.
+- Avoid real network or DB calls unless mocked.
 
 ---
 
 ## 🧰 Commit Message Style (Conventional Commits)
 
-| Type | Example |
-|------|----------|
-| `feat:` | `feat: add Telegram retry logic to notifier.py` |
-| `fix:` | `fix: correct DB connection issue in config.py` |
-| `test:` | `test: mock Binance API for model_manager tests` |
-| `ci:` | `ci: optimize GitHub Actions with uv sync` |
-| `refactor:` | `refactor: simplify feature_engineer data prep` |
+| Type        | Example                                          |
+| ----------- | ------------------------------------------------ |
+| `feat:`     | `feat: add Telegram retry logic to notifier.py`  |
+| `fix:`      | `fix: correct DB connection issue in config.py`  |
+| `test:`     | `test: mock Binance API for model_manager tests` |
+| `ci:`       | `ci: optimize GitHub Actions with uv sync`       |
+| `refactor:` | `refactor: simplify feature_engineer data prep`  |
 
 Keep messages imperative and under 72 characters.
 
 ---
 
 ## 🧩 Code Review & CI
- All commits must pass `pytest` and `mypy` (static type checking).  
-  ```bash
-  uv pip compile pyproject.toml -o requirements.txt
-  uv pip compile --extra dev pyproject.toml -o requirements.dev.txt
+
+All commits must pass `pytest` and `mypy` (static type checking).
+
+```bash
+uv pip compile pyproject.toml -o requirements.txt
+uv pip compile --extra dev pyproject.toml -o requirements.dev.txt
 
 ## 🔒 Security Guidelines
 
- Auto-format with **isort** before commits.  
- Match rules in `pyproject.toml`.  
- 
- ### Static Type Checking
- - Run `mypy` for static type checking; ensure no type errors before commit.
+Auto-format with **ruff** before commits.
+Match rules in `pyproject.toml`.
+
+### Static Type Checking
+- Run `mypy` for static type checking; ensure no type errors before commit.
 Validate all input to prevent injection.
 
 Review dependencies quarterly (uv pip list --outdated).
@@ -99,3 +108,4 @@ Author: Ovie Saniyo
 Project: 🧠 Crypto Trading Bot 1
 Status: Active Development
 Last Updated: January 2026
+```

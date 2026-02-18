@@ -1,10 +1,12 @@
 """Tests for model_manager module."""
 
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import numpy as np
 import pandas as pd
 import pytest
+from pytest import LogCaptureFixture, MonkeyPatch
 from sklearn.model_selection import train_test_split
 
 from src.config import TARGET_COLUMN
@@ -80,7 +82,9 @@ def test_prepare_model_data(sample_model_data: pd.DataFrame) -> None:
 # -------------------------------------------------
 # ✅ TEST: train_xgboost_model
 # -------------------------------------------------
-def test_train_only_model(sample_model_data: pd.DataFrame) -> None:
+def test_train_only_model(
+    tmp_path: Path, monkeypatch: MonkeyPatch, sample_model_data: pd.DataFrame
+) -> None:
     """Test that train_xgboost_model works with [-1, 0, 1] class labels."""
     X_train, X_test, y_train, y_test = train_test_split(
         sample_model_data.drop(columns=[TARGET_COLUMN]),
@@ -93,6 +97,9 @@ def test_train_only_model(sample_model_data: pd.DataFrame) -> None:
     # So we need to remap [-1, 0, 1] to [0, 1, 2]
     y_train_mapped = y_train + 1  # -1 -> 0, 0 -> 1, 1 -> 2
     y_test_mapped = y_test + 1
+
+    model_path = tmp_path / "test_model.json"
+    monkeypatch.setattr("src.model_manager.MODEL_SAVE_PATH", str(model_path))
 
     trained_model, best_params = train_xgboost_model(
         X_train,
@@ -112,7 +119,9 @@ def test_train_only_model(sample_model_data: pd.DataFrame) -> None:
 # -------------------------------------------------
 @pytest.mark.skip(reason="XGBClassifier not directly imported in model_manager")
 @pytest.mark.filterwarnings("ignore:Precision and F-score are ill-defined")
-def test_train_xgboost_model_saves_model(sample_model_data: pd.DataFrame, tmp_path, caplog) -> None:
+def test_train_xgboost_model_saves_model(
+    sample_model_data: pd.DataFrame, tmp_path: Path, caplog: LogCaptureFixture
+) -> None:
     """Test that training the XGBoost model saves correctly and returns best params."""
     pass
 

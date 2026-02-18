@@ -36,7 +36,7 @@ feat(notifier): add async retry logic for Telegram notifications
 ## 🧩 Allowed Commit Types
 
 | Type | Description |
-|------|--------------|
+| ------ | -------------- |
 | **feat:** | Introduces a new feature (code, config, endpoint, etc.) |
 | **fix:** | Fixes a bug or incorrect behavior |
 | **refactor:** | Refactors code without changing behavior |
@@ -57,7 +57,7 @@ feat(notifier): add async retry logic for Telegram notifications
 Scopes identify which part of the project was affected.
 
 | Scope | Description |
-|--------|-------------|
+| -------- | ------------- |
 | **api** | FastAPI routes, endpoints, and controllers |
 | **db** | Database logic, models, and migrations |
 | **ml** | Machine learning modules and model training |

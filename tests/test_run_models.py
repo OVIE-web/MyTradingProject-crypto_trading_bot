@@ -1,8 +1,9 @@
-"""Tests for CLI modes and training pipeline functionality."""
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
+from pytest import MonkeyPatch
 from sklearn.model_selection import train_test_split
 
 from src.config import FEATURE_COLUMNS
@@ -10,7 +11,7 @@ from src.model_manager import load_trained_model, train_xgboost_model
 
 
 @pytest.fixture
-def sample_training_data():
+def sample_training_data() -> tuple[pd.DataFrame, pd.Series]:
     """Create a small but valid dataset for quick training tests."""
     n_samples = 100
     n_features = len(FEATURE_COLUMNS)
@@ -25,7 +26,9 @@ def sample_training_data():
     return X, y
 
 
-def test_train_only_model(tmp_path, monkeypatch, sample_training_data):
+def test_train_only_model(
+    tmp_path: Path, monkeypatch: MonkeyPatch, sample_training_data: tuple[pd.DataFrame, pd.Series]
+) -> None:
     """Test the --train-only mode creates and saves a valid model."""
     X, y = sample_training_data
     model_path = tmp_path / "test_model.json"

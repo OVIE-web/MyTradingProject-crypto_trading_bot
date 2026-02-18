@@ -1,7 +1,5 @@
-import asyncio
 import logging
-import traceback
-from typing import Literal
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -9,35 +7,8 @@ import pytest
 import src.bot_runner as bot_runner
 
 
-@pytest.fixture
-def my_fixture():
-    return "fixture value"
-
-
 @pytest.mark.asyncio
-async def test_my_test(
-    request: pytest.FixtureRequest, my_fixture: Literal["fixture value"]
-) -> None:
-    """Verify fixture retrieval works."""
-    try:
-        assert my_fixture == "fixture value"
-
-        fixture_value = request.getfixturevalue("my_fixture")
-        assert fixture_value == "fixture value"
-
-    except Exception as e:
-        logging.error("Test failed: %s", e)
-        logging.error(traceback.format_exc())
-        raise  # Never swallow exceptions in a test
-
-
-async def my_async_function():
-    await asyncio.sleep(0.1)
-    logging.info("Async operation completed")
-
-
-@pytest.mark.asyncio
-async def test_runner_loop_run_once(monkeypatch: pytest.MonkeyPatch):
+async def test_runner_loop_run_once(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test bot runner handles iterations correctly."""
     called: dict[str, bool] = {}
 
@@ -47,7 +18,7 @@ async def test_runner_loop_run_once(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(bot_runner, "load_trained_model", MagicMock(return_value=(MagicMock(), {})))
 
     # --- Test 1: Simulate successful iteration ---
-    async def fake_iteration(resources):
+    async def fake_iteration(resources: dict[str, Any]) -> None:
         logging.info("Iteration completed")
         called["done"] = True
 
@@ -60,7 +31,7 @@ async def test_runner_loop_run_once(monkeypatch: pytest.MonkeyPatch):
 
 
 @pytest.mark.asyncio
-async def test_runner_loop_error_handling(monkeypatch: pytest.MonkeyPatch):
+async def test_runner_loop_error_handling(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test bot runner handles iteration errors gracefully."""
 
     # Mock external resources to prevent live connections
@@ -69,7 +40,7 @@ async def test_runner_loop_error_handling(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(bot_runner, "load_trained_model", MagicMock(return_value=(MagicMock(), {})))
 
     # --- Test 2: Simulate error handling ---
-    async def bad_iteration(resources):
+    async def bad_iteration(resources: dict[str, Any]) -> None:
         raise Exception("Test iteration error")
 
     monkeypatch.setattr(bot_runner, "do_iteration", bad_iteration)

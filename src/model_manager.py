@@ -153,6 +153,8 @@ def train_xgboost_model(
 
     logger.info("Model trained — accuracy=%.4f", accuracy)
 
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(os.path.abspath(save_path)), exist_ok=True)
     model.save_model(save_path)
     logger.info("Model saved to %s", save_path)
 

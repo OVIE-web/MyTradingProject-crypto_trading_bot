@@ -1,4 +1,4 @@
-name: 🧠 Crypto Trading Bot - CI Pipeline
+name: 🧠 Crypto Trading Bot - CI/CD Pipeline
 
 on:
   push:
