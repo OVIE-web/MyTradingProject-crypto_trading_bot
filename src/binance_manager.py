@@ -179,9 +179,7 @@ class BinanceManager:
             logger.error("Failed to fetch  Binance account balance: %s", exc, exc_info=True)
             return 0.0
 
-    def place_market_order(
-        self, symbol: str, quantity: float, side: str
-    ) -> dict[str, Any] | None:
+    def place_market_order(self, symbol: str, quantity: float, side: str) -> dict[str, Any] | None:
         if self.offline_mode:
             return {
                 "symbol": symbol,

@@ -72,6 +72,7 @@ SessionLocal = sessionmaker(
 # Initial DataBase Setup
 # --------------------------------------------------------------------------
 
+
 def init_db() -> None:
     """
     Intialize database schema.
@@ -79,6 +80,7 @@ def init_db() -> None:
 
     """
     Base.metadata.create_all(bind=engine)
+
 
 # --------------------------------------------------------------------------
 # Session helpers
@@ -94,6 +96,3 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
-
-
-
