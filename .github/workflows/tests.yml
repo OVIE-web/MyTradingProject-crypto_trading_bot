@@ -84,22 +84,22 @@ jobs:
       - name: 🔍 Run Linting (ruff)
         run: |
           echo "🔍 Running Linting Checks..."
-          ruff check src/ tests/ --fix
+          uv run ruff check src/ tests/ --fix
 
       - name: 📝 Check code formatting (ruff format)
         run: |
           echo "📝 Checking Code Format..."
-          ruff format src/ tests/ --check
+          uv run ruff format src/ tests/ --check
 
       - name: 🧪 Type check with mypy
         run: |
           echo "🧪 Running Type Checks..."
-          mypy src/ tests/ || true
+          uv run mypy src/ tests/ || true
 
       - name: 🧪 Run unit tests with pytest
         run: |
           echo "🧪 Running Unit Tests..."
-          pytest tests/ \
+          uv run pytest tests/ \
             --maxfail=3 \
             --tb=short \
             --disable-warnings \
@@ -108,7 +108,7 @@ jobs:
       - name: 📊 Run tests with coverage
         run: |
           echo "📊 Running Tests with Coverage..."
-          pytest tests/ \
+          uv run pytest tests/ \
             --cov=src \
             --cov-report=xml \
             --cov-report=html \
