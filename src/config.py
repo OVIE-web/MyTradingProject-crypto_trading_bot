@@ -155,6 +155,11 @@ CONFIDENCE_THRESHOLD = config.confidence_threshold
 MODEL_SAVE_FILENAME = config.model_save_filename
 MODEL_SAVE_PATH = config.model_save_path
 
+# Data Paths
+DATA_FILE_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)), "data", "test_df_features.csv"
+)
+
 # ------------------------------------------------------------------
 # Security constants
 # ------------------------------------------------------------------
