@@ -1,7 +1,7 @@
 # =====================================================
 # 🧱 Stage 1: Base Environment
 # =====================================================
-FROM python:3.12.10-slim-bullseye AS base
+FROM python:3.13.6-slim-bullseye AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
