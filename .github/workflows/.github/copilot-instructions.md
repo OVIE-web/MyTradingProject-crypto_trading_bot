@@ -30,7 +30,7 @@ These concise rules guide Copilot’s behavior when generating, refactoring, or 
 
 ### Machine Learning
 
-- Use `pandas`, `scikit-learn`, `xgboost`.
+- Use `pandas`, `numpy`, `scikit-learn`, `xgboost`.
 - Save models under `/models` with clear versioning.
 - Implement reproducible results with random seeds.
 
@@ -42,7 +42,7 @@ These concise rules guide Copilot’s behavior when generating, refactoring, or 
 
 ### Formatting & Linting
 
-- Auto-format with **Black**, **isort**, **flake8** before commits.
+- Auto-format with **ruff** before commits.
 - Match rules in `pyproject.toml`.
 
 ---
@@ -64,14 +64,14 @@ These concise rules guide Copilot’s behavior when generating, refactoring, or 
 | `feat:`     | `feat: add Telegram retry logic to notifier.py`  |
 | `fix:`      | `fix: correct DB connection issue in config.py`  |
 | `test:`     | `test: mock Binance API for model_manager tests` |
-| `ci:`       | `ci: optimize GitHub Actions with uv sync`       |
+| `ci/cd:`    | `ci: optimize GitHub Actions with uv sync`       |
 | `refactor:` | `refactor: simplify feature_engineer data prep`  |
 
 Keep messages imperative and under 72 characters.
 
 ---
 
-## 🧩 Code Review & CI
+## 🧩 Code Review & CI/CD
 
 All commits must pass `pytest` and `mypy` (static type checking).
 
@@ -107,5 +107,5 @@ Always prioritize clarity, reliability, and maintainability.
 Author: Ovie Saniyo
 Project: 🧠 Crypto Trading Bot 1
 Status: Active Development
-Last Updated: January 2026
+Last Updated: February 2026
 ```
