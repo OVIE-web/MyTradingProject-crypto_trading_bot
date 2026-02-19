@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -68,7 +69,7 @@ def predict(
 
     try:
         df = pd.DataFrame([features.model_dump()])[FEATURE_COLUMNS]
-        X: np.ndarray = df.to_numpy()
+        X: np.ndarray[Any, Any] = df.to_numpy()
 
         preds, probs = make_predictions(model, X)
 
