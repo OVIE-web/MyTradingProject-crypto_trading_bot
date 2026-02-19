@@ -1,8 +1,10 @@
 # src/data_loader.py
 
+from __future__ import annotations
+
 import logging
 import os
-from typing import Final
+from typing import Final, cast
 
 import numpy as np
 import pandas as pd
@@ -56,10 +58,10 @@ def load_and_preprocess_data(file_path: str) -> DataFrame:
 
     # Convert timestamp and set index
     df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
-    df.set_index("timestamp", inplace=True)
+    df = df.set_index("timestamp")
 
     # Drop rows with invalid timestamps
-    df = df[~df.index.isna()]
+    df = cast(DataFrame, df[df.index.notna()])
 
     # If all rows were dropped, raise an error
     if df.empty:

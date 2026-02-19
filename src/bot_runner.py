@@ -308,7 +308,7 @@ async def runner_loop(run_once: bool = False, interval_seconds: int = DEFAULT_IN
         except NotImplementedError:
             LOG.debug("Signal handlers not supported in this environment.")
 
-        background_tasks: set = set()
+        background_tasks: set[asyncio.Task[Any]] = set()
 
         while not stop_event.is_set():
             if should_skip_if_running(last_run_finished):

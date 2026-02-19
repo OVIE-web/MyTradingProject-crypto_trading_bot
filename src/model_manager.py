@@ -23,13 +23,13 @@ logger = logging.getLogger(__name__)
 # Types
 # -----------------------------------------------------------------
 TrainTestSplit = tuple[
-    NDArray,  # X_train
-    NDArray,  # X_test
-    NDArray,  # y_train
-    NDArray,  # y_test
+    NDArray[Any],  # X_train
+    NDArray[Any],  # X_test
+    NDArray[Any],  # y_train
+    NDArray[Any],  # y_test
 ]
 
-PredictionResult = tuple[NDArray, NDArray]
+PredictionResult = tuple[NDArray[Any], NDArray[Any]]
 
 # -----------------------------------------------------------------
 # Config
@@ -130,10 +130,10 @@ if USE_MODEL_REGISTRY:
 # Model Training
 # -----------------------------------------------------------------
 def train_xgboost_model(
-    X_train: NDArray,
-    y_train: NDArray,
-    X_test: NDArray,
-    y_test: NDArray,
+    X_train: NDArray[Any],
+    y_train: NDArray[Any],
+    X_test: NDArray[Any],
+    y_test: NDArray[Any],
     model_path: str | None = None,
 ) -> tuple[xgb.XGBClassifier, dict[str, Any]]:
     """
@@ -219,7 +219,7 @@ def load_trained_model(model_path: str | None = None) -> xgb.XGBClassifier | Non
 # -----------------------------------------------------------------
 def make_predictions(
     model: xgb.XGBClassifier,
-    X: pd.DataFrame | NDArray,
+    X: pd.DataFrame | NDArray[Any],
     threshold: float = 0.5,
 ) -> PredictionResult:
     """
