@@ -418,7 +418,7 @@ types-pytz==2025.2.0.20251108
     # via pandas-stubs
 types-requests==2.32.4.20250913
     # via crypto-trading-bot-1 (pyproject.toml)
-types-setuptools==80.10.0.20260124
+types-setuptools==82.0.0.20260210
     # via crypto-trading-bot-1 (pyproject.toml)
 typing-extensions==4.15.0
     # via

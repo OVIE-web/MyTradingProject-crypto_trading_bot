@@ -372,7 +372,7 @@ tornado==6.5.4
     # via streamlit
 typer==0.20.0
     # via fastapi-cli
-types-setuptools==80.10.0.20260124
+types-setuptools==82.0.0.20260210
     # via crypto-trading-bot-1 (pyproject.toml)
 typing-extensions==4.15.0
     # via
