@@ -49,6 +49,9 @@ jobs:
       - name: Install UV Package Manager
         run: pip install uv
 
+      - name: Create Virtual Environment
+        run: uv venv
+
       - name: Install Project Dependencies
         run: uv pip install -e .
 
@@ -57,11 +60,7 @@ jobs:
         with:
           category: "/language:${{ matrix.language }}"
           upload: true
-          wait-for-processing: true
 
       - name: Upload Security Results
         if: always()
         uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: results.sarif
-          wait-for-processing: true
