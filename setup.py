@@ -20,7 +20,7 @@ install_requires: list[str] = [
     "uvicorn==0.35.0",
     "python-multipart==0.0.20",
     # --- Database ---
-    "sqlalchemy==2.0.41",
+    "sqlalchemy==2.0.46",
     "alembic==1.16.4",
     "psycopg2-binary==2.9.9",
     # --- API & HTTP ---
@@ -39,7 +39,7 @@ install_requires: list[str] = [
     "passlib==1.7.4",
     "bcrypt==3.2.2",
     "python-jose==3.3.0",
-    "email-validator==2.2.0",
+    "email-validator==2.3.0",
     # --- Data Science & ML ---
     "pandas==2.3.0",
     "numpy==1.26.4",
