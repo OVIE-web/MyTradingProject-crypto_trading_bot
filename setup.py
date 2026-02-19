@@ -39,7 +39,7 @@ install_requires: list[str] = [
     "passlib==1.7.4",
     "bcrypt==3.2.2",
     "python-jose==3.3.0",
-    "email-validator==2.2.0",
+    "email-validator==2.3.0",
     # --- Data Science & ML ---
     "pandas==2.3.0",
     "numpy==1.26.4",
