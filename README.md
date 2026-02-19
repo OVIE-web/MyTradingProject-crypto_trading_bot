@@ -1,9 +1,11 @@
 # 🤖 Crypto Trading Bot
 
-[![CI](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot/actions)
+[![Build & Test](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot/actions/workflows/build-and-test.yml/badge.svg?branch=main)](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot/actions/workflows/build-and-test.yml)
+[![CodeQL](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot/actions/workflows/codeql.yml)
 ![Python](https://img.shields.io/badge/python-3.12+-blue.svg)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?logo=fastapi)
-![Type%20Checked](https://img.shields.io/badge/mypy-checked-blueviolet)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.111+-009688?logo=fastapi)
+![Type Checked](https://img.shields.io/badge/mypy-checked-blueviolet)
+![Code Coverage](https://img.shields.io/badge/coverage-45%25-yellow)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 A **modular, production-ready cryptocurrency trading bot** with a FastAPI backend, machine learning-powered trade predictions, and real-time portfolio management.
@@ -87,7 +89,7 @@ A **modular, production-ready cryptocurrency trading bot** with a FastAPI backen
 
 ## 🏗️ Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                     Crypto Trading Bot                       │
 ├─────────────────────────────────────────────────────────────┤
@@ -243,7 +245,7 @@ docker-compose logs -f bot
 
 ## 📁 Project Structure
 
-```
+```text
 crypto-trading-bot/
 ├── src/
 │   ├── bot_runner.py              # Main trading loop orchestrator
