@@ -5,7 +5,7 @@ import time
 import psycopg2
 from psycopg2 import OperationalError
 
-from src.config import DATABASE_URL
+from src.config import DATABASE_URL as DATABASE_URL
 
 
 def wait_for_postgres(max_retries: int = 10, delay: int = 2) -> bool:
