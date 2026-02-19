@@ -1,0 +1,97 @@
+name: ✨ Feature Request
+description: Suggest a new feature or improvement
+labels: ["enhancement", "triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a feature! We appreciate your feedback and ideas.
+
+  - type: checkboxes
+    id: before-requesting
+    attributes:
+      label: Before Requesting
+      description: Have you checked these items?
+      options:
+        - label: I've searched for existing feature requests
+          required: true
+        - label: This feature doesn't already exist
+          required: true
+        - label: I've read the documentation
+          required: false
+
+  - type: textarea
+    id: problem-statement
+    attributes:
+      label: Problem Statement
+      description: |
+        Describe the problem or limitation you're facing.
+        What's the use case?
+      placeholder: |
+        Is your feature request related to a problem?
+        Example: "I'm always frustrated when..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution or feature you'd like to see
+      placeholder: |
+        How would you like this feature to work?
+        Provide examples if possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Solutions
+      description: Have you considered alternative approaches?
+      placeholder: |
+        Are there other ways to solve this problem?
+        What are the pros and cons?
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Examples or Use Cases
+      description: Provide concrete examples of how this feature would be used
+      placeholder: |
+        Example:
+        - Use case 1: ...
+        - Use case 2: ...
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature for you?
+      options:
+        - Low - Nice to have
+        - Medium - Would improve workflow
+        - High - Blocking important work
+        - Critical - Cannot work without it
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: |
+        Anything else?
+        - Links to related issues
+        - Screenshots or mockups
+        - Related libraries or tools
+      placeholder: Add any other context here...
+
+  - type: checkboxes
+    id: willing-to-contribute
+    attributes:
+      label: Would you be willing to help implement this feature?
+      options:
+        - label: I can submit a PR to implement this feature
