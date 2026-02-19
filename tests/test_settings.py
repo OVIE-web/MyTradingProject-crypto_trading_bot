@@ -71,7 +71,7 @@ def test_get_env_int_default(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ADMIN_PASSWORD", "test_password")
 
     reloaded_settings = reload_settings()
-    assert reloaded_settings.ACCESS_TOKEN_EXPIRE_MINUTES == 30  # type: ignore[attr-defined]
+    assert reloaded_settings.settings.ACCESS_TOKEN_EXPIRE_MINUTES == 30
 
 
 @pytest.mark.unit
