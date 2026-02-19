@@ -1,7 +1,7 @@
 # 🤖 Crypto Trading Bot
 
-[![CI/CD](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot/actions/workflows/build-and-test.yml/badge.svg?branch=main)](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot/actions)
-[![Security](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot/security/code-scanning)
+[![CI/CD](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot/actions/workflows/test.yml)
+[![Security](https://img.shields.io/badge/security-scanning-green)](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot/security/code-scanning)
 ![Python](https://img.shields.io/badge/python-3.12+-blue.svg?logo=python)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.111+-009688?logo=fastapi)
 ![Coverage](https://img.shields.io/badge/coverage-45%25-yellow)
@@ -12,15 +12,14 @@ A **modular, production-ready cryptocurrency trading bot** with a FastAPI backen
 
 ## 📋 Table of Contents
 
-- [Overview](#overview)
-- [Features](#features)
-- [Architecture](#architecture)
-- [Quick Start](#quick-start)
-- [Technology Stack](#technology-stack)
-- [Project Structure](#project-structure)
-- [Development](#development)
-- [Deployment](#deployment)
-- [Contributing](#contributing)
+- [overview](#-overview)
+- [Features](#-features)
+- [Architecture](#-architecture)
+- [Quick Start](#-quick-start)
+- [Technology Stack](#-technology-stack)
+- [Project Structure](#-project-structure)
+- [Development](#-development)
+- [Contributing](#-contributing)
 - [License](#license)
 
 ## 🎯 Overview
@@ -47,7 +46,7 @@ A **modular, production-ready cryptocurrency trading bot** with a FastAPI backen
 
 - **Intelligent Signal Generation**
   - ML-based entry/exit signal predictions
-  - Technical indicator analysis (RSI, MACD, Bollinger Bands)
+  - Technical indicator analysis (RSI, Simple Moving Averages,      Bollinger Bands)
   - Custom feature engineering pipeline
   - Real-time backtesting and validation
 
@@ -77,19 +76,19 @@ A **modular, production-ready cryptocurrency trading bot** with a FastAPI backen
   - Technical indicator charts
   - Trade history and analysis
 
-### DevOps & Deployment
+### DevOps & Quality
 
 - **Containerization**: Docker and Docker Compose
 - **Continuous Integration**: GitHub Actions with automated testing
 - **Security Scanning**: CodeQL for vulnerability detection
-- **Cloud Deployment**: Ready for Google Cloud Platform (Vertex AI, Cloud Run)
+- **Code Quality**: Ruff linting, MyPy type checking
+- **Testing**: Comprehensive pytest suite (59+ tests, 45%+ coverage)
 - **Database**: PostgreSQL for trade history and models
 
 ---
 
 ## 🏗️ Architecture
 
-```text
 ┌─────────────────────────────────────────────────────────────┐
 │                     Crypto Trading Bot                       │
 ├─────────────────────────────────────────────────────────────┤
@@ -124,11 +123,10 @@ A **modular, production-ready cryptocurrency trading bot** with a FastAPI backen
 │  │  ├─ Binance API (Market Data & Orders)             │   │
 │  │  ├─ Telegram Bot (Notifications)                   │   │
 │  │  ├─ Email Service (Alerts)                         │   │
-│  │  └─ Google Cloud Platform (Production)             │   │
+│  │  └─ Optional: Google Cloud Platform                │   │
 │  └──────────────────────────────────────────────────────┘   │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
-```
 
 ---
 
@@ -136,7 +134,7 @@ A **modular, production-ready cryptocurrency trading bot** with a FastAPI backen
 
 ### Prerequisites
 
-- Python 3.10+
+- Python 3.12+
 - Docker & Docker Compose
 - Binance API credentials (free account)
 - PostgreSQL 13+ (or use Docker)
@@ -192,7 +190,7 @@ docker-compose logs -f bot
 ### Backend & Core
 
 | Component | Technology | Purpose |
-|-----------|-----------|---------|
+| --- | --- | --- |
 | Framework | FastAPI | REST API and async task handling |
 | Language | Python 3.12 | Core trading logic |
 | Async Runtime | AsyncIO | Non-blocking I/O operations |
@@ -201,17 +199,17 @@ docker-compose logs -f bot
 ### Machine Learning
 
 | Component | Technology | Purpose |
-|-----------|------------|---------|
+| --- | --- | --- |
 | ML Framework | XGBoost | Trade signal prediction |
 | Data Processing | Pandas, NumPy | Feature engineering |
-| Technical Analysis | TA | Indicator calculations |
+| Technical Analysis | TA-Lib | Indicator calculations |
 | Experiment Tracking | MLflow | Model versioning and monitoring |
 | Data Science | Scikit-learn | Preprocessing and metrics |
 
 ### Data & Database
 
 | Component | Technology | Purpose |
-|-----------|------------|---------|
+| --- | --- | --- |
 | Primary DB | PostgreSQL 16 | Trade history and models |
 | ORM | SQLAlchemy 2.0 | Database abstraction |
 | Migrations | Alembic | Schema versioning |
@@ -219,7 +217,7 @@ docker-compose logs -f bot
 ### Frontend & Monitoring
 
 | Component | Technology | Purpose |
-|-----------|-----------|---------|
+| --- | --- | --- |
 | Dashboard | Streamlit | Real-time visualization |
 | Charting | Plotly | Interactive performance charts |
 | Notifications | Telegram Bot API | Real-time alerts |
@@ -227,13 +225,12 @@ docker-compose logs -f bot
 ### DevOps & Infrastructure
 
 | Component | Technology | Purpose |
-|-----------|-----------|----------|
+| --- | --- | --- |
 | Containerization | Docker & Docker Compose | Local development and deployment |
 | CI/CD | GitHub Actions | Automated testing and deployment |
 | Code Quality | Ruff, MyPy | Linting and type checking |
 | Testing | Pytest | Unit and integration tests |
 | Security | CodeQL | Vulnerability scanning |
-| Cloud | Google Cloud Platform | Production deployment |
 
 ### External APIs
 
@@ -245,7 +242,7 @@ docker-compose logs -f bot
 
 ## 📁 Project Structure
 
-```text
+`Project``
 crypto-trading-bot/
 ├── src/
 │   ├── bot_runner.py              # Main trading loop orchestrator
@@ -276,8 +273,7 @@ crypto-trading-bot/
 │
 ├── .github/
 │   ├── workflows/
-│   │   ├── build-and-test.yml     # CI pipeline
-│   │   └── codeql.yml             # Security scanning
+│   │   └── test.yml       # CI/CD pipeline
 │   └── ISSUE_TEMPLATE/
 │       ├── bug_report.yml
 │       └── feature_request.yml
@@ -292,9 +288,9 @@ crypto-trading-bot/
 ├── pytest.ini                      # Test configuration
 ├── CODE_OF_CONDUCT.md             # Community guidelines
 ├── CONTRIBUTING.md                # Contribution guide
+├── RulesFORAI.md                  # Standards for AI interaction
 ├── LICENSE                        # MIT License
 └── README.md                       # This file
-```
 
 ---
 
@@ -329,39 +325,11 @@ uv run python -m mypy src/
 uv run python -m pytest && uv run ruff format . && uv run mypy src/
 ```
 
-### Test Coverage Requirements
+### Test Coverage
 
-- **Minimum**: 70% code coverage
-- **Target**: 85%+ code coverage
-- **Critical paths**: 90%+ coverage
-
-Current coverage: **45%+** (improving with each contribution)
-
----
-
-## 🚢 Deployment
-
-### Google Cloud Platform (Recommended)
-
-The bot is optimized for GCP deployment with:
-
-- **Cloud Run**: Serverless container execution
-- **Cloud SQL**: Managed PostgreSQL database
-- **Vertex AI**: ML model management and monitoring
-- **Secret Manager**: Secure credential storage
-- **Cloud Build**: Automated CI/CD pipeline
-
-[Full GCP Deployment Guide](GCP_DEPLOYMENT_GUIDE.md)
-
-### Docker Production Build
-
-```bash
-# Build production image
-docker build -t crypto-trading-bot:latest -f Dockerfile --target api .
-
-# Push to registry
-docker push your-registry/crypto-trading-bot:latest
-```
+- **Current**: 45.44% (59 tests passing, 1 skipped)
+- **Target**: 70%+ minimum, 85%+ goal
+- **Critical Paths**: 90%+ coverage
 
 ---
 
@@ -395,20 +363,22 @@ if signal == 2 and validate_trade_conditions(data):
 ## 🔒 Security
 
 - **Environment variables**: Sensitive data via `.env`
-- **API keys**: Stored in Secret Manager (production)
+- **API keys**: Never committed to repository
 - **CodeQL scanning**: Automated vulnerability detection
 - **Type safety**: Full type hints with mypy checking
 - **Input validation**: Pydantic models for all inputs
+- **Database**: Encrypted connections and secure credentials
 
 ---
 
 ## 📈 Performance Metrics
 
-- **Test Coverage**: 45%+ and growing
+- **Test Coverage**: 45.44% (improving with each contribution)
 - **API Response Time**: < 200ms average
 - **Trade Execution**: Real-time (≤500ms order placement)
 - **Data Processing**: 100+ instruments/minute
 - **Model Inference**: < 50ms per prediction
+- **Code Quality**: 100% mypy checked, ruff compliant
 
 ---
 
@@ -421,6 +391,8 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for:
 - Testing requirements
 - Pull request process
 - Community guidelines
+
+All contributors must follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ---
 
@@ -436,6 +408,7 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) file
 - **XGBoost**: Machine learning predictions
 - **FastAPI**: Modern web framework
 - **Streamlit**: Rapid dashboard development
+- **PostgreSQL**: Reliable data storage
 - **Community**: All contributors and supporters
 
 ---
@@ -470,9 +443,10 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) file
 - [ ] Backtesting optimization (parallel processing)
 - [ ] More exchange integrations (Kraken, Coinbase)
 - [ ] Community strategy sharing
+- [ ] Cloud deployment guides (GCP, AWS, Azure)
 
 ---
 
-**Made with ❤️ by the Crypto Trading Bot Team**
+## Made with ❤️ by the Crypto Trading Bot Team
 
 ⭐ If you find this useful, please star the repository!

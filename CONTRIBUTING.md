@@ -35,7 +35,7 @@ git clone https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot.git
 cd MyTradingProject-crypto_trading_bot
 
 # Create virtual environment
-python -m venv .venv
+uv venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install UV package manager

@@ -53,7 +53,7 @@ Every bug, failed test, and broken pipeline became a stepping stone toward maste
                 └─────────────────┘
 Core Modules
 
-src/data_loader.py → Fetches & preprocesses live Binance data (via CCXT/Binance API)
+src/data_loader.py → Fetches & preprocesses live Binance data (via Binance API)
 
 src/feature_engineer.py → Calculates technical indicators (RSI, MACD, etc.)
 
