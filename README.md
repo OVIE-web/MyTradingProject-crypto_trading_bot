@@ -12,7 +12,7 @@ A **modular, production-ready cryptocurrency trading bot** with a FastAPI backen
 
 ## 📋 Table of Contents
 
-- [overview](#-overview)
+- [Overview](#-overview)
 - [Features](#-features)
 - [Architecture](#-architecture)
 - [Quick Start](#-quick-start)
@@ -20,7 +20,7 @@ A **modular, production-ready cryptocurrency trading bot** with a FastAPI backen
 - [Project Structure](#-project-structure)
 - [Development](#-development)
 - [Contributing](#-contributing)
-- [License](#license)
+- [License](#-license)
 
 ## 🎯 Overview
 
@@ -46,7 +46,7 @@ A **modular, production-ready cryptocurrency trading bot** with a FastAPI backen
 
 - **Intelligent Signal Generation**
   - ML-based entry/exit signal predictions
-  - Technical indicator analysis (RSI, Simple Moving Averages,      Bollinger Bands)
+  - Technical indicator analysis (RSI, MACD, Bollinger Bands)
   - Custom feature engineering pipeline
   - Real-time backtesting and validation
 
@@ -89,6 +89,7 @@ A **modular, production-ready cryptocurrency trading bot** with a FastAPI backen
 
 ## 🏗️ Architecture
 
+```
 ┌─────────────────────────────────────────────────────────────┐
 │                     Crypto Trading Bot                       │
 ├─────────────────────────────────────────────────────────────┤
@@ -127,6 +128,7 @@ A **modular, production-ready cryptocurrency trading bot** with a FastAPI backen
 │  └──────────────────────────────────────────────────────┘   │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -147,7 +149,7 @@ git clone https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot.git
 cd MyTradingProject-crypto_trading_bot
 
 # Create virtual environment
-uv venv
+python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 
 # Install dependencies
@@ -242,7 +244,7 @@ docker-compose logs -f bot
 
 ## 📁 Project Structure
 
-`Project``
+```
 crypto-trading-bot/
 ├── src/
 │   ├── bot_runner.py              # Main trading loop orchestrator
@@ -273,7 +275,7 @@ crypto-trading-bot/
 │
 ├── .github/
 │   ├── workflows/
-│   │   └── test.yml       # CI/CD pipeline
+│   │   └── test.yml               # CI/CD pipeline
 │   └── ISSUE_TEMPLATE/
 │       ├── bug_report.yml
 │       └── feature_request.yml
@@ -291,6 +293,7 @@ crypto-trading-bot/
 ├── RulesFORAI.md                  # Standards for AI interaction
 ├── LICENSE                        # MIT License
 └── README.md                       # This file
+```
 
 ---
 
@@ -447,6 +450,6 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) file
 
 ---
 
-## Made with ❤️ by the Crypto Trading Bot Team
+**Made with ❤️ by the Crypto Trading Bot Team**
 
 ⭐ If you find this useful, please star the repository!
