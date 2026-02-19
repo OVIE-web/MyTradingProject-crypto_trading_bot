@@ -6,7 +6,7 @@ from src.config import DATABASE_URL
 
 
 @pytest.mark.integration
-def test_database_connection(monkeypatch) -> None:
+def test_database_connection(monkeypatch: pytest.MonkeyPatch) -> None:
     """Ensure database connection works with test configuration."""
     # Use test database URL
     test_db_url = DATABASE_URL.replace("/tradingbot", "/tradingbot_test")

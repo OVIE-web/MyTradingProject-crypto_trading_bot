@@ -1,6 +1,7 @@
 """Tests for data_loader module."""
 
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
@@ -77,3 +78,60 @@ def test_load_and_preprocess_data_missing_timestamp(tmp_path: Path) -> None:
     # The function should raise ValueError because required columns are missing
     with pytest.raises(ValueError, match="Invalid data schema. Missing required columns"):
         load_and_preprocess_data(str(file_path))
+
+
+@pytest.fixture
+def dummy_csv_no_nans(tmp_path: Path) -> Path:
+    """Creates a temporary CSV file with no NaNs."""
+    file_path = tmp_path / "dummy_no_nan_data.csv"
+    df_data = {
+        "timestamp": pd.date_range(start="2023-01-01", periods=5, freq="D"),
+        "open": [100, 101, 102, 103, 104],
+        "high": [105, 106, 107, 108, 109],
+        "low": [95, 96, 97, 98, 99],
+        "close": [102, 103, 104, 105, 106],
+        "volume": [1000, 1010, 1020, 1030, 1040],
+    }
+    pd.DataFrame(df_data).to_csv(file_path, index=False)
+    return file_path
+
+
+@pytest.fixture
+def dummy_csv_all_invalid_ts(tmp_path: Path) -> Path:
+    """Creates a temporary CSV file where all timestamps are invalid."""
+    file_path = tmp_path / "invalid_ts_data.csv"
+    df_data = {
+        "timestamp": ["invalid1", "invalid2", "invalid3"],
+        "open": [100, 101, 102],
+        "high": [105, 106, 107],
+        "low": [95, 96, 97],
+        "close": [102, 103, 104],
+        "volume": [1000, 1010, 1020],
+    }
+    pd.DataFrame(df_data).to_csv(file_path, index=False)
+    return file_path
+
+
+def test_load_and_preprocess_data_no_nan_handling(dummy_csv_no_nans: Path) -> None:
+    """Test that load_and_preprocess_data works correctly with data containing no NaNs."""
+    df = load_and_preprocess_data(str(dummy_csv_no_nans))
+    assert not df.isnull().any().any()
+    assert df.shape == (5, 5)
+
+
+def test_load_and_preprocess_data_all_invalid_timestamps(
+    dummy_csv_all_invalid_ts: Path,
+) -> None:
+    """Test that a ValueError is raised if all timestamps are invalid."""
+    with pytest.raises(
+        ValueError, match="All rows have invalid or missing timestamps. No data to process."
+    ):
+        load_and_preprocess_data(str(dummy_csv_all_invalid_ts))
+
+
+def test_load_and_preprocess_data_generic_exception() -> None:
+    """Test that a generic Exception during pd.read_csv is caught and re-raised."""
+    with patch("pandas.read_csv", side_effect=Exception("mocked error")):
+        with pytest.raises(Exception, match="mocked error"):
+            load_and_preprocess_data("any_file.csv")
+

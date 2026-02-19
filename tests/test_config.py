@@ -4,7 +4,7 @@ from src.config import Config
 
 
 @pytest.mark.unit
-def test_initial_balance(monkeypatch):
+def test_initial_balance(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test default initial balance."""
     monkeypatch.delenv("INITIAL_BALANCE", raising=False)
     cfg = Config()
@@ -12,7 +12,7 @@ def test_initial_balance(monkeypatch):
 
 
 @pytest.mark.unit
-def test_default_values(monkeypatch):
+def test_default_values(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test default trading configuration values."""
     # Clear env vars to force defaults
     monkeypatch.delenv("TRADE_SYMBOL", raising=False)
@@ -28,7 +28,7 @@ def test_default_values(monkeypatch):
 
 
 @pytest.mark.unit
-def test_custom_env(monkeypatch):
+def test_custom_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test custom environment variables are loaded correctly."""
     monkeypatch.setenv("TRADE_SYMBOL", "ETHUSDT")
     monkeypatch.setenv("TRADE_INTERVAL", "1h")
@@ -54,7 +54,7 @@ def test_custom_env(monkeypatch):
 
 
 @pytest.mark.unit
-def test_database_url():
+def test_database_url() -> None:
     """Test database URL is properly configured."""
     cfg = Config()
 
@@ -67,7 +67,7 @@ def test_database_url():
 
 
 @pytest.mark.unit
-def test_jwt_settings():
+def test_jwt_settings() -> None:
     """Test JWT configuration is properly set."""
     cfg = Config()
 
