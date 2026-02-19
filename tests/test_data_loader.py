@@ -134,4 +134,3 @@ def test_load_and_preprocess_data_generic_exception() -> None:
     with patch("pandas.read_csv", side_effect=Exception("mocked error")):
         with pytest.raises(Exception, match="mocked error"):
             load_and_preprocess_data("any_file.csv")
-
