@@ -205,7 +205,7 @@ opentelemetry-semantic-conventions==0.59b0
     # via opentelemetry-sdk
 orjson==3.11.4
     # via fastapi
-packaging==24.2
+packaging==26.0
     # via
     #   altair
     #   matplotlib
