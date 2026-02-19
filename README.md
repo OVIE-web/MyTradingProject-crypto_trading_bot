@@ -1,11 +1,11 @@
 # 🤖 Crypto Trading Bot
 
-[![Build & Test](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot/actions/workflows/build-and-test.yml/badge.svg?branch=main)](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot/actions/workflows/build-and-test.yml)
-[![CodeQL](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot/actions/workflows/codeql.yml)
-![Python](https://img.shields.io/badge/python-3.12+-blue.svg)
+[![CI/CD](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot/actions/workflows/build-and-test.yml/badge.svg?branch=main)](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot/actions)
+[![Security](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot/security/code-scanning)
+![Python](https://img.shields.io/badge/python-3.12+-blue.svg?logo=python)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.111+-009688?logo=fastapi)
-![Type Checked](https://img.shields.io/badge/mypy-checked-blueviolet)
-![Code Coverage](https://img.shields.io/badge/coverage-45%25-yellow)
+![Coverage](https://img.shields.io/badge/coverage-45%25-yellow)
+![Type Checking](https://img.shields.io/badge/mypy-checked-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 A **modular, production-ready cryptocurrency trading bot** with a FastAPI backend, machine learning-powered trade predictions, and real-time portfolio management.
