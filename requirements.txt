@@ -163,7 +163,7 @@ markupsafe==3.0.3
     #   jinja2
     #   mako
     #   werkzeug
-matplotlib==3.10.7
+matplotlib==3.10.8
     # via
     #   crypto-trading-bot-1 (pyproject.toml)
     #   mlflow

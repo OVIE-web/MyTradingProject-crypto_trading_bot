@@ -48,7 +48,7 @@ install_requires: list[str] = [
     "imbalanced-learn==0.12.4",
     "joblib==1.5.1",
     # --- Visualization & Dashboard ---
-    "matplotlib==3.10.7",
+    "matplotlib==3.10.8",
     "plotly==6.1.2",
     "streamlit==1.53.1",
     # --- Experiment Tracking ---
