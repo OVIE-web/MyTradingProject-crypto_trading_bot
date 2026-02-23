@@ -70,7 +70,7 @@ extras_require: dict[str, list[str]] = {
         "pip-tools==7.4.1",
         "types-requests==2.33.0.20250130",
         "types-psycopg2==2.9.21.15",
-        "types-python-jose==3.3.8.20240106",
+        "types-python-jose==3.5.0.20250531",
         "types-passlib==1.7.7.20240106",
         "pandas-stubs==2.3.2.250926",
     ],
