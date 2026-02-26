@@ -175,7 +175,7 @@ matplotlib==3.10.8
     #   mlflow
 mdurl==0.1.2
     # via markdown-it-py
-mlflow==2.13.0
+mlflow==3.10.0
     # via crypto-trading-bot-1 (pyproject.toml)
 multidict==6.7.0
     # via

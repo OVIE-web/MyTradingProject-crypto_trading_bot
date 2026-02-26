@@ -64,7 +64,7 @@ dependencies = [
     "plotly==6.1.2",
     "streamlit>=1.28.0",
     # --- ML Experiment Tracking ---
-    "mlflow==2.13.0",
+    "mlflow==3.10.0",
     # --- Templates ---
     "jinja2==3.1.6",
     # --- Async & Concurrency ---

@@ -52,7 +52,7 @@ install_requires: list[str] = [
     "plotly==6.1.2",
     "streamlit==1.53.1",
     # --- Experiment Tracking ---
-    "mlflow==2.13.0",
+    "mlflow==3.10.0",
     # --- Templates ---
     "jinja2==3.1.6",
 ]
