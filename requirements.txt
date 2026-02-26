@@ -79,7 +79,7 @@ entrypoints==0.4
     # via mlflow
 fastapi==0.111.0
     # via crypto-trading-bot-1 (pyproject.toml)
-fastapi-cli==0.0.16
+fastapi-cli==0.0.23
     # via fastapi
 flask==3.1.2
     # via mlflow
