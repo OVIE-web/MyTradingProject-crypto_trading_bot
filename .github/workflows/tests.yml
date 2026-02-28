@@ -9,6 +9,8 @@ on:
 
 jobs:
   build-and-test:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
 
     env:
