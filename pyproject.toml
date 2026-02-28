@@ -50,7 +50,7 @@ dependencies = [
     # --- Authentication & Security ---
     "passlib>=1.7.4",
     "bcrypt>=3.2.2",
-    "python-jose==3.3.0",
+    "python-jose==3.4.0",
     "email-validator==2.3.0",
     # --- Data Science & ML ---
     "pandas==2.3.0",

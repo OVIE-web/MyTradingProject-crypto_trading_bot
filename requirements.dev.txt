@@ -310,7 +310,7 @@ python-dotenv==1.1.1
     #   crypto-trading-bot-1 (pyproject.toml)
     #   pydantic-settings
     #   uvicorn
-python-jose==3.3.0
+python-jose==3.4.0
     # via crypto-trading-bot-1 (pyproject.toml)
 python-multipart==0.0.20
     # via
