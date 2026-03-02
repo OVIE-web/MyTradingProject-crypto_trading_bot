@@ -66,7 +66,7 @@ extras_require: dict[str, list[str]] = {
         "pytest-cov==6.0.0",
         "mypy==1.13.0",
         "ruff==0.8.4",
-        "watchfiles==1.1.0",
+        "watchfiles==1.1.1",
         "pip-tools==7.4.1",
         "types-requests==2.33.0.20250130",
         "types-psycopg2==2.9.21.15",
