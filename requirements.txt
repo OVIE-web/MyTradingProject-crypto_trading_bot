@@ -126,7 +126,7 @@ idna==3.11
     #   yarl
 imbalanced-learn==0.12.4
     # via crypto-trading-bot-1 (pyproject.toml)
-importlib-metadata==7.2.1
+importlib-metadata==8.7.1
     # via
     #   mlflow
     #   opentelemetry-api
