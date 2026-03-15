@@ -453,7 +453,7 @@ tzlocal==5.3.1
     # via dateparser
 ujson==5.11.0
     # via fastapi
-urllib3==2.5.0
+urllib3==2.6.3
     # via
     #   docker
     #   requests
