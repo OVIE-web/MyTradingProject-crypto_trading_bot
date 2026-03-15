@@ -388,7 +388,7 @@ sqlalchemy==2.0.46
     #   mlflow
 sqlparse==0.5.3
     # via mlflow
-starlette==0.37.2
+starlette==0.49.1
     # via fastapi
 streamlit==1.53.1
     # via crypto-trading-bot-1 (pyproject.toml)
