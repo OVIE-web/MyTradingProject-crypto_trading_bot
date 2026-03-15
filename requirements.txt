@@ -79,7 +79,7 @@ entrypoints==0.4
     # via mlflow
 fastapi==0.111.0
     # via crypto-trading-bot-1 (pyproject.toml)
-fastapi-cli==0.0.16
+fastapi-cli==0.0.24
     # via fastapi
 flask==3.1.2
     # via mlflow
@@ -91,7 +91,7 @@ frozenlist==1.8.0
     #   aiosignal
 gitdb==4.0.12
     # via gitpython
-gitpython==3.1.45
+gitpython==3.1.46
     # via
     #   mlflow
     #   streamlit
@@ -103,7 +103,7 @@ graphql-core==3.2.7
     #   graphql-relay
 graphql-relay==3.2.0
     # via graphene
-greenlet==3.2.4
+greenlet==3.3.2
     # via sqlalchemy
 h11==0.16.0
     # via
@@ -126,7 +126,7 @@ idna==3.11
     #   yarl
 imbalanced-learn==0.12.4
     # via crypto-trading-bot-1 (pyproject.toml)
-importlib-metadata==7.2.1
+importlib-metadata==8.7.1
     # via
     #   mlflow
     #   opentelemetry-api
@@ -163,13 +163,13 @@ markupsafe==3.0.3
     #   jinja2
     #   mako
     #   werkzeug
-matplotlib==3.10.7
+matplotlib==3.10.8
     # via
     #   crypto-trading-bot-1 (pyproject.toml)
     #   mlflow
 mdurl==0.1.2
     # via markdown-it-py
-mlflow==2.13.0
+mlflow==3.10.0
     # via crypto-trading-bot-1 (pyproject.toml)
 multidict==6.7.0
     # via
@@ -220,7 +220,7 @@ pandas==2.3.0
     #   ta
 passlib==1.7.4
     # via crypto-trading-bot-1 (pyproject.toml)
-pillow==12.0.0
+pillow==12.1.1
     # via
     #   matplotlib
     #   streamlit
@@ -230,7 +230,7 @@ propcache==0.4.1
     # via
     #   aiohttp
     #   yarl
-protobuf==4.25.8
+protobuf==7.34.0
     # via
     #   mlflow
     #   streamlit
@@ -276,7 +276,7 @@ python-dotenv==1.1.1
     #   crypto-trading-bot-1 (pyproject.toml)
     #   pydantic-settings
     #   uvicorn
-python-jose==3.3.0
+python-jose==3.4.0
     # via crypto-trading-bot-1 (pyproject.toml)
 python-multipart==0.0.20
     # via
@@ -354,7 +354,7 @@ sqlalchemy==2.0.46
     #   mlflow
 sqlparse==0.5.3
     # via mlflow
-starlette==0.37.2
+starlette==0.49.1
     # via fastapi
 streamlit==1.53.1
     # via crypto-trading-bot-1 (pyproject.toml)
@@ -405,7 +405,7 @@ tzlocal==5.3.1
     # via dateparser
 ujson==5.11.0
     # via fastapi
-urllib3==2.5.0
+urllib3==2.6.3
     # via
     #   docker
     #   requests

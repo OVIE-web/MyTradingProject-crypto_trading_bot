@@ -48,11 +48,11 @@ install_requires: list[str] = [
     "imbalanced-learn==0.12.4",
     "joblib==1.5.1",
     # --- Visualization & Dashboard ---
-    "matplotlib==3.10.7",
+    "matplotlib==3.10.8",
     "plotly==6.1.2",
     "streamlit==1.53.1",
     # --- Experiment Tracking ---
-    "mlflow==2.13.0",
+    "mlflow==3.10.0",
     # --- Templates ---
     "jinja2==3.1.6",
 ]
@@ -66,11 +66,11 @@ extras_require: dict[str, list[str]] = {
         "pytest-cov==6.0.0",
         "mypy==1.13.0",
         "ruff==0.8.4",
-        "watchfiles==1.1.0",
+        "watchfiles==1.1.1",
         "pip-tools==7.4.1",
         "types-requests==2.33.0.20250130",
         "types-psycopg2==2.9.21.15",
-        "types-python-jose==3.3.8.20240106",
+        "types-python-jose==3.5.0.20250531",
         "types-passlib==1.7.7.20240106",
         "pandas-stubs==2.3.2.250926",
     ],
