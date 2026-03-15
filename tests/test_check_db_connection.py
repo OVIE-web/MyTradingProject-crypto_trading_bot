@@ -1,3 +1,5 @@
+"""Test database connection"""
+
 import psycopg2
 import pytest
 from psycopg2 import OperationalError

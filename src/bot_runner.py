@@ -19,10 +19,10 @@ from src.config import ATR_WINDOW, FEATURE_COLUMNS, INITIAL_CANDLES_HISTORY
 from src.db import SessionLocal, Trade
 from src.feature_engineer import calculate_technical_indicators
 from src.model_manager import load_trained_model, make_predictions
-from src.notification import send_email_notification as send_email_sync
-from src.notification import send_telegram_notification
-from src.notifier import TelegramNotifier
-from src.notifier import send_email_notification as send_email_async_safe
+from src.notifications.notification import send_email_notification as send_email_sync
+from src.notifications.notification import send_telegram_notification
+from src.notifications.notifier import TelegramNotifier
+from src.notifications.notifier import send_email_notification as send_email_async_safe
 
 LOG = logging.getLogger("bot_runner")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")

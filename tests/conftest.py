@@ -1,3 +1,5 @@
+"""Configuration for pytest fixtures and test environment setup."""
+
 import os
 import sys
 import warnings

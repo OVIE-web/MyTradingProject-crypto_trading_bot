@@ -1,4 +1,4 @@
-# tests/test_backtester.py
+"""Test for backtester"""
 
 import numpy as np
 import pandas as pd

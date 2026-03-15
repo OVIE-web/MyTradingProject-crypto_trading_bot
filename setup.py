@@ -77,7 +77,7 @@ extras_require: dict[str, list[str]] = {
 }
 
 setup(
-    name="crypto-trading-bot-1",
+    name="crypto-trading-bot",
     version="1.1.0",
     author="Ovie",
     author_email="oviemsaniyo30@gmail.com",

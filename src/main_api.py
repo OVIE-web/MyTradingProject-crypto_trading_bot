@@ -9,12 +9,12 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 
 from src.auth import authenticate_user, create_access_token, get_current_user
-from src.routers import trades
+from src.routers import predict, trades
 from src.settings import settings
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Crypto Trading Bot API", version="1.0")
+app = FastAPI(title="Crypto Trading Bot API", version="1.0.0-beta")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
@@ -23,6 +23,7 @@ class Token(BaseModel):
     token_type: str
 
 
+app.include_router(predict.router, prefix="/trades", tags=["Predict"])
 app.include_router(trades.router, prefix="/trades", tags=["Trades"])
 
 

@@ -1,3 +1,5 @@
+"""Test for Postgres connection"""
+
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest

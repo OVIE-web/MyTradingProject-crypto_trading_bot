@@ -14,6 +14,10 @@ from src.config import DATABASE_URL
 from src.db import Trade, init_db
 
 # Ensure project root is in import path
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logger = logging.getLogger(__name__)
+
+# Ensure project root is in import path
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 
@@ -30,10 +34,10 @@ def init_database(is_test: bool = False) -> None:
     try:
         init_db()
         trades = Trade()
-        logging.info(f"📊 Tables in database: {trades}")
-        logging.info("✅ Database initialization complete.")
+        logger.info(f"📊 Tables in database: {trades}")
+        logger.info("✅ Database initialization complete.")
     except Exception as e:
-        logging.critical(f"❌ Database initialization failed: {e}", exc_info=True)
+        logger.critical(f"❌ Database initialization failed: {e}", exc_info=True)
         sys.exit(1)
 
 
@@ -50,8 +54,6 @@ def main() -> None:
     value for --test.
 
     """
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-
     parser = argparse.ArgumentParser(description="Initialize the database schema.")
     parser.add_argument(
         "--test", action="store_true", help="Initialize test database instead of main database"

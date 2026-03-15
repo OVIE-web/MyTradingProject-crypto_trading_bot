@@ -1,3 +1,5 @@
+"""Test configuration module"""
+
 import pytest
 
 from src.config import Config

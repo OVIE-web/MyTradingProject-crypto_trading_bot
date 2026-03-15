@@ -36,7 +36,7 @@ from src.model_manager import (
     prepare_model_data,
     train_xgboost_model,
 )
-from src.notifier import TelegramNotifier, send_email_notification
+from src.notifications.notifier import TelegramNotifier, send_email_notification
 from src.visualizer import visualize_trading_results
 
 # -------------------- Setup --------------------
@@ -230,7 +230,7 @@ async def main(train: bool = False, mode: str = "backtest") -> None:
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Crypto Trading Bot")
+    parser = argparse.ArgumentParser(description="Trading Bot")
     parser.add_argument("--train", action="store_true", help="Force retrain model before trading.")
     parser.add_argument(
         "--mode", choices=["backtest", "live"], default="backtest", help="Choose operation mode."

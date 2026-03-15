@@ -1,0 +1,30 @@
+# Handle line endings automatically for files detected as text
+# and truly force LF for all text files unless otherwise specified.
+* text=auto eol=lf
+
+# Explicitly set line endings for specific file types
+*.py text eol=lf
+*.sh text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.sql text eol=lf
+
+# Windows specific files may require CRLF
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Ensure Makefiles use LF
+Makefile text eol=lf
+
+# Mark binary files to prevent line ending conversion
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pkl binary
+*.joblib binary
+*.pdf binary

@@ -1,3 +1,7 @@
+"""
+Integration tests for model execution and inference.
+"""
+
 from pathlib import Path
 
 import numpy as np

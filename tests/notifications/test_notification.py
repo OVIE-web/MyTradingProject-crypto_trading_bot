@@ -1,3 +1,7 @@
+"""
+Tests for email and telegram notification functionality.
+"""
+
 from collections.abc import Generator
 from typing import Any
 from unittest.mock import MagicMock, patch

@@ -4,7 +4,7 @@ import json
 import logging
 import os
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
@@ -12,7 +12,7 @@ import xgboost as xgb
 from dotenv import load_dotenv
 from numpy.typing import NDArray
 from pytz import UTC
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sklearn.model_selection import train_test_split
 
 load_dotenv()
@@ -127,6 +127,136 @@ if USE_MODEL_REGISTRY:
 
 
 # -----------------------------------------------------------------
+# Model Evaluation Functions
+# -----------------------------------------------------------------
+def get_classification_report(
+    y_true: NDArray[Any],
+    y_pred: NDArray[Any],
+    target_names: list[str] | None = None,
+    as_dict: bool = False,
+) -> str | dict[str, Any]:
+    """
+    Generate detailed classification report.
+
+    Args:
+        y_true: Ground truth labels
+        y_pred: Predicted labels
+        target_names: Optional names for target classes
+        as_dict: Return as dictionary instead of formatted string
+
+    Returns:
+        Classification report (string or dict)
+    """
+    if target_names is None:
+        target_names = [str(i) for i in sorted(np.unique(y_true))]
+
+    report = classification_report(
+        y_true,
+        y_pred,
+        target_names=target_names,
+        output_dict=as_dict,
+        zero_division=0,
+    )
+
+    if not as_dict:
+        logger.info(f"\n📊 Classification Report:\n{report}")
+    else:
+        logger.info(f"Classification Report (dict): {report}")
+
+    return cast(str | dict[str, Any], report)
+
+
+def get_confusion_matrix_report(
+    y_true: NDArray[Any],
+    y_pred: NDArray[Any],
+    labels: list[int] | None = None,
+) -> dict[str, Any]:
+    """
+    Generate confusion matrix with detailed statistics.
+
+    Args:
+        y_true: Ground truth labels
+        y_pred: Predicted labels
+        labels: Optional list of label indices
+
+    Returns:
+        Dictionary containing confusion matrix and derived metrics
+    """
+    cm = confusion_matrix(y_true, y_pred, labels=labels)
+
+    # Calculate metrics from confusion matrix
+    report = {
+        "confusion_matrix": cm.tolist(),
+        "matrix_shape": cm.shape,
+    }
+
+    # Per-class metrics
+    n_classes = cm.shape[0]
+    for i in range(n_classes):
+        tp = cm[i, i]
+        fp = cm[:, i].sum() - tp
+        fn = cm[i, :].sum() - tp
+        tn = cm.sum() - tp - fp - fn
+
+        precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+        recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+        f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+
+        report[f"class_{i}"] = {
+            "true_positives": int(tp),
+            "false_positives": int(fp),
+            "false_negatives": int(fn),
+            "true_negatives": int(tn),
+            "precision": float(precision),
+            "recall": float(recall),
+            "f1_score": float(f1),
+        }
+
+    logger.info(f"\n🔍 Confusion Matrix Report:\n{cm}")
+    logger.info(f"Per-class metrics: {json.dumps(report, indent=2)}")
+
+    return report
+
+
+def evaluate_model(
+    model: xgb.XGBClassifier,
+    X_test: NDArray[Any],
+    y_test: NDArray[Any],
+) -> dict[str, Any]:
+    """
+    Comprehensive model evaluation.
+
+    Args:
+        model: Trained XGBoost classifier
+        X_test: Test features
+        y_test: Test labels
+
+    Returns:
+        Dictionary containing all evaluation metrics
+    """
+    y_pred = model.predict(X_test)
+    y_pred_proba = model.predict_proba(X_test)
+
+    accuracy = accuracy_score(y_test, y_pred)
+
+    # Get reports
+    clf_report = get_classification_report(y_test, y_pred, as_dict=True)
+    cm_report = get_confusion_matrix_report(y_test, y_pred)
+
+    evaluation = {
+        "accuracy": float(accuracy),
+        "classification_report": clf_report,
+        "confusion_matrix_report": cm_report,
+        "predictions": y_pred.tolist(),
+        "probabilities": y_pred_proba.tolist(),
+    }
+
+    logger.info(f"\n✅ Overall Accuracy: {accuracy:.4f}")
+
+    return evaluation
+
+
+# -----------------------------------------------------------------
 # Model Training
 # -----------------------------------------------------------------
 def train_xgboost_model(
@@ -153,6 +283,9 @@ def train_xgboost_model(
 
     logger.info("Model trained — accuracy=%.4f", accuracy)
 
+    # Get detailed evaluation
+    evaluation = evaluate_model(model, X_test, y_test)
+
     # Ensure directory exists
     os.makedirs(os.path.dirname(os.path.abspath(save_path)), exist_ok=True)
     model.save_model(save_path)
@@ -163,6 +296,7 @@ def train_xgboost_model(
         "model_path": save_path,
         "accuracy": accuracy,
         "trained_at": datetime.now(UTC).isoformat(),
+        "evaluation": evaluation,
     }
 
     try:

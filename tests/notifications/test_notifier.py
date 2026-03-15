@@ -1,3 +1,7 @@
+"""
+Unit tests for the Telegram and Email notifier service.
+"""
+
 import asyncio
 from collections.abc import Generator
 from typing import Any
@@ -6,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
-from src.notifier import TelegramNotifier, send_email_notification
+from src.notifications.notifier import TelegramNotifier, send_email_notification
 
 
 @pytest.fixture
@@ -28,7 +32,7 @@ def mock_env(monkeypatch: MonkeyPatch) -> Generator[None, Any, None]:
 @pytest.mark.usefixtures("mock_env")
 def test_telegram_notifier_init(mock_env: None) -> None:
     """✅ Ensure TelegramNotifier initializes properly."""
-    with patch("src.notifier.Bot", return_value=MagicMock()) as mock_bot:
+    with patch("src.notifications.notifier.Bot", return_value=MagicMock()) as mock_bot:
         notifier = TelegramNotifier()
         assert notifier.enabled is True
         assert notifier.bot == mock_bot.return_value
@@ -38,7 +42,7 @@ def test_telegram_notifier_init(mock_env: None) -> None:
 @pytest.mark.usefixtures("mock_env")
 def test_telegram_notifier_send_message_success(mock_env: None) -> None:
     """✅ Test successful Telegram send with async support."""
-    with patch("src.notifier.Bot") as mock_bot:
+    with patch("src.notifications.notifier.Bot") as mock_bot:
         mock_instance = mock_bot.return_value
         # Make send_message awaitable
         mock_instance.send_message = AsyncMock(return_value=True)
@@ -61,7 +65,7 @@ def test_telegram_notifier_send_message_success(mock_env: None) -> None:
 @pytest.mark.usefixtures("mock_env")
 def test_telegram_notifier_send_message_failure(mock_env: None) -> None:
     """❌ Test retry and failure logging when message fails to send."""
-    with patch("src.notifier.Bot") as mock_bot:
+    with patch("src.notifications.notifier.Bot") as mock_bot:
         mock_instance = mock_bot.return_value
         # Make send_message raise an exception
         mock_instance.send_message = AsyncMock(side_effect=Exception("Network failure"))
@@ -112,7 +116,7 @@ def test_send_email_notification_failure(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setenv("EMAIL_TO", "receiver@test.com")
 
     with patch("smtplib.SMTP", side_effect=Exception("SMTP Failure")):
-        with patch("src.notifier.logger.error") as mock_log:
+        with patch("src.notifications.notifier.logger.error") as mock_log:
             result = send_email_notification("Subject Fail", "Body Fail")
 
             assert result is False

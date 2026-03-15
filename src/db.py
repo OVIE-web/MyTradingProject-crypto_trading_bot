@@ -44,10 +44,10 @@ class Trade(Base):
         nullable=False,
     )
 
-    order_id: Mapped[str | None] = mapped_column(String(50), unique=True)
-    fill_price: Mapped[float | None] = mapped_column(Numeric(20, 8))
-    commission: Mapped[float | None] = mapped_column(Numeric(20, 8))
-    commission_asset: Mapped[str | None] = mapped_column(String(10))
+    # order_id: Mapped[str | None] = mapped_column(String(50), unique=True)
+    # fill_price: Mapped[float | None] = mapped_column(Numeric(20, 8))
+    # commission: Mapped[float | None] = mapped_column(Numeric(20, 8))
+    # commission_asset: Mapped[str | None] = mapped_column(String(10))
 
 
 # --------------------------------------------------------------------------
@@ -96,3 +96,14 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+
+
+if __name__ == "__main__":
+    import sys
+    from pathlib import Path
+
+    # Add project root to path
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+
+    init_db()
+    logging.info("✅ Database initialized!")

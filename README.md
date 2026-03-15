@@ -3,7 +3,7 @@
 [![Security](https://img.shields.io/badge/security-scanning-green)](https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot/security/code-scanning)
 ![Python](https://img.shields.io/badge/python-3.12+-blue.svg?logo=python)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.111+-009688?logo=fastapi)
-![Coverage](https://img.shields.io/badge/coverage-45%25-yellow)
+![Coverage](https://img.shields.io/badge/coverage-65%25-yellow)
 ![Type Checking](https://img.shields.io/badge/mypy-checked-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -29,7 +29,7 @@ A **modular, production-ready cryptocurrency trading bot** with a FastAPI backen
 
 - **Automated Trading**: Real-time trade execution on Binance
 - **ML-Powered Predictions**: XGBoost models for entry/exit signals
-- **Technical Analysis**: RSI, MACD, Bollinger Bands, and custom indicators
+- **Technical Analysis**: RSI, Long/Short Moving Averages, Bollinger Bands, and custom indicators
 - **Portfolio Management**: Real-time balance tracking and risk management
 - **REST API**: FastAPI backend for programmatic access
 - **Web Dashboard**: Streamlit frontend for visualization and monitoring
@@ -321,10 +321,11 @@ uv run ruff format src/ tests/
 uv run ruff check src/ tests/
 
 # Type checking
-uv run python -m mypy src/
+uv run python -m mypy --config-file pyproject.toml src tests
+uv run python -m mypy --config-file mypy.ini src tests
 
 # All checks
-uv run python -m pytest && uv run ruff format . && uv run mypy src/
+uv run python -m pytest && uv run ruff format . && uv run python -m mypy --config-file pyproject.toml src tests && uv run python -m mypy --config-file mypy.ini src tests
 ```
 
 ### Test Coverage

@@ -1,4 +1,7 @@
-# File: tests/notifications/conftest.py
+"""
+Shared fixtures for notification and notifier tests.
+"""
+
 from collections.abc import Generator
 from typing import Any
 

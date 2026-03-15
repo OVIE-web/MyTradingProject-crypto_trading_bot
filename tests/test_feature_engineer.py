@@ -1,4 +1,4 @@
-# tests/test_feature_engineer.py
+"""Test for feature engineering module"""
 
 import numpy as np
 import pandas as pd

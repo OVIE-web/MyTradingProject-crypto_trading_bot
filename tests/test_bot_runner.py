@@ -1,3 +1,5 @@
+"""Test for bot runner module"""
+
 import logging
 from typing import Any
 from unittest.mock import MagicMock

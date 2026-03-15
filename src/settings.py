@@ -57,6 +57,13 @@ class Settings:
     ADMIN_USERNAME: Final[str] = _get_env("ADMIN_USERNAME")
     ADMIN_PASSWORD: Final[str] = _get_env("ADMIN_PASSWORD")
 
+    # ------------------------
+    # Version
+    # ------------------------
+
+    VERSION = "1.0.0-beta"
+    BUILD_DATE = "2026-02-21"
+
 
 settings = Settings()
 

@@ -1,3 +1,5 @@
+"""Test for Binance Manager"""
+
 import importlib
 from collections.abc import Generator
 from typing import Any
