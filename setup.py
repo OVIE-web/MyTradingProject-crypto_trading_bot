@@ -45,7 +45,7 @@ install_requires: list[str] = [
     "numpy==1.26.4",
     "scikit-learn==1.3.2",
     "xgboost==3.0.2",
-    "imbalanced-learn==0.12.4",
+    "imbalanced-learn==0.14.1",
     "joblib==1.5.1",
     # --- Visualization & Dashboard ---
     "matplotlib==3.10.8",
