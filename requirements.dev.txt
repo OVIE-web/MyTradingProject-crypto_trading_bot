@@ -128,7 +128,7 @@ idna==3.11
     #   httpx
     #   requests
     #   yarl
-imbalanced-learn==0.12.4
+imbalanced-learn==0.14.1
     # via crypto-trading-bot-1 (pyproject.toml)
 importlib-metadata==8.7.1
     # via
