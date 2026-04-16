@@ -72,7 +72,7 @@ extras_require: dict[str, list[str]] = {
         "types-psycopg2==2.9.21.15",
         "types-python-jose==3.5.0.20250531",
         "types-passlib==1.7.7.20240106",
-        "pandas-stubs==2.3.2.250926",
+        "pandas-stubs==3.0.0.260204",
     ],
 }
 

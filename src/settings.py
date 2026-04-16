@@ -61,7 +61,7 @@ class Settings:
     # Version
     # ------------------------
 
-    VERSION = "1.0.0-beta"
+    VERSION = "0.0.1-beta"
     BUILD_DATE = "2026-02-21"
 
 

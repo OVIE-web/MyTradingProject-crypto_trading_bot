@@ -119,6 +119,14 @@ if command -v code &> /dev/null; then
     code .
 fi
 
+$password = $env:ADMIN_PASSWORD
+$bytes = [System.Text.Encoding]::UTF8.GetByteCount($password)
+Write-Host "Password length: $bytes bytes"
+if ($bytes -gt 72)
+    Write-Host "ERROR: Password exceeds 72 bytes!"
+    Write-Host "Use: $($password.Substring(0, 72))"
+fi
+
 echo
 echo "✅ All setup checks completed successfully!"
 echo "💡 You can now run: uv run uvicorn src.main_api:app --reload"
