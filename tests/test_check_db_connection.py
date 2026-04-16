@@ -1,44 +1,80 @@
-"""Test database connection"""
+"""
+Tests for src/check_db_connection.py module.
+Tests database connection waiting functionality.
+"""
 
-import psycopg2
+from unittest.mock import MagicMock, patch
+
 import pytest
-from psycopg2 import OperationalError
 
-from src.config import DATABASE_URL
+from src.check_db_connection import wait_for_postgres
 
 
-@pytest.mark.integration
-def test_database_connection(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Ensure database connection works with test configuration."""
-    # Use test database URL
-    test_db_url = DATABASE_URL.replace("/tradingbot", "/tradingbot_test")
+class TestWaitForPostgres:
+    """Test cases for wait_for_postgres function."""
 
-    # Convert Docker hostname to localhost for local testing
-    if "@db" in test_db_url:
-        test_db_url = test_db_url.replace("@db", "@localhost")
+    def test_wait_for_postgres_success_first_try(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test successful connection on first attempt."""
+        monkeypatch.setenv("DATABASE_URL", "postgresql://test:test@localhost:5432/test")
 
-    monkeypatch.setenv("DATABASE_URL", test_db_url)
+        with patch("psycopg2.connect") as mock_connect:
+            mock_conn = MagicMock()
+            mock_connect.return_value = mock_conn
 
-    try:
-        conn = psycopg2.connect(test_db_url)
-        cursor = conn.cursor()
+            result = wait_for_postgres()
 
-        # Verify we can execute queries
-        cursor.execute("SELECT 1")
-        result = cursor.fetchone()
-        assert result is not None and result[0] == 1, "Basic query failed"
+            assert result is True
+            mock_connect.assert_called_once_with("postgresql://test:test@localhost:5432/test")
+            mock_conn.close.assert_called_once()
 
-        cursor.close()
-        conn.close()
+    def test_wait_for_postgres_success_after_retries(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test successful connection after some failed attempts."""
+        monkeypatch.setenv("DATABASE_URL", "postgresql://test:test@localhost:5432/test")
 
-    except OperationalError as e:
-        error_str = str(e)
-        if "could not translate host name" in error_str:
-            pytest.skip(f"Database host not available: {e}")
-        elif "refused" in error_str.lower():
-            pytest.skip(f"PostgreSQL connection refused: {e}")
-        else:
-            pytest.fail(f"Database connection failed: {e}")
+        with (
+            patch("psycopg2.connect") as mock_connect,
+            patch("time.sleep") as mock_sleep,
+            patch("src.check_db_connection.logging") as mock_logging,
+        ):
+            # First 2 attempts fail, 3rd succeeds
+            mock_connect.side_effect = [
+                Exception("Connection failed"),
+                Exception("Connection failed"),
+                MagicMock(),  # Success
+            ]
 
-    except Exception as e:
-        pytest.fail(f"Unexpected error during database test: {e}")
+            result = wait_for_postgres()
+
+            assert result is True
+            assert mock_connect.call_count == 3
+            assert mock_sleep.call_count == 2  # Only sleep on failures
+            mock_sleep.assert_called_with(3)
+
+    def test_wait_for_postgres_timeout_after_max_retries(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test timeout when connection fails for all 30 attempts."""
+        monkeypatch.setenv("DATABASE_URL", "postgresql://test:test@localhost:5432/test")
+
+        with patch("psycopg2.connect") as mock_connect, patch("time.sleep") as mock_sleep:
+            mock_connect.side_effect = Exception("Connection failed")
+
+            with pytest.raises(TimeoutError, match="Database not reachable after 90 seconds"):
+                wait_for_postgres()
+
+            assert mock_connect.call_count == 30
+            assert mock_sleep.call_count == 30
+
+    def test_wait_for_postgres_no_database_url(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test error when DATABASE_URL environment variable is not set."""
+        monkeypatch.delenv("DATABASE_URL", raising=False)
+
+        with pytest.raises(ValueError, match="DATABASE_URL is not set in environment variables"):
+            wait_for_postgres()
+
+    def test_wait_for_postgres_empty_database_url(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test error when DATABASE_URL is empty."""
+        monkeypatch.setenv("DATABASE_URL", "")
+
+        with pytest.raises(ValueError, match="DATABASE_URL is not set in environment variables"):
+            wait_for_postgres()

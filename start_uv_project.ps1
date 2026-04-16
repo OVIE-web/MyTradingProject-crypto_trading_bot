@@ -24,7 +24,8 @@ if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
 if (-not (Test-Path ".\.venv\Scripts\Activate.ps1")) {
     Write-Host "🧱 Creating virtual environment with uv..."
     uv venv
-} else {
+}
+else {
     Write-Host "✅ Virtual environment already exists."
 }
 
@@ -71,7 +72,8 @@ python -c $pyCoreImports
 # 3️⃣ .env presence check
 if (Test-Path ".env") {
     Write-Host "🔑 .env file found."
-} else {
+}
+else {
     Write-Host "⚠️ No .env file found — please create or copy from .env.example"
 }
 
@@ -113,7 +115,8 @@ $dirs = @("src", "tests", "data")
 foreach ($dir in $dirs) {
     if (Test-Path $dir) {
         Write-Host "📁 Directory '$dir' found."
-    } else {
+    }
+    else {
         Write-Host "⚠️ Missing directory: $dir"
     }
 }
@@ -122,6 +125,14 @@ foreach ($dir in $dirs) {
 if (Get-Command code -ErrorAction SilentlyContinue) {
     Write-Host "🧠 Launching VS Code..."
     code .
+}
+
+$password = $env:ADMIN_PASSWORD
+$bytes = [System.Text.Encoding]::UTF8.GetByteCount($password)
+Write-Host "Password length: $bytes bytes"
+if ($bytes -gt 72) {
+    Write-Host "ERROR: Password exceeds 72 bytes!"
+    Write-Host "Use: $($password.Substring(0, 72))"
 }
 
 Write-Host "`n✅ All setup checks completed successfully!"

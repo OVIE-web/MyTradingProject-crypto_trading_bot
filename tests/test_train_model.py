@@ -1,173 +1,172 @@
 """
-Unit tests for model training and evaluation metrics.
+Tests for src/train_model.py module.
+Tests model training functionality.
 """
 
-from pathlib import Path
+import os
+import tempfile
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
+import pytest
 
-from src import model_manager as mm
-from src.config import FEATURE_COLUMNS, RANDOM_STATE, TEST_SIZE
-
-
-def test_train_and_save_load(tmp_path: Path) -> None:
-    """Train a tiny XGBoost model, ensure it is saved and can be loaded."""
-    model_path = tmp_path / "xgboost_model.json"
-
-    # Build a small but reasonable synthetic dataset
-    n_samples = 150
-    n_features = len(FEATURE_COLUMNS)
-    rng = np.random.RandomState(0)
-    X = pd.DataFrame(rng.randn(n_samples, n_features), columns=FEATURE_COLUMNS)
-    # Create balanced labels in {-1,0,1} and map to {0,1,2} for model compatibility
-    y_raw = np.tile([-1, 0, 1], int(np.ceil(n_samples / 3)))[:n_samples]
-    label_map = {-1: 0, 0: 1, 1: 2}
-    y = pd.Series([label_map[val] for val in y_raw])
-
-    # Train/test split
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=TEST_SIZE, random_state=RANDOM_STATE, stratify=y
-    )
-
-    # ✅ Train model with explicit model_path
-    model, metadata = mm.train_xgboost_model(
-        X_train, y_train, X_test, y_test, model_path=str(model_path)
-    )
-
-    # Confirm file saved
-    assert model_path.exists(), f"Model file was not created at {model_path}"
-
-    # Confirm it can be loaded
-    loaded = mm.load_trained_model(str(model_path))
-    assert hasattr(loaded, "predict_proba")
-
-    # ✅ Verify metadata contains evaluation metrics
-    assert "accuracy" in metadata
-    assert "evaluation" in metadata
-    assert metadata["accuracy"] >= 0.0 and metadata["accuracy"] <= 1.0
+from src.train_model import generate_synthetic_data, load_real_data, main
 
 
-def test_classification_report(tmp_path: Path) -> None:
-    """Test classification report generation."""
-    # Build dataset
-    n_samples = 150
-    n_features = len(FEATURE_COLUMNS)
-    rng = np.random.RandomState(0)
-    X = pd.DataFrame(rng.randn(n_samples, n_features), columns=FEATURE_COLUMNS)
-    y_raw = np.tile([-1, 0, 1], int(np.ceil(n_samples / 3)))[:n_samples]
-    label_map = {-1: 0, 0: 1, 1: 2}
-    y = pd.Series([label_map[val] for val in y_raw])
+class TestGenerateSyntheticData:
+    """Test cases for generate_synthetic_data function."""
 
-    # Split
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y
-    )
+    def test_generate_synthetic_data_shape(self) -> None:
+        """Test that synthetic data has correct shape."""
+        X, y = generate_synthetic_data(n_samples=100)
 
-    # Train
-    model_path = tmp_path / "xgboost_model.json"
-    model, metadata = mm.train_xgboost_model(
-        X_train, y_train, X_test, y_test, model_path=str(model_path)
-    )
+        assert isinstance(X, pd.DataFrame)
+        assert isinstance(y, pd.Series)
+        assert X.shape == (100, 11)  # 11 features as defined in config
+        assert y.shape == (100,)
 
-    # Get predictions
-    y_pred = model.predict(X_test)
+    def test_generate_synthetic_data_values(self) -> None:
+        """Test that synthetic data contains expected values."""
+        X, y = generate_synthetic_data(n_samples=50)
 
-    # ✅ Test classification report (string format)
-    report_str = mm.get_classification_report(
-        y_test.to_numpy(), y_pred, target_names=["SELL", "HOLD", "BUY"]
-    )
-    assert isinstance(report_str, str)
-    assert "precision" in report_str.lower()
-    assert "recall" in report_str.lower()
-    assert "f1-score" in report_str.lower()
+        # Check that all feature columns exist
+        from src.config import FEATURE_COLUMNS
 
-    # ✅ Test classification report (dict format)
-    report_dict = mm.get_classification_report(y_test.to_numpy(), y_pred, as_dict=True)
-    assert isinstance(report_dict, dict)
-    assert "0" in report_dict or "0" in str(report_dict)
-    assert "accuracy" in report_dict
+        for col in FEATURE_COLUMNS:
+            assert col in X.columns
+
+        # Check that target values are in expected range (0, 1, 2)
+        assert y.min() >= 0
+        assert y.max() <= 2
+        assert y.dtype == int
 
 
-def test_confusion_matrix(tmp_path: Path) -> None:
-    """Test confusion matrix generation and analysis."""
-    # Build dataset
-    n_samples = 150
-    n_features = len(FEATURE_COLUMNS)
-    rng = np.random.RandomState(0)
-    X = pd.DataFrame(rng.randn(n_samples, n_features), columns=FEATURE_COLUMNS)
-    y_raw = np.tile([-1, 0, 1], int(np.ceil(n_samples / 3)))[:n_samples]
-    label_map = {-1: 0, 0: 1, 1: 2}
-    y = pd.Series([label_map[val] for val in y_raw])
+class TestLoadRealData:
+    """Test cases for load_real_data function."""
 
-    # Split
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y
-    )
+    def test_load_real_data_success(self) -> None:
+        """Test successful loading of real data."""
+        # Create temporary CSV file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            # Create sample data with required columns
+            from src.config import FEATURE_COLUMNS, TARGET_COLUMN
 
-    # Train
-    model_path = tmp_path / "xgboost_model.json"
-    model, metadata = mm.train_xgboost_model(
-        X_train, y_train, X_test, y_test, model_path=str(model_path)
-    )
+            data = {col: np.random.randn(50) for col in FEATURE_COLUMNS}
+            data[TARGET_COLUMN] = np.random.randint(0, 3, 50)
+            df = pd.DataFrame(data)
+            df.to_csv(f.name, index=False)
+            temp_file = f.name
 
-    # Get predictions
-    y_pred = model.predict(X_test)
+        try:
+            X, y = load_real_data(temp_file)
 
-    # ✅ Test confusion matrix report
-    cm_report = mm.get_confusion_matrix_report(y_test.to_numpy(), y_pred)
+            assert isinstance(X, pd.DataFrame)
+            assert isinstance(y, pd.Series)
+            assert X.shape[0] == 50
+            assert y.shape[0] == 50
+            assert len(X.columns) == len(FEATURE_COLUMNS)
+        finally:
+            os.unlink(temp_file)
 
-    assert isinstance(cm_report, dict)
-    assert "confusion_matrix" in cm_report
-    assert "matrix_shape" in cm_report
+    def test_load_real_data_missing_feature_columns(self) -> None:
+        """Test error when required feature columns are missing."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            # Create data missing some feature columns
+            df = pd.DataFrame(
+                {
+                    "close": [100, 101, 102],
+                    "volume": [1000, 1100, 1200],
+                    "signal": [0, 1, 2],  # Missing most feature columns
+                }
+            )
+            df.to_csv(f.name, index=False)
+            temp_file = f.name
 
-    # Verify confusion matrix structure
-    cm = np.array(cm_report["confusion_matrix"])
-    assert cm.shape == (3, 3), f"Expected (3, 3) confusion matrix, got {cm.shape}"
+        try:
+            with pytest.raises(KeyError, match="Missing feature columns"):
+                load_real_data(temp_file)
+        finally:
+            os.unlink(temp_file)
 
-    # Verify per-class metrics exist
-    for i in range(3):
-        assert f"class_{i}" in cm_report
-        class_metrics = cm_report[f"class_{i}"]
-        assert "precision" in class_metrics
-        assert "recall" in class_metrics
-        assert "f1_score" in class_metrics
-        assert "true_positives" in class_metrics
-        assert "false_positives" in class_metrics
+    def test_load_real_data_missing_target_column(self) -> None:
+        """Test error when target column is missing."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            from src.config import FEATURE_COLUMNS
+
+            # Create data with features but no target
+            data = {col: np.random.randn(10) for col in FEATURE_COLUMNS}
+            df = pd.DataFrame(data)
+            df.to_csv(f.name, index=False)
+            temp_file = f.name
+
+        try:
+            with pytest.raises(KeyError, match="Target column.*not found"):
+                load_real_data(temp_file)
+        finally:
+            os.unlink(temp_file)
+
+    def test_load_real_data_file_not_found(self) -> None:
+        """Test error when data file doesn't exist."""
+        with pytest.raises(FileNotFoundError):
+            load_real_data("/nonexistent/file.csv")
 
 
-def test_evaluate_model(tmp_path: Path) -> None:
-    """Test comprehensive model evaluation."""
-    # Build dataset
-    n_samples = 150
-    n_features = len(FEATURE_COLUMNS)
-    rng = np.random.RandomState(0)
-    X = pd.DataFrame(rng.randn(n_samples, n_features), columns=FEATURE_COLUMNS)
-    y_raw = np.tile([-1, 0, 1], int(np.ceil(n_samples / 3)))[:n_samples]
-    label_map = {-1: 0, 0: 1, 1: 2}
-    y = pd.Series([label_map[val] for val in y_raw])
+class TestMainFunction:
+    """Test cases for main function."""
 
-    # Split
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y
-    )
+    @patch("src.train_model.train_xgboost_model")
+    @patch("src.train_model.generate_synthetic_data")
+    @patch("src.train_model.logging")
+    def test_main_with_synthetic_data(
+        self,
+        mock_logging: MagicMock,
+        mock_generate_data: MagicMock,
+        mock_train_model: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Test main function with synthetic data."""
+        # Mock data generation
+        mock_X = pd.DataFrame(np.random.randn(100, 11))
+        mock_y = pd.Series(np.random.randint(0, 3, 100))
+        mock_generate_data.return_value = (mock_X, mock_y)
 
-    # Train
-    model_path = tmp_path / "xgboost_model.json"
-    model, _ = mm.train_xgboost_model(X_train, y_train, X_test, y_test, model_path=str(model_path))
+        # Mock model training
+        mock_train_model.return_value = (None, {"accuracy": 0.85, "model_path": "/tmp/model.json"})
 
-    # ✅ Test comprehensive evaluation
-    evaluation = mm.evaluate_model(model, X_test.to_numpy(), y_test.to_numpy())
+        # Mock file operations
+        with patch("builtins.open", create=True), patch("pathlib.Path.mkdir"):
+            main(use_real_data=False)
 
-    assert isinstance(evaluation, dict)
-    assert "accuracy" in evaluation
-    assert "classification_report" in evaluation
-    assert "confusion_matrix_report" in evaluation
-    assert "predictions" in evaluation
-    assert "probabilities" in evaluation
+        # Verify calls
+        mock_generate_data.assert_called_once()
+        mock_train_model.assert_called_once()
+        assert mock_logging.info.call_count >= 5  # Multiple log messages expected
 
-    # Verify evaluation metrics are valid
-    assert 0.0 <= evaluation["accuracy"] <= 1.0
-    assert len(evaluation["predictions"]) == len(X_test)
-    assert len(evaluation["probabilities"]) == len(X_test)
+    @patch("src.train_model.train_xgboost_model")
+    @patch("src.train_model.load_real_data")
+    @patch("src.train_model.logging")
+    def test_main_with_real_data(
+        self,
+        mock_logging: MagicMock,
+        mock_load_data: MagicMock,
+        mock_train_model: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Test main function with real data."""
+        # Mock data loading
+        mock_X = pd.DataFrame(np.random.randn(100, 11))
+        mock_y = pd.Series(np.random.randint(0, 3, 100))
+        mock_load_data.return_value = (mock_X, mock_y)
+
+        # Mock model training
+        mock_train_model.return_value = (None, {"accuracy": 0.90, "model_path": "/tmp/model.json"})
+
+        # Mock file operations
+        with patch("builtins.open", create=True), patch("pathlib.Path.mkdir"):
+            main(use_real_data=True, data_path="/tmp/data.csv")
+
+        # Verify calls
+        mock_load_data.assert_called_once_with("/tmp/data.csv")
+        mock_train_model.assert_called_once()
+        assert mock_logging.info.call_count >= 5

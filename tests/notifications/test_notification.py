@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pytest import MonkeyPatch
 
-from src.notification import send_email_notification, send_telegram_notification
+from src.notifications.notification import send_email_notification, send_telegram_notification
 
 
 @pytest.fixture
@@ -33,7 +33,7 @@ def mock_env(monkeypatch: MonkeyPatch) -> Generator[None, Any, None]:
 @pytest.mark.usefixtures("mock_env")
 def test_send_telegram_notification_success(mock_env: None) -> None:
     """✅ Should send Telegram message successfully."""
-    with patch("src.notification.requests.post") as mock_post:
+    with patch("src.notifications.notification.requests.post") as mock_post:
         mock_post.return_value = MagicMock(status_code=200)
 
         send_telegram_notification("Test OK")
@@ -48,10 +48,10 @@ def test_send_telegram_notification_success(mock_env: None) -> None:
 @pytest.mark.usefixtures("mock_env")
 def test_send_telegram_notification_http_error(mock_env: None) -> None:
     """⚠️ Should log error when Telegram API fails."""
-    with patch("src.notification.requests.post") as mock_post:
+    with patch("src.notifications.notification.requests.post") as mock_post:
         mock_post.return_value = MagicMock(status_code=500)
 
-        with patch("src.notification.logger.error") as mock_log:
+        with patch("src.notifications.notification.logger.error") as mock_log:
             send_telegram_notification("Bad HTTP")
 
             # Verify error was logged
@@ -67,7 +67,7 @@ def test_send_telegram_notification_missing_config(monkeypatch: MonkeyPatch) -> 
     monkeypatch.delenv("TELEGRAM_BOT_TOKEN", raising=False)
     monkeypatch.delenv("TELEGRAM_CHAT_ID", raising=False)
 
-    with patch("src.notification.logger.error") as mock_log:
+    with patch("src.notifications.notification.logger.error") as mock_log:
         send_telegram_notification("No Config")
 
         assert mock_log.call_count >= 1
@@ -116,7 +116,7 @@ def test_send_email_notification_missing_config(monkeypatch: MonkeyPatch) -> Non
     for var in email_vars:
         monkeypatch.delenv(var, raising=False)
 
-    with patch("src.notification.logger.error") as mock_log:
+    with patch("src.notifications.notification.logger.error") as mock_log:
         send_email_notification("No Env", "Missing Config")
 
         assert mock_log.call_count >= 1
