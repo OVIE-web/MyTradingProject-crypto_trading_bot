@@ -312,7 +312,7 @@ python-dotenv==1.1.1
     #   uvicorn
 python-jose==3.4.0
     # via crypto-trading-bot-1 (pyproject.toml)
-python-multipart==0.0.20
+python-multipart==0.0.26
     # via
     #   crypto-trading-bot-1 (pyproject.toml)
     #   fastapi
