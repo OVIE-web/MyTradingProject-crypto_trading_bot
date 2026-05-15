@@ -2,7 +2,7 @@
 #    uv pip compile --extra dev pyproject.toml -o requirements.dev.txt
 aiohappyeyeballs==2.6.1
     # via aiohttp
-aiohttp==3.13.2
+aiohttp==3.13.5
     # via python-binance
 aiosignal==1.4.0
     # via aiohttp
