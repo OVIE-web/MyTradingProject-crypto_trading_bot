@@ -144,7 +144,7 @@ itsdangerous==2.2.0
 # --- OpenTelemetry (mlflow dependency) ---
 opentelemetry-api==1.40.0
 opentelemetry-proto==1.40.0
-opentelemetry-sdk==1.40.0
+opentelemetry-sdk==1.41.1
 opentelemetry-semantic-conventions==0.61b0
 protobuf==6.33.5
 
