@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from setuptools import find_packages, setup
+from setuptools import find_packages, setup  # type: ignore[import-untyped]
 
 # --- Read README for PyPI long description ---
 this_dir = Path(__file__).parent
@@ -43,7 +43,7 @@ install_requires: list[str] = [
     # --- Data Science & ML ---
     "pandas==2.3.0",
     "numpy==1.26.4",
-    "scikit-learn==1.3.2",
+    "scikit-learn==1.4.2",
     "xgboost==3.0.2",
     "imbalanced-learn==0.14.1",
     "joblib==1.5.1",
@@ -77,17 +77,17 @@ extras_require: dict[str, list[str]] = {
 }
 
 setup(
-    name="crypto-trading-bot",
-    version="1.1.0",
+    name="OvieX Quant Trading Engine Bot API",
+    version="0.0.1",
     author="Ovie",
     author_email="oviemsaniyo30@gmail.com",
-    description="A modular crypto trading bot with FastAPI backend, PostgreSQL model registry, ML pipeline, and notifier integration.",
+    description="A modular Cryptocurrency trading engine bot with FastAPI backend, PostgreSQL model registry, ML pipeline, and notifier integration.",
     long_description=readme,
     long_description_content_type="text/markdown",
     url="https://github.com/OVIE-web/MyTradingProject-crypto_trading_bot",
     license="MIT",
-    packages=find_packages(where="src"),
-    package_dir={"": "src"},
+    packages=find_packages(where="app"),
+    package_dir={"": "app"},
     include_package_data=True,
     python_requires=">=3.10",
     install_requires=install_requires,
@@ -110,7 +110,7 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
     keywords=[
-        "crypto",
+        "crptocurrency",
         "trading",
         "bot",
         "xgboost",
