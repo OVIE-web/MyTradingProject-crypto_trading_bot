@@ -68,7 +68,7 @@ dependencies = [
     # --- Templates ---
     "jinja2==3.1.6",
     # --- Async & Concurrency ---
-    "aiohttp==3.13.3",
+    "aiohttp==3.13.5",
     "celery[redis]==5.6.3",
     "redis==6.4.0",
 ]
