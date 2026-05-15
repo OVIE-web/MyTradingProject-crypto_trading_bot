@@ -1,0 +1,131 @@
+from __future__ import annotations
+
+import asyncio
+import logging
+import os
+import random
+import smtplib
+import time
+import typing
+from email.mime.text import MIMEText
+
+import requests
+from telegram import Bot
+
+logger = logging.getLogger(__name__)
+
+
+def _backoff_delay(attempt: int, base: float = 1.0, cap: float = 30.0) -> float:
+    """Calculate exponential backoff with jitter."""
+    exp: float = min(cap, base * (2 ** (attempt - 1)))
+    return float(exp / 2 + random.uniform(0, exp / 2))
+
+
+class TelegramNotifier:
+    """Handles asynchronous Telegram notifications with retries."""
+
+    def __init__(self, max_retries: int = 3) -> None:
+        self.token: str | None = os.getenv("TELEGRAM_BOT_TOKEN")
+        self.chat_id: str | None = os.getenv("TELEGRAM_CHAT_ID")
+        self.enabled = bool(self.token and self.chat_id)
+        self.bot = Bot(token=typing.cast(str, self.token)) if self.enabled else None
+        self.max_retries = max_retries
+        logger.info("Telegram Notifier initialized.")
+
+    async def send_message(self, message: str) -> bool:
+        """Send Telegram message asynchronously with retry mechanism."""
+        if not self.enabled:
+            logger.warning("Telegram Notifier not enabled.")
+            return False
+
+        if self.bot is None:
+            logger.error("Telegram Bot is not initialized.")
+            return False
+
+        if self.chat_id is None:
+            logger.error("Missing Telegram chat ID.")
+            return False
+
+        for attempt in range(1, self.max_retries + 1):
+            try:
+                await self.bot.send_message(chat_id=self.chat_id, text=message)
+                logger.info(f"Telegram message sent: '{message}'")
+                return True
+            except Exception as e:
+                logger.error(f"Attempt {attempt} failed to send Telegram message: {e}")
+                if attempt < self.max_retries:
+                    delay = _backoff_delay(attempt)
+                    logger.warning(f"Retrying in {delay:.2f}s...")
+                    await asyncio.sleep(delay)
+                else:
+                    logger.error("All retry attempts exhausted for Telegram message.")
+        return False
+
+
+def send_telegram_notification(message: str, max_retries: int = 3) -> bool:
+    """Send Telegram notification synchronously via Telegram REST API."""
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
+    chat_id = os.getenv("TELEGRAM_CHAT_ID")
+
+    if not token or not chat_id:
+        logger.error("Missing Telegram configuration.")
+        return False
+
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = {"chat_id": chat_id, "text": message}
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = requests.post(url, json=payload, timeout=10)
+            if response.status_code != 200:
+                logger.error("Telegram API error: %s - %s", response.status_code, response.text)
+                return False
+
+            logger.info("Telegram notification sent.")
+            return True
+        except Exception as exc:
+            logger.error("Attempt %s failed to send Telegram notification: %s", attempt, exc)
+            if attempt < max_retries:
+                delay = _backoff_delay(attempt)
+                logger.warning("Retrying Telegram notification in %.2fs...", delay)
+                time.sleep(delay)
+            else:
+                logger.error("All retry attempts exhausted. Telegram notification not sent.")
+
+    return False
+
+
+def send_email_notification(subject: str, message: str, max_retries: int = 3) -> bool:
+    """Send email using SMTP with retry logic."""
+    host = os.getenv("SMTP_HOST")
+    port = int(os.getenv("SMTP_PORT", 587))
+    user = os.getenv("SMTP_USER")
+    password = os.getenv("SMTP_PASS")
+    to_email = os.getenv("EMAIL_TO")
+
+    if not (host and user and password and to_email):
+        logger.error("Missing SMTP configuration.")
+        return False
+
+    msg = MIMEText(message)
+    msg["Subject"] = subject
+    msg["From"] = user
+    msg["To"] = to_email
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            with smtplib.SMTP(host, port) as server:
+                server.starttls()
+                server.login(user, password)
+                server.sendmail(user, to_email, msg.as_string())
+            logger.info(f"✅ Email notification sent: {subject}")
+            return True
+        except Exception as e:
+            logger.error(f"Attempt {attempt} failed to send email: {e}")
+            if attempt < max_retries:
+                delay = _backoff_delay(attempt)
+                logger.warning(f"Retrying email in {delay:.2f}s...")
+                time.sleep(delay)
+            else:
+                logger.error("All retry attempts exhausted. Email not sent.")
+    return False
