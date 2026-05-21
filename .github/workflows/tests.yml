@@ -1,4 +1,4 @@
-name: 🧠 Crypto Trading Bot - CI/CD Pipeline
+name: 🧠 AI- Powerd Crypto Trading System - CI/CD Pipeline
 
 on:
   push:
@@ -89,25 +89,27 @@ jobs:
       - name: 🔍 Run Linting (ruff)
         run: |
           echo "🔍 Running Linting Checks..."
-          uv run ruff check src/ tests/ --fix
+          uv run ruff check app tests
 
       - name: 📝 Check code formatting (ruff format)
         run: |
           echo "📝 Checking Code Format..."
-          uv run ruff format src/ tests/ --check
+          uv run ruff format app tests --check
 
       - name: 🧪 Type check with mypy
         run: |
           echo "🧪 Running Type Checks..."
-          uv run python -m mypy --config-file pyproject.toml src tests
-          uv run python -m mypy --config-file mypy.ini src tests
+          uv run python -m mypy --config-file pyproject.toml app tests
+          uv run python -m mypy --config-file mypy.ini app tests
 
       - name: 🧪 Run unit tests with pytest
         run: |
-          echo "🧪 Running Unit Tests..."
+          echo "🧪 Running Tests Coverages..."
           uv run pytest tests/ \
-            --maxfail=3 \
-            --tb=short \
+            --cov=app \
+            --cov-report=xml \
+            --cov-report=html \
+            --cov-report=term-missing \
             --disable-warnings \
             -v
 
@@ -115,7 +117,7 @@ jobs:
         run: |
           echo "📊 Running Tests with Coverage..."
           uv run pytest tests/ \
-            --cov=src \
+            --cov=app \
             --cov-report=xml \
             --cov-report=html \
             --cov-report=term-missing
