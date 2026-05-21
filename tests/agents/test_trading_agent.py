@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from app.agents import (
     ApprovalPolicy,
     HumanApproval,
@@ -17,8 +19,8 @@ from app.services.trade_execution_service import (
 )
 
 
-def make_request(**overrides: object) -> TradingAgentRequest:
-    data = {
+def make_request(**overrides: Any) -> TradingAgentRequest:
+    data: dict[str, Any] = {
         "symbol": "BTCUSDT",
         "price": 100.0,
         "model_signal": 1,

@@ -6,6 +6,7 @@ Tests model training functionality.
 import os
 import tempfile
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -57,7 +58,7 @@ class TestLoadRealData:
             # Create sample data with required columns
             from app.core.config import FEATURE_COLUMNS, TARGET_COLUMN
 
-            data = {col: np.random.randn(50) for col in FEATURE_COLUMNS}
+            data: dict[str, Any] = {col: np.random.randn(50) for col in FEATURE_COLUMNS}
             data[TARGET_COLUMN] = np.random.randint(0, 3, 50)
             df = pd.DataFrame(data)
             df.to_csv(f.name, index=False)

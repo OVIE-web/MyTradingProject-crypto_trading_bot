@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from typing import Any, cast
 
 from fastapi import FastAPI, status
 from fastapi.exceptions import RequestValidationError
@@ -29,9 +30,9 @@ def make_request(path: str = "/example") -> Request:
     )
 
 
-def response_json(response) -> dict:
+def response_json(response: Any) -> dict[Any, Any]:
     """Decode JSONResponse content for assertions."""
-    return json.loads(response.body.decode())
+    return cast(dict[Any, Any], json.loads(response.body.decode()))
 
 
 def test_error_payload_contains_standard_shape() -> None:

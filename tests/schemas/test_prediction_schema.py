@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from decimal import Decimal
 from types import SimpleNamespace
+from typing import Any, cast
 
 import pytest
 from pydantic import ValidationError
@@ -60,7 +61,7 @@ def test_prediction_response_bounds_prediction_and_confidence() -> None:
 def test_prediction_create_normalizes_symbol_and_coerces_confidence() -> None:
     prediction = PredictionCreate(
         prediction=-1,
-        confidence="0.64",
+        confidence=cast(Any, "0.64"),
         features={"rsi": 52.1},
         model_name="xgboost",
         model_version="v1",

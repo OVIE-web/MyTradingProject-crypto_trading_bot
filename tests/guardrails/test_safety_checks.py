@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
+from typing import Any, cast
 
 import pandas as pd
 import pytest
@@ -91,7 +92,7 @@ def test_check_market_data_shape_validates_dataframe_columns_and_rows() -> None:
     """Market data shape should require a DataFrame, OHLCV columns, and enough rows."""
     config = SafetyConfig(min_market_data_rows=3)
     valid = make_market_data(rows=3)
-    not_frame = check_market_data_shape("not-a-frame", config)
+    not_frame = check_market_data_shape(cast(Any, "not-a-frame"), config)
     empty = check_market_data_shape(pd.DataFrame(), config)
     missing = check_market_data_shape(valid.drop(columns=["volume"]), config)
     too_short = check_market_data_shape(make_market_data(rows=2), config)

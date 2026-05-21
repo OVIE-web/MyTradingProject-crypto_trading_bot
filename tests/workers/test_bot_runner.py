@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from decimal import Decimal
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import numpy as np
@@ -55,7 +56,7 @@ def make_features(rows: int = 5) -> pd.DataFrame:
 
 
 @pytest.fixture
-def resources() -> dict[str, object]:
+def resources() -> dict[str, Any]:
     binance = MagicMock()
     binance.get_latest_ohlcv.return_value = make_candles()
 
@@ -72,7 +73,7 @@ def resources() -> dict[str, object]:
 
 
 @asynccontextmanager
-async def fake_lifespan(resources: dict[str, object]) -> Iterator[dict[str, object]]:
+async def fake_lifespan(resources: dict[str, Any]) -> AsyncIterator[dict[str, Any]]:
     yield resources
 
 
@@ -179,7 +180,7 @@ async def test_notify_all_channels_uses_sync_fallbacks_when_primary_channels_fai
     [(1, 0.95, "BUY", Decimal("68000")), (-1, 0.88, "SELL", Decimal("68200"))],
 )
 async def test_do_iteration_persists_actionable_trade(
-    resources: dict[str, object],
+    resources: dict[str, Any],
     signal: int,
     confidence: float,
     expected_side: str,
@@ -215,7 +216,7 @@ async def test_do_iteration_persists_actionable_trade(
 
 @pytest.mark.asyncio
 async def test_do_iteration_hold_signal_does_not_persist_trade(
-    resources: dict[str, object],
+    resources: dict[str, Any],
 ) -> None:
     db = resources["db"]
 
@@ -238,7 +239,7 @@ async def test_do_iteration_hold_signal_does_not_persist_trade(
 
 @pytest.mark.asyncio
 async def test_do_iteration_stops_when_market_data_fetch_fails(
-    resources: dict[str, object],
+    resources: dict[str, Any],
 ) -> None:
     binance = resources["binance"]
     binance.get_latest_ohlcv.side_effect = RuntimeError("binance down")
@@ -256,7 +257,7 @@ async def test_do_iteration_stops_when_market_data_fetch_fails(
 
 @pytest.mark.asyncio
 async def test_do_iteration_stops_when_required_features_are_missing(
-    resources: dict[str, object],
+    resources: dict[str, Any],
 ) -> None:
     missing_features = make_features().drop(columns=[bot_runner.FEATURE_COLUMNS[-1]])
 
@@ -275,7 +276,7 @@ async def test_do_iteration_stops_when_required_features_are_missing(
 
 @pytest.mark.asyncio
 async def test_do_iteration_stops_when_feature_frame_is_empty(
-    resources: dict[str, object],
+    resources: dict[str, Any],
 ) -> None:
     empty_features = pd.DataFrame(columns=bot_runner.FEATURE_COLUMNS)
 
@@ -293,7 +294,7 @@ async def test_do_iteration_stops_when_feature_frame_is_empty(
 
 
 @pytest.mark.asyncio
-async def test_do_iteration_stops_when_prediction_fails(resources: dict[str, object]) -> None:
+async def test_do_iteration_stops_when_prediction_fails(resources: dict[str, Any]) -> None:
     with (
         patch(
             "app.workers.bot_runner.calculate_technical_indicators", return_value=make_features()
@@ -307,7 +308,7 @@ async def test_do_iteration_stops_when_prediction_fails(resources: dict[str, obj
 
 @pytest.mark.asyncio
 async def test_do_iteration_rolls_back_when_persistence_fails(
-    resources: dict[str, object],
+    resources: dict[str, Any],
 ) -> None:
     db = resources["db"]
     db.commit.side_effect = RuntimeError("db down")
@@ -332,7 +333,7 @@ async def test_do_iteration_rolls_back_when_persistence_fails(
 
 @pytest.mark.asyncio
 async def test_run_once_test_returns_true_when_iteration_succeeds(
-    resources: dict[str, object],
+    resources: dict[str, Any],
 ) -> None:
     with (
         patch("app.workers.bot_runner.lifespan", return_value=fake_lifespan(resources)),
@@ -346,7 +347,7 @@ async def test_run_once_test_returns_true_when_iteration_succeeds(
 
 @pytest.mark.asyncio
 async def test_run_once_test_returns_false_when_iteration_raises(
-    resources: dict[str, object],
+    resources: dict[str, Any],
 ) -> None:
     with (
         patch("app.workers.bot_runner.lifespan", return_value=fake_lifespan(resources)),
@@ -362,7 +363,7 @@ async def test_run_once_test_returns_false_when_iteration_raises(
 
 
 @pytest.mark.asyncio
-async def test_runner_loop_run_once_executes_one_iteration(resources: dict[str, object]) -> None:
+async def test_runner_loop_run_once_executes_one_iteration(resources: dict[str, Any]) -> None:
     with (
         patch("app.workers.bot_runner.lifespan", return_value=fake_lifespan(resources)),
         patch("app.workers.bot_runner.do_iteration", new_callable=AsyncMock) as iteration,

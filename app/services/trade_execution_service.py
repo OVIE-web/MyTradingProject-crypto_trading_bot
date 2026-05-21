@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy.orm import Session
 
@@ -222,14 +222,14 @@ def _extract_executed_quantity(order_response: dict[str, Any], fallback: float) 
     for key in ("executedQty", "origQty", "qty", "quantity"):
         value = order_response.get(key)
         if value not in (None, ""):
-            return float(value)
+            return float(cast(str | int | float, value))
     return float(fallback)
 
 
 def _extract_execution_price(order_response: dict[str, Any], fallback: float) -> float:
     raw_price = order_response.get("price")
     if raw_price not in (None, ""):
-        price = float(raw_price)
+        price = float(cast(str | int | float, raw_price))
         if price > 0:
             return price
     return float(fallback)

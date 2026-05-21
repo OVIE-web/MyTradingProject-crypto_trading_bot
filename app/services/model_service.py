@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
@@ -12,7 +12,6 @@ import numpy as np
 import pandas as pd
 import xgboost as xgb
 from numpy.typing import NDArray
-from pytz import UTC
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sklearn.model_selection import train_test_split
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Generator
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -43,7 +43,7 @@ def create_trade(trade: TradeCreate, db: Session = Depends(get_db)) -> Trade:
 @router.get("/", response_model=list[TradeRead])
 def get_trades(db: Session = Depends(get_db)) -> list[Trade]:
     """Retrieve all trade records."""
-    return db.query(Trade).all()
+    return cast(list[Trade], db.query(Trade).all())
 
 
 @router.get("/{trade_id}", response_model=TradeRead)
@@ -52,7 +52,7 @@ def get_trade(trade_id: int, db: Session = Depends(get_db)) -> Trade:
     trade = db.query(Trade).filter(Trade.id == trade_id).first()
     if not trade:
         raise HTTPException(status_code=404, detail="Trade not found")
-    return trade
+    return cast(Trade, trade)
 
 
 @router.delete("/{trade_id}", response_model=TradeDeleteResponse)

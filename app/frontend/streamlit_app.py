@@ -572,13 +572,13 @@ with col1:
     if DEPENDENCIES["database"]:
         try:
             db = DatabaseManager.get_session()
-            recent_trades = []
+            recent_trades: list[Any] = []
             if db and TradeModel is not None:
                 # Use SQLAlchemy 1.4+ select() style to avoid query overload/type issues
                 from sqlalchemy import select
 
                 stmt = select(TradeModel).order_by(TradeModel.timestamp.desc()).limit(10)
-                recent_trades = db.execute(stmt).scalars().all()
+                recent_trades = list(db.execute(stmt).scalars().all())
                 if recent_trades:
                     trades_data = [
                         {

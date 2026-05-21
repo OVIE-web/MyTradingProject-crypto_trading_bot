@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from decimal import Decimal
 from types import SimpleNamespace
+from typing import Any, cast
 
 import pytest
 from pydantic import ValidationError
@@ -17,7 +18,12 @@ from app.schemas.trade_schema import (
 
 
 def test_trade_base_normalizes_symbol_and_side() -> None:
-    trade = TradeBase(symbol=" btc/usdt ", side="buy", quantity="0.01", price="68000")
+    trade = TradeBase(
+        symbol=" btc/usdt ",
+        side="buy",
+        quantity=cast(Any, "0.01"),
+        price=cast(Any, "68000"),
+    )
 
     assert trade.symbol == "BTCUSDT"
     assert trade.side == "BUY"
@@ -36,16 +42,21 @@ def test_trade_create_uses_shared_trade_validation() -> None:
 
 def test_trade_base_rejects_invalid_symbol_side_and_non_positive_numbers() -> None:
     with pytest.raises(ValidationError):
-        TradeBase(symbol="??", side="BUY", quantity="0.01", price="68000")
+        TradeBase(symbol="??", side="BUY", quantity=cast(Any, "0.01"), price=cast(Any, "68000"))
 
     with pytest.raises(ValidationError):
-        TradeBase(symbol="BTCUSDT", side="HOLD", quantity="0.01", price="68000")
+        TradeBase(
+            symbol="BTCUSDT",
+            side="HOLD",
+            quantity=cast(Any, "0.01"),
+            price=cast(Any, "68000"),
+        )
 
     with pytest.raises(ValidationError):
-        TradeBase(symbol="BTCUSDT", side="BUY", quantity="0", price="68000")
+        TradeBase(symbol="BTCUSDT", side="BUY", quantity=cast(Any, "0"), price=cast(Any, "68000"))
 
     with pytest.raises(ValidationError):
-        TradeBase(symbol="BTCUSDT", side="BUY", quantity="0.01", price="0")
+        TradeBase(symbol="BTCUSDT", side="BUY", quantity=cast(Any, "0.01"), price=cast(Any, "0"))
 
 
 def test_trade_update_accepts_partial_payloads() -> None:

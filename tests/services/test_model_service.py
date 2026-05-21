@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -26,10 +27,10 @@ class FakeXGBClassifier:
         return self
 
     def predict(self, X: pd.DataFrame) -> np.ndarray:
-        return np.zeros(len(X), dtype=int)
+        return cast(np.ndarray[Any, Any], np.zeros(len(X), dtype=int))
 
     def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
-        return np.tile([[0.8, 0.1, 0.1]], (len(X), 1))
+        return cast(np.ndarray[Any, Any], np.tile([[0.8, 0.1, 0.1]], (len(X), 1)))
 
     def save_model(self, path: str) -> None:
         Path(path).write_text("fake xgboost model", encoding="utf-8")
