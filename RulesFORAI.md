@@ -1,511 +1,462 @@
 # Rules for AI Interaction (`RulesFORAI.md`)
 
-## 🚀 Current Project Stage: Production-Ready Crypto Trading Bot (Phase 3 - Live Trading)
+## Current Project Stage: AI-Powered Crypto Trading Bot
 
-This document outlines the rules, standards, and best practices for interacting with the **MyTradingProject-crypto_trading_bot** codebase. All contributors and AI assistants must follow these guidelines.
+This document defines the rules, standards, and best practices for working with the
+**MyTradingProject-crypto_trading_bot** codebase. All contributors and AI assistants must
+follow these guidelines.
+
+The system is now organized around a refactored `app/` package, mirrored test folders,
+versioned database migrations, typed domain logic, deterministic guardrails, and an
+AI-agent layer for trading workflow orchestration and future research/RAG workflows.
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
-The project uses a **modular, production-grade architecture** with the `src/` layout:
+The project uses a modular, production-oriented architecture with `app/` as the canonical
+application package.
 
-``
+```text
 crypto-trading-bot/
-├── src/                          # Core application source code
-│   ├── main_api.py              # FastAPI application & REST endpoints
-│   ├── bot_runner.py            # Main trading loop orchestrator (async)
-│   ├── backtester.py            # Strategy backtesting engine
-│   ├── binance_manager.py       # Binance API integration (OHLCV, orders)
-│   ├── data_loader.py           # Market data fetching & preprocessing
-│   ├── feature_engineer.py      # Technical indicator calculations (RSI, MACD, etc.)
-│   ├── model_manager.py         # ML model training, inference, versioning
-│   ├── notification.py          # Email & Telegram alert system
-│   ├── notifier.py              # Notification orchestration
-│   ├── db.py                    # PostgreSQL ORM models & sessions (SQLAlchemy)
-│   ├── settings.py              # Environment configuration & validation
-│   ├── streamlit_app.py         # Real-time dashboard frontend
-│   └── routers/
-│       ├── predict.py           # ML prediction endpoints
-│       └── trades.py            # Trade history endpoints
-│
-├── tests/                        # Comprehensive test suite (pytest)
-│   ├── test_settings.py         # Configuration validation tests
-│   ├── test_binance_manager.py  # Exchange integration tests
-│   ├── test_backtester.py       # Strategy testing
-│   ├── test_model_manager.py    # ML pipeline tests
-│   ├── test_feature_engineer.py # Indicator calculation tests
-│   ├── test_data_loader.py      # Data processing tests
-│   └── notifications/           # Alert system tests
-│
-├── .github/
-│   ├── workflows/
-│   │   ├── .github/test.yml     # CI/CD pipeline (pytest, mypy, ruff)
-│   │   └── dependabot.yml       # Automated dependency updates
-│   └── ISSUE_TEMPLATE/
-│       ├── bug_report.yml       # Bug report form
-│       └── feature_request.yml  # Feature request form
-│
+├── app/
+│   ├── agents/                 # AI agents and agent-safe workflow orchestration
+│   │   ├── trading_agent.py     # LangGraph trading workflow orchestration
+│   │   ├── research_agent.py    # Future LlamaIndex/RAG research workflow
+│   │   ├── agents_schemas.py    # Typed agent state, requests, and results
+│   │   └── agents_tools.py      # Deterministic agent tool wrappers
+│   ├── api/
+│   │   └── routes/              # FastAPI route modules
+│   │       ├── health.py
+│   │       ├── predictions.py
+│   │       ├── trades.py
+│   │       └── webhook.py
+│   ├── core/                    # Config, env loading, logging, settings, security
+│   ├── db/                      # SQLAlchemy engine, sessions, init helpers
+│   ├── domain/                  # Trading strategy, risk management, signals
+│   ├── frontend/                # Streamlit dashboard
+│   ├── guardrails/              # Safety checks and trade limits
+│   ├── middleware/              # Request logging and API error handling
+│   ├── models/                  # SQLAlchemy ORM models
+│   ├── schemas/                 # Pydantic API schemas
+│   ├── scrapers/                # Market data ingestion
+│   ├── services/                # Binance, model, training, execution, notifications
+│   ├── tools/                   # Feature engineering, diagnostics, visualizer
+│   ├── utils/                   # Shared helpers and validators
+│   ├── vector_store/            # Future embeddings/indexes for research/RAG
+│   ├── workers/                 # Celery worker, scheduler, trading runner
+│   └── main.py                  # FastAPI app entrypoint
+├── alembic/                     # Versioned database migrations
+│   ├── env.py                   # Uses app metadata and DATABASE_URL
+│   ├── script.py.mako           # Migration file template
+│   └── versions/                # Migration revisions
+├── docker/
+│   └── entrypoints/             # API, worker, and beat startup scripts
 ├── scripts/
-│   ├── init_database.py         # Database initialization
-│   └── wait_for_postgres.py     # Connection polling
-│
-├── Dockerfile                    # Multi-stage build (api, bot, streamlit, test targets)
-├── docker-compose.yml           # Local development environment
-├── pyproject.toml              # Project metadata & dependencies
-├── pytest.ini                  # Test configuration
-├── CODE_OF_CONDUCT.md          # Community standards
-├── CONTRIBUTING.md             # Contribution guidelines
-├── dependabot.yml              # Automated updates config
-└── README.md                   # Project documentation
+│   ├── init_database.py         # Local schema bootstrap helper
+│   ├── smoke_notify.py          # Notification smoke test helper
+│   └── archive/                 # Archived experimental scripts
+├── tests/                       # Mirrors app/ package structure
+│   ├── agents/
+│   ├── api/
+│   ├── core/
+│   ├── db/
+│   ├── domain/
+│   ├── frontend/
+│   ├── guardrails/
+│   ├── middleware/
+│   ├── models/
+│   ├── schemas/
+│   ├── services/
+│   ├── tools/
+│   ├── utils/
+│   ├── vector_store/
+│   └── workers/
+├── docker-compose.yml
+├── Dockerfile
+├── pyproject.toml
+├── pytest.ini
+├── mypy.ini
+├── uv.lock
+└── README.md
+```
+
+Rules:
+
+- `app/` is the only active application package.
+- Do not add new code to `src/`.
+- Tests must mirror the `app/` subpackage they validate.
+- Runtime business logic belongs in `domain/`, `guardrails/`, or `services/`, not in route handlers.
+- AI agents must orchestrate existing deterministic logic instead of duplicating strategy, risk, or execution rules.
 
 ---
 
-## 🛠️ Tech Stack & Standards
+## Tech Stack & Standards
 
 ### Core Technologies
 
-| Component | Technology | Version |
-| --------- | ---------- | ------- |
-| **Language** | Python | 3.12+ |
-| **Package Manager** | UV | Latest |
-| **Web Framework** | FastAPI | 0.111+ |
-| **Async Runtime** | AsyncIO | Built-in |
-| **Database** | PostgreSQL | 16+ |
-| **ORM** | SQLAlchemy | 2.0+ |
-| **ML Framework** | XGBoost | 3.0+ |
-| **Data Processing** | Pandas, NumPy | Latest stable |
-| **Testing** | Pytest | 9.0+ |
-| **Linting** | Ruff | 0.8+ |
-| **Type Checking** | MyPy | 1.10+ |
-| **Containerization** | Docker & Docker Compose | Latest |
-| **Dashboard** | Streamlit | 1.28+ |
-| **Exchange API** | Python-Binance | 1.0+ |
+| Component | Technology | Project Standard |
+| --------- | ---------- | ---------------- |
+| Language | Python | 3.12+ |
+| Package Manager | uv | Use `pyproject.toml` and `uv.lock` |
+| API | FastAPI, Uvicorn | `app.main:app` |
+| Database | PostgreSQL | SQLAlchemy 2.0 ORM |
+| Migrations | Alembic | `alembic/versions` |
+| Workers | Celery, Redis | Scheduled trading jobs |
+| ML | XGBoost, scikit-learn | Model service and training service |
+| Data | Pandas, NumPy | Feature and market data pipelines |
+| Dashboard | Streamlit | `app/frontend/streamlit_app.py` |
+| Exchange | python-binance | Wrapped by services |
+| Trading Agent | LangGraph | Stateful trading workflow |
+| Research Agent | LlamaIndex | Planned RAG/knowledge workflow |
+| Testing | Pytest | Mirrored test structure |
+| Linting | Ruff | Required before commit |
+| Type Checking | MyPy | Required for touched modules |
+| Containers | Docker Compose | API, workers, beat, db, redis |
 
 ### Code Style Standards
 
-**1. Type Hinting (MANDATORY):**
+**1. Type Hinting Is Required**
 
 ```python
-# ✅ CORRECT
-def calculate_position_size(
-    balance: float,
-    risk_percent: float
-) -> float:
+def calculate_position_size(balance: float, risk_percent: float) -> float:
     """Calculate position size based on risk percentage."""
     return balance * (risk_percent / 100)
-
-# ❌ WRONG
-def calculate_position_size(balance, risk_percent):
-    return balance * (risk_percent / 100)
 ```
 
-**2. Docstrings (Google-style, REQUIRED):**
+Do not add untyped production functions unless there is a clear compatibility reason.
+
+**2. Docstrings Are Required For Public APIs**
 
 ```python
-def fetch_market_data(symbol: str, interval: str = "1h") -> dict:
-    """Fetch OHLCV data from Binance.
-    
-    Args:
-        symbol: Trading pair symbol (e.g., 'BTCUSDT')
-        interval: Timeframe ('1h', '4h', '1d', etc.)
-        
-    Returns:
-        Dictionary containing OHLCV data and metadata
-        
-    Raises:
-        BinanceAPIError: If exchange is unavailable
-        ValueError: If symbol is invalid
-        
-    Example:
-        >>> data = await fetch_market_data('BTCUSDT', '1h')
-        >>> len(data['closes']) > 0
-        True
-    """
-    pass
+def fetch_market_data(symbol: str, interval: str = "1h") -> dict[str, object]:
+    """Fetch OHLCV data for a trading pair."""
+    ...
 ```
 
-**3. Async/Await (REQUIRED for I/O operations):**
+Keep docstrings practical. Explain why the function exists, not obvious line-by-line behavior.
+
+**3. Logging Must Use Project Logging**
 
 ```python
-# ✅ CORRECT - API calls are async
-async def place_order(symbol: str, side: str, quantity: float) -> dict:
-    """Place market order asynchronously."""
-    return await self.binance_client.place_market_order(symbol, side, quantity)
+from app.core.logging import get_logger
 
-# ❌ WRONG - Blocking call in async context
-async def place_order(symbol: str, side: str, quantity: float) -> dict:
-    return self.binance_client.place_market_order(symbol, side, quantity)  # Blocks!
+LOG = get_logger(__name__)
+LOG.info("Trade decision created. symbol=%s action=%s", symbol, action)
 ```
 
-**4. Error Handling (Specific exceptions, REQUIRED):**
+Do not use `print()` in production code.
+
+**4. Error Handling Must Be Specific**
 
 ```python
-# ✅ CORRECT
 try:
-    balance = await binance_manager.get_account_balance()
-except BinanceAPIError as e:
-    logger.error(f"Failed to fetch balance: {e}")
-    await notifier.send_alert(f"Balance fetch failed: {e}")
+    result = service.execute_market_trade(request)
+except ValueError as exc:
+    LOG.warning("Invalid trade request: %s", exc)
     raise
-except Exception as e:
-    logger.critical(f"Unexpected error: {e}")
-    raise
-
-# ❌ WRONG
-try:
-    balance = await binance_manager.get_account_balance()
-except:
-    print("Error!")
 ```
 
-**5. Logging (NOT print statements):**
+Avoid bare `except:` blocks.
 
-```python
-# ✅ CORRECT
-import logging
-logger = logging.getLogger(__name__)
+**5. Imports Must Follow Ruff**
 
-logger.info(f"Trading signal: {signal} for {symbol}")
-logger.warning(f"Low balance: ${balance}")
-logger.error(f"Order failed: {error}")
-
-# ❌ WRONG
-print(f"Trading signal: {signal}")
-print("Low balance!")
-```
-
-**6. PEP 8 Compliance:**
-
-- Line length: Maximum 100 characters (per `ruff` config)
-- Indentation: 4 spaces (never tabs)
-- Naming: `snake_case` for functions/variables, `PascalCase` for classes
-- Imports: Group stdlib, third-party, local (alphabetically)
+- Standard library imports first.
+- Third-party imports second.
+- First-party `app.*` imports last.
+- Run Ruff before committing.
 
 ---
 
-## ⚙️ Development Workflow
+## Development Workflow
 
-### 1. Dependency Management (UV)
+### 1. Dependency Management
 
-```bash
-# Add a new dependency
-uv pip install package-name
+Use `uv` and keep dependency changes reproducible.
 
-# Install development dependencies
-uv pip install -e ".[dev]"
-
-# Verify dependencies compile
-uv pip compile pyproject.toml
-
-# Sync environment with lock file
-uv pip sync requirements.txt
+```powershell
+uv add "package==version"
+uv add --dev "package==version"
+uv sync --all-extras
 ```
 
-**Rules:**
+Rules:
 
-- ✅ Always update `pyproject.toml` (not `requirements.txt` directly)
-- ✅ Pin versions for production dependencies
-- ✅ Use version ranges for dev dependencies (`>=1.0,<2.0`)
-- ❌ Never commit `requirements.txt` if managing via `pyproject.toml`
+- Add runtime dependencies to `pyproject.toml`.
+- Keep `uv.lock` updated when dependencies change.
+- Do not rely on packages installed only in `.venv`.
+- Pin production dependencies unless there is a deliberate reason not to.
+- If a dependency is experimental, prefer a dev extra or archived workflow.
 
-### 2. Testing (Pytest - MANDATORY)
+### 2. Testing
 
-```bash
-# Run all tests
-uv run pytest -v
+Run tests with the refactored layout.
 
-# Run specific test file
-uv run pytest tests/test_model_manager.py -v
-
-# Run with coverage report
-uv run pytest --cov=src --cov-report=html
-
-# Run specific test
-uv run pytest tests/test_settings.py::test_get_env_missing_required -v
+```powershell
+python -m pytest tests -q
+python -m pytest tests\agents -q --no-cov
+python -m pytest tests\api -q --no-cov
 ```
 
-**Requirements:**
+When Windows temp permissions interfere, use a workspace temp base.
 
-- ✅ All new features must have tests
-- ✅ Coverage target: **70%+ minimum**, **85%+ target**
-- ✅ All tests must pass before pushing
-- ✅ Use `pytest-mock` for mocking external APIs
-- ❌ No untested production code
+```powershell
+python -m pytest tests -q --basetemp=.pytest-tmp
+```
+
+Rules:
+
+- Every new production module needs tests.
+- Tests should live in the mirrored folder under `tests/`.
+- Avoid real exchange calls, live DB calls, and network calls in unit tests.
+- Use dependency overrides, fakes, or mocks for external systems.
+- Do not weaken tests to hide real bugs.
 
 ### 3. Code Quality Checks
 
-```bash
-# Format code with ruff
-uv run ruff format src/ tests/
-
-# Check for linting issues
-uv run ruff check src/ tests/
-
-# Type checking with mypy
-uv run mypy src/
-
-# Run all checks
-uv run pytest && uv run ruff format . && uv run mypy src/
+```powershell
+python -m ruff check app tests scripts alembic
+python -m pytest tests -q
+python -m mypy app\agents tests\agents --python-version 3.12 --ignore-missing-imports --strict-optional --no-incremental --show-error-codes --follow-imports=skip
 ```
 
-**Pre-commit:**
+Rules:
 
-```bash
-# All of these MUST pass before git push
-uv run pytest -v                    # 59+ tests passing
-uv run ruff format src/ tests/      # Code formatted
-uv run ruff check src/ tests/       # No linting errors
-uv run mypy src/                    # No type errors
+- Run Ruff on changed Python paths.
+- Run focused Pytest for changed modules.
+- Run focused MyPy for changed typed modules.
+- Full-project MyPy may be slower; focused MyPy is acceptable while refactoring, but do not ignore real type errors.
+
+### 4. Database Workflow
+
+Use Alembic for versioned schema changes.
+
+```powershell
+python -m alembic -c alembic.ini heads
+python -m alembic -c alembic.ini history
+python -m alembic -c alembic.ini revision --autogenerate -m "describe change"
+python -m alembic -c alembic.ini upgrade head
 ```
 
-### 4. Docker & Local Development
+Use `scripts/init_database.py` only as a local bootstrap helper.
 
-```bash
-# Build and start all services
-docker-compose up -d --build
-
-# View logs
-docker-compose logs -f bot
-
-# Stop services
-docker-compose down
-
-# Clean up volumes (WARNING: deletes data)
-docker-compose down -v
-
-# Run tests in Docker
-docker-compose run --rm test
+```powershell
+python -m scripts.init_database
 ```
 
-**Services:**
+Rules:
 
-- `db` (PostgreSQL 16) - Port 5432
-- `api` (FastAPI) - Port 8000
-- `streamlit` (Dashboard) - Port 8501
-- `bot` (Trading worker)
-- `test` (Pytest runner)
+- Use Alembic for production schema changes.
+- Do not edit applied migration files unless the migration has not been shared.
+- If tables already exist before Alembic, use `alembic stamp head` to baseline that database.
+- Model changes must include a migration and tests.
 
-### 5. Git Workflow
+### 5. Docker & Workers
 
-```bash
-# Create feature branch
-git checkout -b feature/new-indicator
-
-# Commit with conventional format
-git commit -m "feat: add MACD indicator calculation
-
-- Implement MACD calculation in feature_engineer.py
-- Add comprehensive tests for edge cases
-- Update technical_indicators() function"
-
-# Push and create PR
-git push origin feature/new-indicator
-
-# PR checks must pass:
-# ✅ CI/CD pipeline (pytest, mypy, ruff)
-# ✅ Code coverage maintained
-# ✅ All tests passing
+```powershell
+docker compose up -d --build
+docker compose logs -f api
+docker compose logs -f worker
+docker compose down
 ```
 
-**Commit Message Format (Conventional Commits):**
+Rules:
 
-```bash
-<type>(<scope>): <subject>
+- API startup belongs in Docker entrypoints.
+- Worker startup belongs in `app/workers` and Docker worker entrypoints.
+- Scheduler/beat behavior must be testable without requiring a live exchange.
 
-<body>
+### 6. Git Workflow
 
-<footer>
+Use focused commits.
+
+```powershell
+git status --short
+git add app tests alembic scripts pyproject.toml uv.lock
+git commit -m "feat: add langgraph trading agent workflow"
 ```
 
-Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `ci`, `chore`
+Rules:
+
+- Do not commit generated caches, coverage output, or local secrets.
+- Do not commit experimental scripts unless they are intentionally documented and tested.
+- Keep unrelated local changes out of the commit when possible.
 
 ---
 
-## 🤖 Trading & ML Specifics
+## Trading, ML, And AI-Agent Rules
 
-### 1. Feature Engineering Consistency (CRITICAL)
+### 1. Feature Engineering Consistency
 
-### Rule: Training and inference MUST use identical logic
-
-```python
-# ✅ CORRECT - Same function for both
-def calculate_indicators(df: pd.DataFrame) -> pd.DataFrame:
-    """Calculate indicators for both training and live inference."""
-    df['rsi'] = ta.momentum.rsi(df['close'], window=14)
-    df['macd'] = ta.trend.macd(df['close'])['macd_line']
-    return df
-
-# Training
-train_df = await load_historical_data(symbol, start_date, end_date)
-train_features = calculate_indicators(train_df)
-
-# Live
-live_df = await fetch_market_data(symbol, interval)
-live_features = calculate_indicators(live_df)  # SAME FUNCTION!
-```
-
-### 2. Model Versioning
+Training, backtesting, diagnostics, and live inference must use shared feature logic.
 
 ```python
-# Model storage: data/models/
-# Naming: <symbol>_<version>_<timestamp>.json
-# Example: BTCUSDT_v1.0_2026-02-19.json
+from app.tools.feature_engineer import calculate_technical_indicators
 
-# Latest model loading:
-model = model_manager.load_latest_model(symbol)
-
-# Version tracking in database for audit
+features = calculate_technical_indicators(market_data)
 ```
 
-### 3. Risk Management (MANDATORY)
+Do not create separate indicator logic for training and inference.
 
-```python
-# All orders must include:
-position_size = calculate_position_size(
-    balance=account_balance,
-    risk_percent=2.0  # Max 2% per trade
-)
+### 2. Strategy, Risk, Guardrails, Execution
 
-stop_loss = current_price * 0.98  # 2% below entry
-take_profit = current_price * 1.05  # 5% above entry
+The trading decision chain must remain deterministic.
 
-# NEVER place order without SL/TP validation
-assert position_size > 0, "Invalid position size"
-assert stop_loss < current_price, "Invalid stop loss"
-assert take_profit > current_price, "Invalid take profit"
+```text
+market data
+-> model prediction
+-> domain.trading_strategy
+-> domain.risk_management
+-> guardrails.trade_limits / safety_checks
+-> services.trade_execution_service
 ```
 
-### 4. Data Consistency
+Rules:
 
-**CRITICAL: Feature engineering must be identical for:**
+- Strategy creates a decision.
+- Risk management approves, rejects, or skips.
+- Guardrails provide final operational allow/block checks.
+- Execution service is the only layer that can place market orders.
+- API routes and agents must not place exchange orders directly.
 
-1. Historical data (training/backtesting)
-2. Live data (inference)
+### 3. LangGraph Trading Agent
 
-If they differ, the model will have **prediction skew** and perform poorly.
+The trading agent is an orchestrator, not the source of trading truth.
 
-```python
-# BAD - Different logic
-def train_features(df):
-    return df.rsi  # Missing normalization
+Allowed responsibilities:
 
-def inference_features(df):
-    return (df.rsi - 50) / 25  # Normalized
+- Summarize market context.
+- Explain model signal.
+- Create strategy proposal through domain functions.
+- Request human approval when required.
+- Run guardrails before execution.
+- Call execution service only when live execution is explicitly enabled.
 
-# GOOD - Shared function
-def engineer_features(df):
-    df['rsi_norm'] = (ta.rsi(df.close) - 50) / 25
-    return df
-```
+Forbidden responsibilities:
+
+- Bypassing risk management.
+- Bypassing guardrails.
+- Placing live trades directly through Binance.
+- Inventing position sizes outside `risk_management`.
+- Treating LLM output as final approval.
+
+### 4. Research Agent And Vector Store
+
+The research agent should use LlamaIndex and `app/vector_store` for read-heavy knowledge workflows.
+
+Allowed use cases:
+
+- Market reports.
+- Strategy notes.
+- Trading journal search.
+- News summaries.
+- SEC-style research.
+- Historical explanation and retrieval.
+
+Rules:
+
+- Research/RAG output is context, not trade approval.
+- Research agent must not execute trades.
+- Vector-store data should be versioned or rebuildable.
+- Keep retrieval code separate from live execution code.
+
+### 5. Human Approval
+
+Live trading must support human approval gates.
+
+Rules:
+
+- Live execution must be opt-in.
+- Risky or high-notional trades must require approval.
+- Approval decisions must be recorded in agent result metadata.
+- Missing approval should produce `NEEDS_APPROVAL`, not a live order.
 
 ---
 
-## 🔐 Security & Secrets Management
+## Security & Secrets Management
 
-### 1. Environment Variables (.env)
+### 1. Environment Variables
 
-```bash
-# ✅ CORRECT - .env is in .gitignore
-.env (NEVER committed)
-
-# Template for team:
-.env.example (ALWAYS committed, no secrets)
-```
-
-**Required variables:**
+Required secrets belong in `.env`, never in code.
 
 ```env
-# Exchange
+DATABASE_URL=postgresql://user:pass@localhost:5432/trading
 BINANCE_API_KEY=your_key_here
 BINANCE_API_SECRET=your_secret_here
-
-# Database
-DATABASE_URL=postgresql://user:pass@localhost:5432/crypto_bot
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=secure_password
-
-# Trading
-INITIAL_BALANCE=1000.0
-RISK_PERCENT=2.0
-
-# Notifications
+JWT_SECRET_KEY=change_me
 TELEGRAM_BOT_TOKEN=your_token_here
 TELEGRAM_CHAT_ID=your_chat_id_here
-
-# Environment
-ENV=development  # or production
-DEBUG=false
 ```
 
-### 2. API Key Rotation
+Rules:
 
-- Rotate keys monthly
-- Use read-only keys for data fetching
-- Trading keys require 2FA
-- Store in `.env` (never in code)
+- Commit `.env.example`, never `.env`.
+- Do not log tokens, API keys, or passwords.
+- Use separate dev, test, and production credentials.
+- Prefer read-only exchange keys for data-only workflows.
+- Never run live trading with test credentials accidentally.
 
-### 3. Database Credentials
+### 2. AI And External Providers
 
-- Use strong passwords (20+ chars, mixed case)
-- Store in `.env` only
-- Different credentials for dev/prod
-- Enable SSL for prod connections
+Rules:
 
----
-
-## 📝 Contribution Checklist
-
-Before submitting a PR, verify ALL of these:
-
-- [ ] **Tests**: Run `uv run pytest -v` → All pass
-- [ ] **Coverage**: Run `uv run pytest --cov=src` → 70%+ maintained
-- [ ] **Formatting**: Run `uv run ruff format src/ tests/`
-- [ ] **Linting**: Run `uv run ruff check src/ tests/` → No errors
-- [ ] **Type Checking**: Run `uv run mypy src/` → No errors
-- [ ] **Docstrings**: All functions have Google-style docstrings
-- [ ] **Type Hints**: All functions have type annotations
-- [ ] **Async/Await**: I/O operations use async/await
-- [ ] **Logging**: Errors logged (not printed)
-- [ ] **Error Handling**: Specific exceptions caught, not bare `except:`
-- [ ] **Dependencies**: Added to `pyproject.toml`, not installed locally only
-- [ ] **Documentation**: README/CONTRIBUTING updated if needed
-- [ ] **Secrets**: No API keys, passwords, or tokens in code
-- [ ] **Commit Messages**: Conventional format (`feat:`, `fix:`, etc.)
-- [ ] **Feature Branch**: Created from `main`, not working on main directly
+- Do not send secrets to LLM providers.
+- Do not send private keys, `.env`, or raw credentials to external AI APIs.
+- Archived AI enhancement scripts are reference-only and not active tooling.
+- New AI provider integrations must be opt-in, documented, and tested.
 
 ---
 
-## 🚨 Common Mistakes (DO NOT DO THESE)
+## Contribution Checklist
 
-| ❌ Wrong | ✅ Correct |
-| ------- | ----------- |
-| `def foo(x):` | `def foo(x: int) -> str:` |
-| `print("error")` | `logger.error("error")` |
-| `try: ... except:` | `try: ... except SpecificError as e:` |
-| `requests.get()` (blocking) | `await async_client.get()` (async) |
-| API key in code | API key in `.env` |
-| No tests | Comprehensive tests with `pytest` |
-| `ruff check` skipped | All linting passes |
-| `mypy` warnings ignored | Zero mypy errors |
-| Function with no docstring | Google-style docstrings required |
-| Mixing stdlib/local imports | Grouped, alphabetized imports |
+Before submitting a PR, verify:
+
+- [ ] Tests pass for changed modules.
+- [ ] Ruff passes for changed Python files.
+- [ ] MyPy passes for changed typed modules.
+- [ ] New app modules have mirrored tests.
+- [ ] New database model changes include Alembic migrations.
+- [ ] New dependencies are in `pyproject.toml` and `uv.lock`.
+- [ ] API routes use schemas and dependency injection.
+- [ ] Trading logic stays in domain, guardrails, or services.
+- [ ] Agents do not bypass guardrails or execution services.
+- [ ] No secrets are committed or logged.
+- [ ] README or docs are updated when behavior changes.
 
 ---
 
-## 📞 Questions or Clarifications?
+## Common Mistakes
+
+| Wrong | Correct |
+| ----- | ------- |
+| Adding new code under `src/` | Add active code under `app/` |
+| Route handler contains trading logic | Route calls service/domain layer |
+| Agent directly calls Binance | Agent calls guardrails and execution service |
+| LLM output approves a trade | Risk and guardrails approve the trade |
+| DB table changed without migration | Add an Alembic revision |
+| Test hits live Binance/Postgres | Use fake service, mock, or dependency override |
+| Installed dependency only in `.venv` | Add it to `pyproject.toml` and `uv.lock` |
+| `print()` in production code | Use project logger |
+| Broad `except:` | Catch specific exceptions |
+| Tests live in old flat layout | Tests mirror `app/` subfolders |
+
+---
+
+## Questions Or Clarifications
 
 If unclear on any standard:
 
-1. Check this document first
-2. Review `CONTRIBUTING.md` for contribution workflow
-3. Open an issue with `question` label
-4. Ask in PR comments
+1. Check this document first.
+2. Review `README.md` and `CONTRIBUTING.md`.
+3. Inspect the matching `tests/` folder for examples.
+4. Ask in PR comments or open a focused issue.
 
 ---
 
-## 📅 Last Updated
+## Last Updated
 
-**Date**: February 19, 2026
-**Version**: 3.0
-**Status**: Production-Ready
+**Date**: May 18, 2026
+
+**Version**: 4.0
+
+**Status**: Refactored app architecture with LangGraph trading-agent foundation

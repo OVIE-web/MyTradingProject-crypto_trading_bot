@@ -1,75 +1,41 @@
 services:
-  # ==========================
-  # 🗄️ Database Service (PostgreSQL)
-  # ==========================
   db:
     image: postgres:16-alpine
     container_name: tradingbot_postgres
     environment:
-      # ⚠️ CRITICAL: Load from .env file, NEVER hardcode credentials
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      # PostgreSQL settings
-      POSTGRES_INITDB_ARGS: "-c max_connections=100"
+      POSTGRES_DB: ${POSTGRES_DB:-trading}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} || exit 1",
-        ]
-      interval: 5s
-      timeout: 3s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-trading}"]
+      interval: 10s
+      timeout: 5s
       retries: 5
-      start_period: 10s
     networks:
       - trading_network
     restart: unless-stopped
-    labels:
-      - "com.example.description=Trading Bot PostgreSQL Database"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
 
-  # ==========================
-  # 📊 PgAdmin 4 (Database UI)
-  # ==========================
-  # ⚠️ WARNING: PgAdmin should ONLY be used in development
-  # Remove this service in production or place behind authentication
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: tradingbot_pgadmin
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
-      PGADMIN_CONFIG_PROXY_X_FOR_COUNT: 1
-      PGADMIN_CONFIG_PROXY_X_PROTO_COUNT: 1
-      # Disable telemetry
-      PGADMIN_CONFIG_TELEMETRY_ENABLED: "false"
+  redis:
+    image: redis:7-alpine
+    container_name: tradingbot_redis
     ports:
-      - "${PGADMIN_PORT:-5050}:80"
-    depends_on:
-      db:
-        condition: service_healthy
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - trading_network
     restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
 
-  # ==========================
-  # 🔐 API Server (FastAPI)
-  # ==========================
   api:
     build:
       context: .
@@ -79,162 +45,166 @@ services:
     env_file:
       - .env
     environment:
-      # ⚠️ Load DATABASE_URL from .env, never hardcode credentials
-      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
-      # Application settings
-      ENVIRONMENT: ${ENVIRONMENT:-development}
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      ENV: docker
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-trading}
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      MODEL_SAVE_PATH: /app/models/xgboost_model.json
+      MODEL_METADATA_PATH: /app/models/xgboost_model_metadata.json
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     ports:
       - "${API_PORT:-8000}:8000"
+    volumes:
+      - ./logs:/app/logs
+      - models_data:/app/models
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - ./src:/app/src:ro
-      - ./logs:/app/logs
-      - models_data:/app/src/models:ro
-    networks:
-      - trading_network
-    restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 30s
+    networks:
+      - trading_network
+    restart: unless-stopped
 
-  # ==========================
-  # 📈 Streamlit Dashboard
-  # ==========================
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: worker
+    container_name: tradingbot_scheduler
+    env_file:
+      - .env
+    environment:
+      ENV: docker
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-trading}
+      MODEL_SAVE_PATH: /app/models/xgboost_model.json
+      MODEL_METADATA_PATH: /app/models/xgboost_model_metadata.json
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      BOT_INTERVAL_SECONDS: ${BOT_INTERVAL_SECONDS:-60}
+    volumes:
+      - ./logs:/app/logs
+      - models_data:/app/models
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - trading_network
+    restart: unless-stopped
+    profiles:
+      - scheduler
+
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: celery-worker
+    container_name: tradingbot_celery_worker
+    env_file:
+      - .env
+    environment:
+      ENV: docker
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-trading}
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      MODEL_SAVE_PATH: /app/models/xgboost_model.json
+      MODEL_METADATA_PATH: /app/models/xgboost_model_metadata.json
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - ./logs:/app/logs
+      - models_data:/app/models
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - trading_network
+    restart: unless-stopped
+    profiles:
+      - celery
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: celery-beat
+    container_name: tradingbot_celery_beat
+    env_file:
+      - .env
+    environment:
+      ENV: docker
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      BOT_INTERVAL_SECONDS: ${BOT_INTERVAL_SECONDS:-60}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+      celery-worker:
+        condition: service_started
+    networks:
+      - trading_network
+    restart: unless-stopped
+    profiles:
+      - celery
+
   streamlit:
     build:
       context: .
       dockerfile: Dockerfile
-      target: runtime
+      target: streamlit
     container_name: tradingbot_streamlit
     env_file:
       - .env
     environment:
-      # ⚠️ Load credentials from .env file
-      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
-      ENVIRONMENT: ${ENVIRONMENT:-development}
+      ENV: docker
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-trading}
+      MODEL_SAVE_PATH: /app/models/xgboost_model.json
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     ports:
       - "${STREAMLIT_PORT:-8501}:8501"
+    volumes:
+      - ./logs:/app/logs
+      - models_data:/app/models
     depends_on:
-      db:
-        condition: service_healthy
       api:
         condition: service_healthy
-    volumes:
-      - ./src:/app/src:ro
-      - ./logs:/app/logs
-      - models_data:/app/src/models:ro
-    command: >
-      streamlit run src/streamlit_app.py 
-      --server.port=8501 
-      --server.address=0.0.0.0 
-      --server.headless=true
-      --logger.level=${LOG_LEVEL:-info}
     networks:
       - trading_network
     restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    profiles:
+      - dashboard
 
-  # ==========================
-  # 🤖 Trading Bot Worker
-  # ==========================
-  bot:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: bot
-    container_name: tradingbot_worker
-    env_file:
-      - .env
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: tradingbot_pgadmin
     environment:
-      # ⚠️ Load credentials from .env file
-      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
-      # Trading configuration
-      ENVIRONMENT: ${ENVIRONMENT:-development}
-      BINANCE_API_KEY: ${BINANCE_API_KEY}
-      BINANCE_API_SECRET: ${BINANCE_API_SECRET}
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
     depends_on:
       db:
         condition: service_healthy
-      api:
-        condition: service_healthy
-    volumes:
-      - ./src:/app/src:ro
-      - ./logs:/app/logs
-      - models_data:/app/src/models:ro
     networks:
       - trading_network
-    restart: on-failure
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    restart: unless-stopped
+    profiles:
+      - dashboard
 
-  # ==========================
-  # 🧪 Testing Container
-  # ==========================
-  test:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: test
-    container_name: tradingbot_tests
-    env_file:
-      - .env
-    environment:
-      # ⚠️ Load credentials from .env file
-      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}_test"
-      ENVIRONMENT: test
-      LOG_LEVEL: DEBUG
-    depends_on:
-      db:
-        condition: service_healthy
-    volumes:
-      - ./src:/app/src:ro
-      - ./tests:/app/tests:ro
-      - ./coverage:/app/coverage
-      - models_data:/app/src/models:ro
-    networks:
-      - trading_network
-    # Note: Don't auto-start; use 'docker-compose run test'
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-# ==========================
-# 📦 Persistent Volumes
-# ==========================
 volumes:
   postgres_data:
-    driver: local
+  redis_data:
   models_data:
-    name: tradingbot_models
-    driver: local
 
-# ==========================
-# 🌐 Networks
-# ==========================
 networks:
   trading_network:
     driver: bridge

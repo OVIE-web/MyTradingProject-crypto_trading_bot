@@ -1,3 +1,5 @@
+"""Trade execution service to coordinate guardrails, exchange execution, and persistence."""
+
 from __future__ import annotations
 
 import logging
@@ -187,7 +189,9 @@ class TradeExecutionService:
             price=Decimal(str(price)),
             confidence=_optional_decimal(metadata.get("confidence")),
             status=status,
-            order_id=_optional_str(order_response.get("orderId") or order_response.get("clientOrderId")),
+            order_id=_optional_str(
+                order_response.get("orderId") or order_response.get("clientOrderId")
+            ),
             fill_price=_optional_decimal(order_response.get("price")) or Decimal(str(price)),
             commission=_optional_decimal(order_response.get("commission")),
             commission_asset=_optional_str(order_response.get("commissionAsset")),

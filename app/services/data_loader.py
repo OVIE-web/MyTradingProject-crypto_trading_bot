@@ -1,4 +1,5 @@
-# app/services/data_loader.py
+"""Module: Data Loader to preprocessing historical cryptocurrency OHLCV data for ML model"""
+
 from __future__ import annotations
 
 import logging

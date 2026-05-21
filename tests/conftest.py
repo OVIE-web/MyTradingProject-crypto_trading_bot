@@ -15,10 +15,10 @@ from pytest import MonkeyPatch
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from src.db import Base
-from src.feature_engineer import calculate_technical_indicators  # avoid circular import
+from app.db import Base
+from app.tools.feature_engineer import calculate_technical_indicators  # avoid circular import
 
-# Insert repo root (one level up from tests/) so project `src` package can be imported
+# Insert repo root (one level up from tests/) so the project package can be imported.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 
@@ -41,12 +41,16 @@ def silence_deprecation_warnings() -> None:
         category=DeprecationWarning,
     )
 
+# tests/conftest.py
+@pytest.fixture(scope="session")
+def registered_routes(app):
+    return {route.path for route in app.routes}
 
 @pytest.fixture
 def mock_binance_client(monkeypatch: MonkeyPatch) -> Generator[MagicMock, Any, None]:
     """Mocks the Binance Client for tests."""
 
-    with patch("src.binance_manager.Client") as mock_client:
+    with patch("app.services.binance_service.Client") as mock_client:
         instance = MagicMock()
         mock_client.return_value = instance
         instance.ping.return_value = {}

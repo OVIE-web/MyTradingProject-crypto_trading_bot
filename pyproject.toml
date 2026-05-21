@@ -71,6 +71,7 @@ dependencies = [
     "aiohttp==3.13.3",
     "celery[redis]==5.6.3",
     "redis==6.4.0",
+    "langgraph==1.2.0",
 ]
 
 [project.optional-dependencies]
@@ -124,13 +125,13 @@ select = ["A", "E", "F", "I", "W", "UP"]
 ignore = ["E501"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["src"]
+known-first-party = ["app"]
 
 # ============================================================
 # 🔍 MYPY - Static Type Checking
 # ============================================================
 [tool.mypy]
-files = ["src", "tests"]
+files = ["app", "tests"]
 python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
@@ -164,7 +165,7 @@ addopts = "--tb=short --disable-warnings"
 # 📦 COVERAGE - Code Coverage Analysis
 # ============================================================
 [tool.coverage.run]
-source = ["src"]
+source = ["app"]
 branch = true
 omit = [
     "*/tests/*",

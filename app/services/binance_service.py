@@ -1,4 +1,5 @@
-# app/services/binance_service.py
+"""Binance service for fetching market data and placing orders"""
+
 from __future__ import annotations
 
 import logging

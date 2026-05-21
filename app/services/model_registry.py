@@ -1,4 +1,3 @@
-# app/services/model_registry.py
 """
 Model registry helper for storing trained model metadata.
 

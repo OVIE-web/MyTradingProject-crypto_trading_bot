@@ -14,15 +14,20 @@ import backoff
 import numpy as np
 import pandas as pd
 
-from app.core.config import ATR_WINDOW, FEATURE_COLUMNS, INITIAL_CANDLES_HISTORY
+from app.core.config import (
+    ATR_WINDOW,
+    FEATURE_COLUMNS,
+    INITIAL_CANDLES_HISTORY,
+    TRADE_INTERVAL,
+    TRADE_SYMBOL,
+)
 from app.db import SessionLocal
 from app.models.trade import Trade
 from app.services.binance_service import BinanceManager
 from app.services.model_service import load_trained_model, make_predictions
-from app.services.notifications.notifier import TelegramNotifier
+from app.services.notifications.notifier import TelegramNotifier, send_telegram_notification
 from app.services.notifications.notifier import send_email_notification as send_email_async_safe
 from app.services.notifications.notifier import send_email_notification as send_email_sync
-from app.services.notifications.notifier import send_telegram_notification
 from app.tools.feature_engineer import calculate_technical_indicators
 
 LOG = logging.getLogger("bot_runner")
@@ -156,7 +161,11 @@ async def do_iteration(resources: dict[str, Any]) -> None:
     try:
         limit = max(INITIAL_CANDLES_HISTORY, ATR_WINDOW + 5)
         LOG.info("Fetching OHLCV data fron Binance..")
-        candles = binance.get_latest_ohlcv("BTCUSDT", "4h", limit=limit)
+        candles = binance.get_latest_ohlcv(
+            TRADE_SYMBOL,
+            TRADE_INTERVAL,
+            limit=limit,
+        )
         LOG.info("OHLCV data fetched: shape=%s", candles.shape)
     except Exception as e:
         LOG.exception("Failed to fetch OHLCV data from Binance: %s", e)
@@ -213,7 +222,7 @@ async def do_iteration(resources: dict[str, Any]) -> None:
 
     LOG.info(f"Prediction result: signal={latest_signal}, confidence={latest_conf:.4f}")
 
-    symbol = "BTCUSDT"
+    symbol = TRADE_SYMBOL
 
     # === 5. Execute trades based on signal ===
     trade_result: dict[str, Any] | None = None

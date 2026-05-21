@@ -14,7 +14,13 @@ from app.schemas.prediction_schema import (
     PredictionResponse,
     ReloadModelResponse,
 )
-from app.schemas.trade_schema import TradeBase, TradeCreate, TradeDeleteResponse, TradeRead, TradeUpdate
+from app.schemas.trade_schema import (
+    TradeBase,
+    TradeCreate,
+    TradeDeleteResponse,
+    TradeRead,
+    TradeUpdate,
+)
 
 __all__ = [
     "CurrentUserResponse",

@@ -13,11 +13,8 @@ import xgboost as xgb
 from dotenv import load_dotenv
 from sklearn.exceptions import UndefinedMetricWarning
 
-from src.backtester import backtest_strategy
-from src.binance_manager import BinanceManager
-
 # -------------------- Imports --------------------
-from src.config import (
+from app.core.config import (
     DATA_FILE_PATH,
     FEATURE_COLUMNS,
     INITIAL_CANDLES_HISTORY,
@@ -27,6 +24,8 @@ from src.config import (
     TRADE_QUANTITY,
     TRADE_SYMBOL,
 )
+from src.backtester import backtest_strategy
+from src.binance_manager import BinanceManager
 from src.data_loader import load_and_preprocess_data
 from src.db import init_db
 from src.feature_engineer import calculate_technical_indicators, normalize_features
@@ -55,7 +54,7 @@ telegram_notifier = TelegramNotifier()
 
 
 # -------------------- Graceful Shutdown --------------------
-def shutdown_handler(signum: int, frame: Any) -> None:
+def shutdown_handler(signum: int, frame: typing.Any) -> None:
     logger.info("🛑 Shutdown signal received — cleaning up before exit...")
     sys.exit(0)
 

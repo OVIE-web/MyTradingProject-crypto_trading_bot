@@ -1,0 +1,120 @@
+from __future__ import annotations
+
+from app.agents import (
+    ApprovalPolicy,
+    HumanApproval,
+    TradingAgent,
+    TradingAgentRequest,
+    TradingAgentRunStatus,
+    run_trading_agent,
+)
+from app.domain.risk_management import AccountState
+from app.domain.signals import TradeAction
+from app.domain.trading_strategy import StrategyConfig
+from app.services.trade_execution_service import (
+    TradeExecutionRequest,
+    TradeExecutionResult,
+)
+
+
+def make_request(**overrides: object) -> TradingAgentRequest:
+    data = {
+        "symbol": "BTCUSDT",
+        "price": 100.0,
+        "model_signal": 1,
+        "model_confidence": 0.95,
+        "account": AccountState(cash_balance=10_000.0, peak_equity=10_000.0),
+        "requested_quantity": 2.0,
+        "market_context": {"rsi": 28, "trend": "uptrend"},
+        "approval_policy": ApprovalPolicy(require_for_notional_over=100_000.0),
+    }
+    data.update(overrides)
+    return TradingAgentRequest(**data)
+
+
+def test_trading_agent_holds_when_confidence_is_below_threshold() -> None:
+    request = make_request(
+        model_confidence=0.50,
+        strategy_config=StrategyConfig(confidence_threshold=0.80),
+    )
+
+    result = run_trading_agent(request, use_langgraph=False)
+
+    assert result.status == TradingAgentRunStatus.HOLD
+    assert result.action == TradeAction.HOLD
+    assert result.strategy_decision.reason == "confidence_below_threshold"
+    assert result.execution_result is None
+
+
+def test_trading_agent_requires_human_approval_for_large_dry_run_trade() -> None:
+    request = make_request(
+        requested_quantity=20.0,
+        approval_policy=ApprovalPolicy(require_for_notional_over=1_000.0),
+    )
+
+    result = TradingAgent(use_langgraph=False).run(request)
+
+    assert result.status == TradingAgentRunStatus.NEEDS_APPROVAL
+    assert result.approval_required is True
+    assert result.approval is not None
+    assert result.approval.approved is None
+    assert result.limit_decision is not None
+    assert result.limit_decision.reason == "human_approval_required"
+
+
+def test_trading_agent_allows_safe_trade_as_dry_run_without_execution() -> None:
+    request = make_request()
+
+    result = run_trading_agent(request, use_langgraph=False)
+
+    assert result.status == TradingAgentRunStatus.DRY_RUN
+    assert result.action == TradeAction.BUY
+    assert result.risk_decision.approved is True
+    assert result.limit_decision is not None
+    assert result.limit_decision.allowed is True
+    assert result.execution_result is None
+
+
+def test_trading_agent_executes_live_trade_only_after_human_approval() -> None:
+    class FakeExecutionService:
+        def __init__(self) -> None:
+            self.request: TradeExecutionRequest | None = None
+
+        def execute_market_trade(
+            self,
+            request: TradeExecutionRequest,
+        ) -> TradeExecutionResult:
+            self.request = request
+            return TradeExecutionResult(
+                success=True,
+                action=request.risk_decision.action,
+                symbol=request.symbol,
+                quantity=request.risk_decision.quantity,
+                price=request.price,
+                status="FILLED",
+                reason="trade_executed",
+            )
+
+    execution_service = FakeExecutionService()
+    request = make_request(
+        execute_live=True,
+        human_approval=HumanApproval(approved=True, reviewer="operator"),
+        approval_policy=ApprovalPolicy(require_for_live_trade=True),
+    )
+
+    result = TradingAgent(
+        execution_service=execution_service,  # type: ignore[arg-type]
+        use_langgraph=False,
+    ).run(request)
+
+    assert result.status == TradingAgentRunStatus.EXECUTED
+    assert result.execution_result is not None
+    assert result.execution_result.success is True
+    assert execution_service.request is not None
+    assert execution_service.request.symbol == "BTCUSDT"
+
+
+def test_trading_agent_reports_whether_langgraph_is_available() -> None:
+    agent = TradingAgent(use_langgraph=True)
+
+    assert isinstance(agent.uses_langgraph, bool)

@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import FastAPI, Request, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -87,7 +88,8 @@ def validation_exception_handler(
     exc: Exception,
 ) -> JSONResponse:
     """Return consistent JSON for request validation errors."""
-    details = exc.errors() if isinstance(exc, RequestValidationError) else []
+    raw_details = exc.errors() if isinstance(exc, RequestValidationError) else []
+    details = jsonable_encoder(raw_details)
     LOG.info("Validation error. path=%s errors=%s", _request_path(request), details)
 
     return JSONResponse(

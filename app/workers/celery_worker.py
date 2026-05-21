@@ -17,6 +17,22 @@ DEFAULT_BROKER_URL = "redis://localhost:6379/0"
 DEFAULT_RESULT_BACKEND = "redis://localhost:6379/1"
 
 
+def _get_env_int(key: str, default: int) -> int:
+    raw_value = os.getenv(key)
+    if raw_value is None:
+        return default
+
+    try:
+        value = int(raw_value)
+    except ValueError as exc:
+        raise ValueError(f"{key} must be an integer") from exc
+
+    if value < 1:
+        raise ValueError(f"{key} must be greater than 0")
+
+    return value
+
+
 def create_celery_app() -> Celery:
     """Create and configure the Celery app."""
     celery_app = Celery(
@@ -64,22 +80,6 @@ def run_trading_loop(interval_seconds: int | None = None) -> dict[str, Any]:
     LOG.info("Celery task started: run_trading_loop interval_seconds=%s", interval)
     asyncio.run(runner_loop(run_once=False, interval_seconds=interval))
     return {"ok": True, "interval_seconds": interval}
-
-
-def _get_env_int(key: str, default: int) -> int:
-    raw_value = os.getenv(key)
-    if raw_value is None:
-        return default
-
-    try:
-        value = int(raw_value)
-    except ValueError as exc:
-        raise ValueError(f"{key} must be an integer") from exc
-
-    if value < 1:
-        raise ValueError(f"{key} must be greater than 0")
-
-    return value
 
 
 __all__ = [

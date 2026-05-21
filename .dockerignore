@@ -1,66 +1,36 @@
-# =====================
-# 🧠 Python & build artifacts
-# =====================
+.git/
+.gitignore
+
+.venv/
+venv/
 __pycache__/
 *.py[cod]
 *.egg-info/
-.Python/
-dist/
-build/
-site/
-.venv/
-venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
 
-# =====================
-# 🧪 Tests, experiments, debug data
-# =====================
-tests/
-notebooks/
-*.ipynb
+.env
+.env.*
+!.env.example
 
-# =====================
-# 🧠 AI/ML artifacts
-# =====================
-*.pkl
-*.joblib
-*.h5
-*.pt
-*.onnx
-src/models/*.json
-
-# =====================
-# ⚙️ Logs, temporary files
-# =====================
 logs/
 *.log
 tmp/
 __tmp__/
-.DS_Store
 
-# =====================
-# 🔒 Secrets & credentials
-# =====================
-.env
-.env.*
-.env.local
-secrets/
-keys/
+notebooks/
+*.ipynb
 
-# =====================
-# 🧰 IDE/editor settings
-# =====================
-.vscode/
-.idea/
+models/*.pkl
+models/*.joblib
+models/*.h5
+models/*.pt
+models/*.onnx
 
-# =====================
-# 🌳 Git and version control
-# =====================
-.git/
-.gitignore
+data/
+coverage/
 
-# =====================
-# 🐋 Docker / CI/CD tooling
-# =====================
-docker-compose.yml
-docker-compose.override.yml
 Dockerfile.dev
+docker-compose.override.yml
