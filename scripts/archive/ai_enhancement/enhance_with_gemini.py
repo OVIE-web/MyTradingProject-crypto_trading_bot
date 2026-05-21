@@ -21,7 +21,7 @@ if not api_key:
     logger.error("Run: $env:GOOGLE_API_KEY = 'your-key'")
     sys.exit(1)
 
-logger.info(f"API Key found: {api_key[:10]}...")
+logger.info("GOOGLE_API_KEY is configured.")
 
 client = genai.Client(api_key=api_key)
 

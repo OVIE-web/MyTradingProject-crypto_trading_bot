@@ -26,7 +26,9 @@ def test_trade_base_normalizes_symbol_and_side() -> None:
 
 
 def test_trade_create_uses_shared_trade_validation() -> None:
-    trade = TradeCreate(symbol="eth-usdt", side="SELL", quantity=Decimal("0.2"), price=Decimal("3500"))
+    trade = TradeCreate(
+        symbol="eth-usdt", side="SELL", quantity=Decimal("0.2"), price=Decimal("3500")
+    )
 
     assert trade.symbol == "ETHUSDT"
     assert trade.side == "SELL"

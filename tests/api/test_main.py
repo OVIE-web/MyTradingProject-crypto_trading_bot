@@ -97,10 +97,6 @@ class TestApiStructure:
 
     def test_api_has_trades_router(self) -> None:
         """Test API includes trades router."""
-        route_paths = {
-            route.path
-            for route in app.routes
-            if isinstance(route, APIRoute)
-        }
+        route_paths = {route.path for route in app.routes if isinstance(route, APIRoute)}
 
         assert "/trades/" in route_paths

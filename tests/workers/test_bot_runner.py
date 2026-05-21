@@ -188,7 +188,9 @@ async def test_do_iteration_persists_actionable_trade(
     db = resources["db"]
 
     with (
-        patch("app.workers.bot_runner.calculate_technical_indicators", return_value=make_features()),
+        patch(
+            "app.workers.bot_runner.calculate_technical_indicators", return_value=make_features()
+        ),
         patch(
             "app.workers.bot_runner.make_predictions",
             return_value=(np.array([signal]), np.array([confidence])),
@@ -218,7 +220,9 @@ async def test_do_iteration_hold_signal_does_not_persist_trade(
     db = resources["db"]
 
     with (
-        patch("app.workers.bot_runner.calculate_technical_indicators", return_value=make_features()),
+        patch(
+            "app.workers.bot_runner.calculate_technical_indicators", return_value=make_features()
+        ),
         patch(
             "app.workers.bot_runner.make_predictions",
             return_value=(np.array([0]), np.array([0.55])),
@@ -291,7 +295,9 @@ async def test_do_iteration_stops_when_feature_frame_is_empty(
 @pytest.mark.asyncio
 async def test_do_iteration_stops_when_prediction_fails(resources: dict[str, object]) -> None:
     with (
-        patch("app.workers.bot_runner.calculate_technical_indicators", return_value=make_features()),
+        patch(
+            "app.workers.bot_runner.calculate_technical_indicators", return_value=make_features()
+        ),
         patch("app.workers.bot_runner.make_predictions", side_effect=ValueError("bad features")),
     ):
         await bot_runner.do_iteration(resources)
@@ -307,7 +313,9 @@ async def test_do_iteration_rolls_back_when_persistence_fails(
     db.commit.side_effect = RuntimeError("db down")
 
     with (
-        patch("app.workers.bot_runner.calculate_technical_indicators", return_value=make_features()),
+        patch(
+            "app.workers.bot_runner.calculate_technical_indicators", return_value=make_features()
+        ),
         patch(
             "app.workers.bot_runner.make_predictions",
             return_value=(np.array([1]), np.array([0.91])),

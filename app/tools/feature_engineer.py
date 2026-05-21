@@ -96,7 +96,9 @@ def normalize_features(df: DataFrame) -> DataFrame:
 
     binary_cols = [column for column in ("ma_cross", "signal") if column in df_norm.columns]
     exclude_cols = binary_cols + ["open", "high", "low", "close", "volume"]
-    numeric_cols = df_norm.select_dtypes(include=np.number).columns.difference(exclude_cols).tolist()
+    numeric_cols = (
+        df_norm.select_dtypes(include=np.number).columns.difference(exclude_cols).tolist()
+    )
 
     if not numeric_cols:
         LOG.warning("No numeric columns found for normalization")

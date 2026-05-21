@@ -41,10 +41,12 @@ def silence_deprecation_warnings() -> None:
         category=DeprecationWarning,
     )
 
+
 # tests/conftest.py
 @pytest.fixture(scope="session")
 def registered_routes(app):
     return {route.path for route in app.routes}
+
 
 @pytest.fixture
 def mock_binance_client(monkeypatch: MonkeyPatch) -> Generator[MagicMock, Any, None]:

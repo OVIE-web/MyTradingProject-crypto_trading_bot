@@ -142,7 +142,9 @@ def check_market_data_shape(
         return _failed("market_data_shape", "market_data_empty")
 
     missing_columns = [
-        column for column in safety_config.required_ohlcv_columns if column not in market_data.columns
+        column
+        for column in safety_config.required_ohlcv_columns
+        if column not in market_data.columns
     ]
     if missing_columns:
         return _failed(
@@ -186,7 +188,9 @@ def check_market_data_values(
     if not finite_mask.all().all():
         return _failed("market_data_values", "market_data_contains_non_finite_values")
 
-    price_columns = [column for column in ("open", "high", "low", "close") if column in numeric_data]
+    price_columns = [
+        column for column in ("open", "high", "low", "close") if column in numeric_data
+    ]
     if (numeric_data[price_columns] <= 0).any().any():
         return _failed("market_data_values", "market_data_contains_non_positive_prices")
 
