@@ -98,6 +98,7 @@ class TradingAgentResult:
     execution_result: TradeExecutionResult | None = None
     approval_required: bool = False
     approval: HumanApproval | None = None
+    operator_rationale: str | None = None
     messages: tuple[str, ...] = ()
     metadata: dict[str, Any] = field(default_factory=dict)
 

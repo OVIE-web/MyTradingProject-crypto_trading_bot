@@ -72,6 +72,7 @@ dependencies = [
     "celery[redis]==5.6.3",
     "redis==6.4.0",
     "langgraph==1.2.0",
+    "google-genai==2.6.0",
 ]
 
 [project.optional-dependencies]
