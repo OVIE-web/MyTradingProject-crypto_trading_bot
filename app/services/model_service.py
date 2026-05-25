@@ -1,4 +1,5 @@
-# app/services/model_service.py
+"""Model training, evaluation, and prediction services for the trading signal application."""
+
 from __future__ import annotations
 
 import json
@@ -23,6 +24,7 @@ from app.core.config import (
     TARGET_COLUMN,
     TEST_SIZE,
 )
+from app.services.mlflow_tracking import log_training_run
 from app.services.model_registry import create_registry
 
 LOG = logging.getLogger(__name__)
@@ -247,6 +249,13 @@ def train_xgboost_model(
         "evaluation": evaluation,
         "params": model.get_params(),
     }
+    metadata.update(
+        log_training_run(
+            model=model,
+            metadata=metadata,
+            model_path=save_path_obj,
+        )
+    )
 
     try:
         if USE_MODEL_REGISTRY:
